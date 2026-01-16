@@ -11,6 +11,8 @@ All notable changes to the VTOS Backend project.
 - Database `VTOSDatabase` created on SQL Server
 - `Microsoft.EntityFrameworkCore.Design` package (v8.0.0) to VTOS.API
 - Connection string configuration in `appsettings.Development.json`
+- `README.md` with database setup tutorial for team
+- `.gitignore` for .NET project (protects `appsettings.Development.json`)
 
 ### Infrastructure
 - Server: `DESKTOP-P5MIN4R\SQLEXPRESS`
