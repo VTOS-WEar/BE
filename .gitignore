@@ -1,0 +1,105 @@
+# =====================================================
+# VTOS Backend - .gitignore
+# =====================================================
+
+# =========================
+# User-specific files
+# =========================
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# =========================
+# Build results
+# =========================
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# =========================
+# Visual Studio
+# =========================
+.vs/
+*.csproj.user
+*.rsuser
+*.sln.iml
+
+# =========================
+# NuGet Packages
+# =========================
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+# =========================
+# Secrets & Sensitive Data (IMPORTANT!)
+# =========================
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+*.pfx
+*.key
+secrets.json
+
+# =========================
+# Project Management (Manager only)
+# =========================
+CHANGELOG.md
+
+# =========================
+# Entity Framework
+# =========================
+# Uncomment if you want to ignore migrations
+# **/Migrations/
+
+# =========================
+# IDE & Tools
+# =========================
+.idea/
+*.resharper
+_ReSharper.*/
+*.DotSettings.user
+.vscode/
+*.code-workspace
+
+# =========================
+# OS generated files
+# =========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Test Results
+# =========================
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# =========================
+# Publish
+# =========================
+publish/
+*.publish.xml
+
+# =========================
+# Misc
+# =========================
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+

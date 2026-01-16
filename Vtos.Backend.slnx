@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/docker/" />
+  <Folder Name="/src/">
+    <Project Path="VTOS.API/VTOS.API.csproj" />
+    <Project Path="VTOS.Application/VTOS.Application.csproj" />
+    <Project Path="VTOS.Domain/VTOS.Domain.csproj" />
+    <Project Path="VTOS.Infrastructure/VTOS.Infrastructure.csproj" />
+    <Project Path="VTOS.Shared/VTOS.Shared.csproj" />
+  </Folder>
+</Solution>

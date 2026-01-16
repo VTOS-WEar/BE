@@ -1,0 +1,428 @@
+CREATE TABLE [Role] (
+  [RoleID] uniqueidentifier PRIMARY KEY,
+  [RoleName] nvarchar(50) UNIQUE,
+  [Description] nvarchar(200),
+  [IsSystemRole] bit,
+  [CreatedAt] datetime
+)
+GO
+
+CREATE TABLE [User] (
+  [UserID] uniqueidentifier PRIMARY KEY,
+  [FullName] nvarchar(255),
+  [Email] varchar(255) UNIQUE,
+  [PasswordHash] varchar(512),
+  [Phone] varchar(30),
+  [RoleID] uniqueidentifier NOT NULL,
+  [IsActive] bit,
+  [IsDeleted] bit,
+  [CreatedAt] datetime,
+  [LastLogin] datetime
+)
+GO
+
+CREATE TABLE [School] (
+  [SchoolID] uniqueidentifier PRIMARY KEY,
+  [SchoolName] nvarchar(255),
+  [LogoURL] varchar(500),
+  [ContactInfo] nvarchar(500),
+  [CatalogID] uniqueidentifier,
+  [IsDeleted] bit,
+  [DeletedAt] datetime
+)
+GO
+
+CREATE TABLE [Children] (
+  [ChildID] uniqueidentifier PRIMARY KEY,
+  [ParentUserID] uniqueidentifier,
+  [FullName] nvarchar(255),
+  [Age] int,
+  [Grade] nvarchar(50),
+  [Gender] nvarchar(20),
+  [SchoolID] uniqueidentifier,
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [Outfit] (
+  [OutfitID] uniqueidentifier PRIMARY KEY,
+  [SchoolID] uniqueidentifier,
+  [OutfitName] nvarchar(255),
+  [Description] nvarchar(500),
+  [Price] decimal(18,2),
+  [OutfitType] nvarchar(100),
+  [MainImageURL] varchar(500),
+  [SizeChartID] uniqueidentifier,
+  [IsAvailable] bit,
+  [IsCustomizable] bit,
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [ProductVariant] (
+  [ProductVariantID] uniqueidentifier PRIMARY KEY,
+  [OutfitID] uniqueidentifier,
+  [Size] varchar(20),
+  [ColorVariant] nvarchar(50),
+  [MaterialType] nvarchar(100),
+  [StockQuantity] int,
+  [Price] decimal(18,2),
+  [SKUCode] varchar(64),
+  [VariantImageURL] varchar(500),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [SizeChart] (
+  [SizeChartID] uniqueidentifier PRIMARY KEY,
+  [ChartName] nvarchar(255),
+  [Description] nvarchar(500),
+  [Unit] nvarchar(20),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [SizeChartDetail] (
+  [DetailID] uniqueidentifier PRIMARY KEY,
+  [SizeChartID] uniqueidentifier,
+  [SizeLabel] nvarchar(50),
+  [ChestMin] decimal(6,2),
+  [ChestMax] decimal(6,2),
+  [WaistMin] decimal(6,2),
+  [WaistMax] decimal(6,2),
+  [HipMin] decimal(6,2),
+  [HipMax] decimal(6,2),
+  [HeightMin] decimal(6,2),
+  [HeightMax] decimal(6,2),
+  [OtherMeasurements] nvarchar(1000)
+)
+GO
+
+CREATE TABLE [Category] (
+  [CategoryID] uniqueidentifier PRIMARY KEY,
+  [CategoryName] nvarchar(255),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [OutfitCategory] (
+  [OutfitID] uniqueidentifier,
+  [CategoryID] uniqueidentifier,
+  PRIMARY KEY ([OutfitID], [CategoryID])
+)
+GO
+
+CREATE TABLE [TryOnHistory] (
+  [TryOnID] uniqueidentifier PRIMARY KEY,
+  [GuestSessionID] varchar(128),
+  [UserID] uniqueidentifier,
+  [ChildID] uniqueidentifier,
+  [OutfitID] uniqueidentifier,
+  [UploadedPhotoURL] varchar(500),
+  [ResultPhotoURL] varchar(500),
+  [TryOnTimestamp] datetime,
+  [AlignmentAdjustment] varchar(1000),
+  [SourcePlatform] varchar(50)
+)
+GO
+
+CREATE TABLE [AIFitAnalysis] (
+  [AnalysisID] uniqueidentifier PRIMARY KEY,
+  [TryOnID] uniqueidentifier,
+  [DetectedBodyProportions] varchar(1000),
+  [SuggestedSize] varchar(50),
+  [FitScore] int,
+  [AlgorithmVersion] varchar(50)
+)
+GO
+
+CREATE TABLE [OutfitRecommendation] (
+  [RecommendationID] uniqueidentifier PRIMARY KEY,
+  [UserID] uniqueidentifier,
+  [OutfitID] uniqueidentifier,
+  [RecommendationScore] decimal(5,2),
+  [RuleConfigID] uniqueidentifier
+)
+GO
+
+CREATE TABLE [Feedback] (
+  [FeedbackID] uniqueidentifier PRIMARY KEY,
+  [UserID] uniqueidentifier,
+  [OutfitID] uniqueidentifier,
+  [Rating] int,
+  [Comment] nvarchar(1000),
+  [Timestamp] datetime,
+  [ModerationStatus] varchar(20),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [Order] (
+  [OrderID] uniqueidentifier PRIMARY KEY,
+  [ChildrenID] uniqueidentifier,
+  [OrderDate] datetime,
+  [OrderStatus] nvarchar(30),
+  [TotalAmount] decimal(18,2),
+  [ShippingAddress] nvarchar(500),
+  [CampaignID] uniqueidentifier,
+  [DeliveryMethod] nvarchar(50),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [OrderItem] (
+  [OrderItemID] uniqueidentifier PRIMARY KEY,
+  [OrderID] uniqueidentifier,
+  [ProductVariantID] uniqueidentifier,
+  [Quantity] int,
+  [UnitPrice] decimal(18,2),
+  [SizeOrdered] varchar(20),
+  [IsCustomOrder] bit,
+  [CustomMeasurements] nvarchar(1000),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [PaymentTransaction] (
+  [PaymentID] uniqueidentifier PRIMARY KEY,
+  [OrderID] uniqueidentifier,
+  [GatewayType] varchar(50),
+  [TransactionStatus] nvarchar(30),
+  [Amount] decimal(18,2),
+  [TransactionTimestamp] datetime,
+  [TransactionLog] varchar(max),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [Invoice] (
+  [InvoiceID] uniqueidentifier PRIMARY KEY,
+  [OrderID] uniqueidentifier,
+  [IssueDate] datetime,
+  [InvoiceDataURL] varchar(500),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [Refund] (
+  [RefundID] uniqueidentifier PRIMARY KEY,
+  [PaymentID] uniqueidentifier,
+  [RefundAmount] decimal(18,2),
+  [RefundStatus] nvarchar(30),
+  [DisputeReason] nvarchar(500),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [Provider] (
+  [ProviderID] uniqueidentifier PRIMARY KEY,
+  [ProviderName] nvarchar(255),
+  [ContactPersonName] nvarchar(255),
+  [Phone] varchar(30),
+  [Email] varchar(255),
+  [Address] nvarchar(500),
+  [Status] varchar(20),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [Campaign] (
+  [CampaignID] uniqueidentifier PRIMARY KEY,
+  [SchoolID] uniqueidentifier,
+  [CampaignName] nvarchar(255),
+  [StartDate] datetime,
+  [EndDate] datetime,
+  [Status] nvarchar(20),
+  [Description] nvarchar(1000),
+  [IsDeleted] bit
+)
+GO
+
+CREATE TABLE [CampaignOutfit] (
+  [CampaignOutfitID] uniqueidentifier PRIMARY KEY,
+  [CampaignID] uniqueidentifier,
+  [OutfitID] uniqueidentifier,
+  [ProviderID] uniqueidentifier,
+  [CampaignPrice] decimal(18,2),
+  [MaxQuantity] int
+)
+GO
+
+CREATE TABLE [StudentDataImport] (
+  [ImportID] uniqueidentifier PRIMARY KEY,
+  [SchoolID] uniqueidentifier,
+  [StudentCode] varchar(50),
+  [FullName] nvarchar(255),
+  [Class] nvarchar(50),
+  [ParentPhone] varchar(30),
+  [DateOfBirth] datetime,
+  [IsRegistered] bit,
+  [MatchedChildID] uniqueidentifier
+)
+GO
+
+CREATE TABLE [ProductionBatch] (
+  [BatchID] uniqueidentifier PRIMARY KEY,
+  [CampaignID] uniqueidentifier,
+  [ProviderID] uniqueidentifier,
+  [BatchName] nvarchar(255),
+  [TotalQuantity] int,
+  [CreatedDate] datetime,
+  [Status] nvarchar(20),
+  [IsDeleted] bit
+)
+GO
+
+CREATE UNIQUE INDEX [Role_index_0] ON [Role] ("RoleName")
+GO
+
+CREATE INDEX [User_index_1] ON [User] ("IsDeleted")
+GO
+
+CREATE INDEX [School_index_2] ON [School] ("IsDeleted")
+GO
+
+CREATE INDEX [Children_index_3] ON [Children] ("IsDeleted")
+GO
+
+CREATE INDEX [Outfit_index_4] ON [Outfit] ("IsDeleted")
+GO
+
+CREATE INDEX [ProductVariant_index_5] ON [ProductVariant] ("IsDeleted")
+GO
+
+CREATE INDEX [SizeChart_index_6] ON [SizeChart] ("IsDeleted")
+GO
+
+CREATE INDEX [Category_index_7] ON [Category] ("IsDeleted")
+GO
+
+CREATE INDEX [Feedback_index_8] ON [Feedback] ("IsDeleted")
+GO
+
+CREATE INDEX [Order_index_9] ON [Order] ("IsDeleted")
+GO
+
+CREATE INDEX [OrderItem_index_10] ON [OrderItem] ("IsDeleted")
+GO
+
+CREATE INDEX [PaymentTransaction_index_11] ON [PaymentTransaction] ("IsDeleted")
+GO
+
+CREATE INDEX [Invoice_index_12] ON [Invoice] ("IsDeleted")
+GO
+
+CREATE INDEX [Refund_index_13] ON [Refund] ("IsDeleted")
+GO
+
+CREATE INDEX [Provider_index_14] ON [Provider] ("IsDeleted")
+GO
+
+CREATE INDEX [Campaign_index_15] ON [Campaign] ("IsDeleted")
+GO
+
+CREATE INDEX [ProductionBatch_index_16] ON [ProductionBatch] ("IsDeleted")
+GO
+
+EXEC sp_addextendedproperty
+@name = N'Table_Description',
+@value = 'Composite primary key',
+@level0type = N'Schema', @level0name = 'dbo',
+@level1type = N'Table',  @level1name = 'OutfitCategory';
+GO
+
+ALTER TABLE [User] ADD FOREIGN KEY ([RoleID]) REFERENCES [Role] ([RoleID])
+GO
+
+ALTER TABLE [Children] ADD FOREIGN KEY ([ParentUserID]) REFERENCES [User] ([UserID])
+GO
+
+ALTER TABLE [Children] ADD FOREIGN KEY ([SchoolID]) REFERENCES [School] ([SchoolID])
+GO
+
+ALTER TABLE [Outfit] ADD FOREIGN KEY ([SchoolID]) REFERENCES [School] ([SchoolID])
+GO
+
+ALTER TABLE [Outfit] ADD FOREIGN KEY ([SizeChartID]) REFERENCES [SizeChart] ([SizeChartID])
+GO
+
+ALTER TABLE [ProductVariant] ADD FOREIGN KEY ([OutfitID]) REFERENCES [Outfit] ([OutfitID])
+GO
+
+ALTER TABLE [SizeChartDetail] ADD FOREIGN KEY ([SizeChartID]) REFERENCES [SizeChart] ([SizeChartID])
+GO
+
+ALTER TABLE [OutfitCategory] ADD FOREIGN KEY ([OutfitID]) REFERENCES [Outfit] ([OutfitID])
+GO
+
+ALTER TABLE [OutfitCategory] ADD FOREIGN KEY ([CategoryID]) REFERENCES [Category] ([CategoryID])
+GO
+
+ALTER TABLE [TryOnHistory] ADD FOREIGN KEY ([UserID]) REFERENCES [User] ([UserID])
+GO
+
+ALTER TABLE [TryOnHistory] ADD FOREIGN KEY ([ChildID]) REFERENCES [Children] ([ChildID])
+GO
+
+ALTER TABLE [TryOnHistory] ADD FOREIGN KEY ([OutfitID]) REFERENCES [Outfit] ([OutfitID])
+GO
+
+ALTER TABLE [AIFitAnalysis] ADD FOREIGN KEY ([TryOnID]) REFERENCES [TryOnHistory] ([TryOnID])
+GO
+
+ALTER TABLE [OutfitRecommendation] ADD FOREIGN KEY ([UserID]) REFERENCES [User] ([UserID])
+GO
+
+ALTER TABLE [OutfitRecommendation] ADD FOREIGN KEY ([OutfitID]) REFERENCES [Outfit] ([OutfitID])
+GO
+
+ALTER TABLE [Feedback] ADD FOREIGN KEY ([UserID]) REFERENCES [User] ([UserID])
+GO
+
+ALTER TABLE [Feedback] ADD FOREIGN KEY ([OutfitID]) REFERENCES [Outfit] ([OutfitID])
+GO
+
+ALTER TABLE [Order] ADD FOREIGN KEY ([ChildrenID]) REFERENCES [Children] ([ChildID])
+GO
+
+ALTER TABLE [Order] ADD FOREIGN KEY ([CampaignID]) REFERENCES [Campaign] ([CampaignID])
+GO
+
+ALTER TABLE [OrderItem] ADD FOREIGN KEY ([OrderID]) REFERENCES [Order] ([OrderID])
+GO
+
+ALTER TABLE [OrderItem] ADD FOREIGN KEY ([ProductVariantID]) REFERENCES [ProductVariant] ([ProductVariantID])
+GO
+
+ALTER TABLE [PaymentTransaction] ADD FOREIGN KEY ([OrderID]) REFERENCES [Order] ([OrderID])
+GO
+
+ALTER TABLE [Invoice] ADD FOREIGN KEY ([OrderID]) REFERENCES [Order] ([OrderID])
+GO
+
+ALTER TABLE [Refund] ADD FOREIGN KEY ([PaymentID]) REFERENCES [PaymentTransaction] ([PaymentID])
+GO
+
+ALTER TABLE [Campaign] ADD FOREIGN KEY ([SchoolID]) REFERENCES [School] ([SchoolID])
+GO
+
+ALTER TABLE [CampaignOutfit] ADD FOREIGN KEY ([CampaignID]) REFERENCES [Campaign] ([CampaignID])
+GO
+
+ALTER TABLE [CampaignOutfit] ADD FOREIGN KEY ([OutfitID]) REFERENCES [Outfit] ([OutfitID])
+GO
+
+ALTER TABLE [CampaignOutfit] ADD FOREIGN KEY ([ProviderID]) REFERENCES [Provider] ([ProviderID])
+GO
+
+ALTER TABLE [StudentDataImport] ADD FOREIGN KEY ([SchoolID]) REFERENCES [School] ([SchoolID])
+GO
+
+ALTER TABLE [StudentDataImport] ADD FOREIGN KEY ([MatchedChildID]) REFERENCES [Children] ([ChildID])
+GO
+
+ALTER TABLE [ProductionBatch] ADD FOREIGN KEY ([CampaignID]) REFERENCES [Campaign] ([CampaignID])
+GO
+
+ALTER TABLE [ProductionBatch] ADD FOREIGN KEY ([ProviderID]) REFERENCES [Provider] ([ProviderID])
+GO

@@ -1,0 +1,26 @@
+using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
+
+namespace VTOS.Domain.Entities;
+
+/// <summary>
+/// Represents a child profile (student) in the system.
+/// Maps to the Children table in the database.
+/// </summary>
+public class ChildProfile : BaseEntity
+{
+    public Guid ParentUserID { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public int Age { get; set; }
+    public string Grade { get; set; } = string.Empty;
+    public Gender Gender { get; set; }
+    public Guid SchoolID { get; set; }
+    public bool IsDeleted { get; set; }
+
+    // Navigation properties
+    public User ParentUser { get; set; } = null!;
+    public School School { get; set; } = null!;
+    public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();
+}
