@@ -70,6 +70,28 @@
 
 ---
 
+## API Documentation
+
+| Document | Status | Description |
+|----------|--------|-------------|
+| [api_sheet.md](../api/api_sheet.md) | ✅ Complete | 66 endpoints across 12 modules |
+| [endpoints.md](../api/endpoints.md) | Draft | Original endpoint outline |
+
+---
+
+## Recommended Packages (Phase 3)
+
+| Package | Purpose |
+|---------|---------|
+| FluentValidation.AspNetCore | Request validation |
+| BCrypt.Net-Next | Password hashing |
+| System.IdentityModel.Tokens.Jwt | JWT tokens |
+| AutoMapper | Object mapping |
+| Serilog.AspNetCore | Logging |
+| Swashbuckle.AspNetCore | Swagger docs |
+
+---
+
 ## Last Updated
-**Date**: 2026-01-16
-**Changes**: Aligned all entities with DB.txt SQL schema (Role table, Provider rename, singular table names)
+**Date**: 2026-01-21
+**Changes**: Added comprehensive API Documentation Sheet (66 endpoints, 12 modules)

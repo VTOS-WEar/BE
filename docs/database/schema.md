@@ -73,5 +73,5 @@ Most tables have `IsDeleted` (bit) column with index for query filtering.
 ---
 
 ## Last Updated
-**Date**: 2026-01-16
-**Source**: `DB.txt` (SQL CREATE TABLE format)
+**Date**: 2026-01-22 (reviewed)
+**Source**: `DB.txt` (SQL CREATE TABLE format) - 26 tables verified

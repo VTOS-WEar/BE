@@ -4,6 +4,22 @@ All notable changes to the VTOS Backend project.
 
 ---
 
+## [2026-01-21] - API Documentation Sheet
+
+### Added
+- Comprehensive API Documentation Sheet (`docs/api/api_sheet.md`)
+  - 12 API modules designed
+  - 66 endpoints documented
+  - Full request/response schemas
+  - Error handling specifications
+  - NuGet package recommendations
+
+### Documentation
+- API Sheet includes: Endpoint, Description, Method, Input, Output, Errors, Notes, Packages
+- Modules: Authentication, Users, Children, Schools, Outfits, Try-On, Orders, Payments, Feedback, Categories, Providers, Campaigns
+
+---
+
 ## [2026-01-16] - Database Created
 
 ### Added
