@@ -6,6 +6,14 @@ All notable changes to the VTOS Backend project.
 
 ## [2026-01-22] - Documentation Review (/save_brain)
 
+### Added
+- Team Assignment Plan (`docs/TeamAssignment.md`)
+  - 5 team members phân công theo Actor: Guest/Auth, Parent, School, Supplier, Admin
+  - 60 Use Cases mapped to API endpoints
+  - Feature folder structure cho mỗi thành viên
+  - Shared Infrastructure ownership
+  - Sprint Plan và Git Workflow
+
 ### Verified
 - 24 entities in Domain layer (was documented as 22)
 - 8 enums in Domain layer
