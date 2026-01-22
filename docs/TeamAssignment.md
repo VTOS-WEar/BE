@@ -2,8 +2,6 @@
 
 ## Overview
 
-Phân chia công việc cho **5 Team Members** dựa trên **5 Actors** từ SRS document.
-
 | Member | Actor | Use Cases | Priority APIs |
 |--------|-------|-----------|---------------|
 | **KhoiNDQ + QuanNSH** | Guest + Auth | UC-01 → UC-04, UC-56 → UC-60 | Login, Register, TryOn Demo |
