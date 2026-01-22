@@ -41,7 +41,7 @@
 
 ---
 
-## Domain Entities (22 entities)
+## Domain Entities (24 entities)
 
 ### User & Organization
 - `Role`, `User`, `School`, `ChildProfile`
@@ -93,5 +93,5 @@
 ---
 
 ## Last Updated
-**Date**: 2026-01-21
-**Changes**: Added comprehensive API Documentation Sheet (66 endpoints, 12 modules)
+**Date**: 2026-01-22
+**Changes**: Corrected entity count (24 entities, not 22)

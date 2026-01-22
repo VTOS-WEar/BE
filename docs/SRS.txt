@@ -1,0 +1,4077 @@
+
+
+
+
+
+
+
+
+
+CAPSTONE PROJECT REPORT
+Report 3 – Software Requirement Specification
+
+
+
+
+
+
+
+
+
+– Danang, January 2026 –
+Table of Contents
+I. Record of Changes	4
+II. Software Requirement Specification	5
+1. Product Description	5
+2. User Requirements	6
+2.1 Actors	6
+2.2 Use Cases	7
+2.2.1 Diagram(s)	7
+2.2.1.1 Usecase Overview	7
+2.2.1.2 Usecase for Guest	8
+2.2.1.3 Usecase for Parent	9
+2.2.1.4 Usecase for Admin	10
+2.2.1.5 Usecase for School	11
+2.2.1.6 Usecase for Supplier	12
+2.2.2 Descriptions	12
+3. Functional Requirements	16
+3.1 System Functional Overview	16
+3.1.1 Screens Flow	16
+3.1.2 Screen Descriptions	17
+3.1.3 Screen Authorization	19
+3.1.4 Non-Screen Functions	21
+3.1.5 Entity Relationship Diagram	23
+3.2 Parent Feature	24
+3.3 Admin Feature	47
+3.4 Supplier Feature	59
+3.5 School Feature	63
+3.6 Guest Feature	71
+4. Non-Functional Requirements	76
+4.1 External Interfaces	76
+4.2 Quality Attributes	76
+4.2.1 Usability	76
+4.2.2 Reliability	76
+4.2.3 Performance	76
+4.2.4 Security	76
+4.2.5 Privacy	76
+5. Other Requirements	77
+5.1 Business Rules	77
+5.2 Common Requirements…	77
+5.3 Application Messages List…	77
+
+
+I. Record of Changes
+Date
+A*
+M, D
+In charge
+Change Description
+10/12/2025
+A
+ThanhNLD
+Initial structure created
+11/12/2025
+A
+ThanhNLD
+Added full Student, Parent, Admin, School, Payment feature sets, Business rules without requiring UI/UX sets
+21/12/2025
+M,D
+HuyenCTT
+Modify usecases for parent, remove actor Student
+25/12/2025
+A,M
+ThanhNLD
+Add usecases for admin and school, merge and modify usecases of parent
+29/12/2025
+M
+ThanhNLD
+Modify usecases for Parent, Admin, School, Supplier.
+30/12/2025
+A
+HuyenCTT
+Add usecase description for Supplier
+31/12/2025
+A
+ThanhNLD
+Add ERD description, Non-Screen Functional and Non-Functional Requirements
+6/1/2026
+A, M
+ThanhNLD
+Modify name and description of usecases for Admin; Add Usecase Description tables for Admin
+08/01/2026
+M
+HuyenCTT
+Modify usecase list for Parent
+08/01/2026
+M
+ThanhNLD
+Modify ERD description
+10/1/2026
+A
+QuanNSH
+Add usecase description detail for Guest
+17/1/2026
+A, M
+ThanhNLD
+Add Screen Flow Diagram, Screen Description, Screen Authorization; Modify Usecase Descrition of Admin Feature, Actor System to Supplier in Actor list
+18/1/2026
+A
+KhoiNDQ
+Add usecase description detail for School
+18/1/2026
+A
+TruyenVNG
+Add usecase description detail for Supplier
+20/1/2026
+M
+ThanhNLD, KhoiNDQ
+Modify Guest Feature, Supplier Feature and School Feature to match format; Modify Table of Contents 
+
+*A - Added M - Modified D - Deleted
+
+II. Software Requirement Specification
+1. Product Overview
+The Virtual Try-On Uniform System is a web-based platform that allows users—primarily students or online shoppers—to upload a personal photo and try on digital uniforms or outfits virtually. The system aims to improve the online shopping and uniform selection experience by allowing users to visualize how a uniform/outfit would look on them before making a purchase or selection decision.
+The system operates as an interactive web application where the user uploads an image, selects clothing items, adjusts the items (scale, position, rotation), and previews the final composite image. The system also provides an admin interface to manage outfits.
+Context Summary:
+Users interact with the system via a browser.
+
+
+The system receives image files from users.
+
+
+The system processes clothing overlays.
+
+
+Admin users upload and manage outfit assets (uniform images).
+
+
+Storage system manages uploaded user photos and outfit resources.
+
+2. User Requirements
+2.1 Actors
+
+#
+Actor
+Description
+1
+Admin
+Manages users, uniforms, system settings, reports, and analytics.
+2
+Parent
+Registers, uploads a child’s photo, tries uniforms, saves history, receives recommendations, manages child profiles, uploads child photos, purchases uniforms.
+3
+School Manager
+Manages school-specific uniforms, pricing, stock, reports.
+4
+Supplier
+Receives and manages production batches from schools, approves or rejects orders, updates production and delivery status, and maintains official business and capacity information for uniform manufacturing and fulfillment.
+5
+Guest
+Views system homepage and introduction, browses school list and uniform categories, views uniform details, searches and filters schools/uniforms, switches language, and experiences a limited virtual try-on demo before registering or logging in.
+6
+Payment Gateway (External System)
+Handles VNPay, MoMo, banking transactions.
+
+
+2.2 Use Cases
+2.2.1 Diagram(s)
+2.2.1.1. Usecase Overview
+
+
+2.2.1.2. Usecase for Guest
+
+2.2.1.3. Usecase for Parent
+
+
+2.2.1.4. Usecase for Admin
+
+2.2.1.4. Usecase for School Manager
+
+2.2.1.5. Usecase for Supplier
+
+
+
+2.2.2 Descriptions
+ID
+Use Case
+Actors
+Use Case Description
+UC-01
+Register
+Parent
+Parents register an account using a phone number.
+UC-02
+Login
+Parent, Admin, School Manager, Supplier
+User logs into the system
+UC-03
+Forget password
+Parent, Admin, School Manager, Supplier
+Users can reset their password when they forget it by verifying their registered email or account
+UC-04
+ Change Password
+Parent, Admin, School Manager, Supplier
+Users change their current password after logging in to improve account security.
+UC-05
+ View Personal Information
+ Parent
+View the parent's current account details, including contact information and linked profiles.
+UC-06
+Update Personal Information
+ Parent
+Edit the parent's personal details such as phone number, email, or address.
+UC-07
+Submit Verification Information
+ Parent
+Verify parent’s data based on the data provided by the school.
+UC-08
+ View Child Profile
+ Parent
+View the list of children registered under the parent account with their specific details.
+UC-09
+ Update Child Information
+ Parent
+Modify a child's attributes, such as age, grade, or body measurements, to ensure accurate sizing.
+UC-10
+ Confirm Child for Uniform Try-on
+ Parent
+Confirm the child’s information based on the data provided by the school.
+UC-11
+ Try-on Uniform
+ Parent
+Initiate the virtual try-on process to visualize how a selected outfit looks on a specific child.
+UC-12
+ Select Child Context
+ Parent
+Select which child profile to use for the current session to determine the correct school catalog and size recommendations.
+UC-13
+ Upload Child Photo
+ Parent
+Upload a full-body photo of the child for the system to process and use for the virtual try-on overlay.
+UC-14
+ Generate Try-on Result
+ Parent
+Trigger the AI system to process the uploaded photo and selected outfit to create a visual simulation.
+UC-15
+ Adjust Try-on Result
+ Parent
+Manually adjust the alignment or position of the outfit overlay on the child's photo for a better visual fit.
+UC-16
+ Save Try-on Result
+ Parent
+Save the generated try-on image to the user's account for future reference.
+UC-17
+ Download Try-on Image
+ Parent
+Download the resulting try-on image (possibly with a watermark) to the local device.
+UC-18
+ Share Try-on Result
+ Parent
+Share the try-on image via social media or messaging platforms.
+UC-19
+ View Try-on History
+ Parent
+Browse the history of previous try-on sessions and generate images for a specific child.
+UC-20
+ View Uniform Detail
+ Parent
+View detailed information about a specific uniform, including price, material, and size charts.
+UC-21
+ Add Uniform to Cart
+ Parent
+Add a selected uniform product to the shopping cart for the currently selected child context.
+UC-22
+ Review Cart
+ Parent
+Review the list of items in the cart, verifying quantities and sizes before proceeding to checkout.
+UC-23
+ Place Uniform Order
+ Parent
+Confirm the order details and proceed to the final checkout process.
+UC-24
+ Make Payment
+ Parent
+Complete the financial transaction using integrated gateways like VNPay or MoMo,.
+UC-25
+ Track Order Status
+ Parent
+Monitor the current status of an order, such as "Processing," "Shipping," or "Delivered".
+UC-26
+ View Order History
+ Parent
+View a log of all past orders made by the parent account.
+UC-27
+ Request Refund
+ Parent
+Submit a request for a refund in cases of late delivery, defects, or incorrect sizes, requiring evidence
+UC-28
+Give feedback
+Parent
+Parents provide feedback on products or services.
+UC-29
+Approve School Account
+Admin
+Admin approves school accounts after verifying official school email information.
+UC-30
+Approve Supplier Account
+Admin
+Admin approves supplier accounts based on supplier email submitted by the school.
+UC-31
+Suspend User Account
+Admin
+Admin creates and manages official school profiles in the system.
+UC-32
+Register School Profile
+Admin
+Admin creates and manages official school profiles in the system.
+UC-33
+Verify School Information
+Admin
+Admin verifies school identity and email domain before activating the school profile.
+UC-34
+Publish Official Uniform Catalog
+Admin
+Admin publishes official school uniform catalogs after reviewing content and availability.
+UC-35
+Review Uniform Content
+Admin
+Admin reviews uniform images, descriptions, and metadata before publication.
+UC-36
+Update Uniform Availability
+Admin
+Admin updates uniform availability based on supplier stock or school information.
+UC-37
+Review User Feedback
+Admin
+Admin reviews user feedback submitted for products and services.
+UC-38
+Remove Inappropriate Feedback
+Admin
+Admin removes feedback that is inappropriate or violates platform policies.
+UC-39
+Configure AI Try-on Rules
+Admin
+Admin configures system rules related to AI try-on and outfit recommendation behavior.
+UC-40
+View Dashboard Analytics
+Admin
+Admin views system analytics such as user activity, try-on sessions, and transactions.
+UC-41
+Generate System Reports
+Admin
+Admin generates system reports for monitoring usage, payments, and feedback.
+UC-42
+Maintain School Profile
+School Manager
+School manages and updates its official profile information, including school name, logo, contact details, address, and general settings used across the system.
+UC-43
+Import Student Data
+School Manager
+School uploads and imports student information in bulk (e.g., via Excel files).
+UC-44
+Publish Uniform Pre-order
+School Manager
+School opens a uniform pre-order campaign, defines ordering timelines, available uniforms, expected quantities, and allows parents to place orders within the defined period.
+UC-45
+View Parent Orders
+School Manager
+School views uniform orders placed by parents, including order details, quantities, sizes, payment status, and associated students.
+UC-46
+Track Pre-order Progress
+School Manager
+School monitors the progress of pre-orders, including confirmation status, production stages, delivery timelines, and overall campaign progress.
+UC-47
+Confirm Goods Received
+School Manager
+School confirms receipt of uniforms delivered by suppliers, records discrepancies if any, and updates inventory status.
+UC-48
+Confirm Uniform Order
+School Manager
+School confirms aggregated uniform orders after the pre-order phase and submits official production requests.
+UC-49
+View Sales Reports
+School Manager
+School views sales statistics including total orders, revenue, item quantities, and campaign performance.
+UC-50
+View Feedback Reports
+School Manager
+School reviews summarized feedback and ratings from parents related to uniforms, sizes, quality, and overall satisfaction.
+UC-51
+Provide Supplier Information
+Supplier
+Allows the Supplier to view, provide, and update official business information including company name, address, contact details, and production capacity.
+UC-52
+Receive Production Order
+Supplier
+Allows the Supplier to receive production orders sent by Schools after the uniform pre-order phase is completed.
+UC-53
+Confirm Production Order
+Supplier
+Allows the Supplier to review a received production order and confirm or reject it based on production capacity and feasibility
+UC-54
+Produce Uniforms
+Supplier
+Allows the Supplier to manufacture uniforms according to a confirmed production order.
+UC-55
+Deliver Uniforms to School
+Supplier
+Allows the Supplier to deliver completed uniforms to the School after production is finished.
+UC-56
+View Homepage & System Introduction
+Guest
+ View the homepage, read the system introduction, and see main entry points (e.g., Try Demo / Sign in).
+UC-57
+View School List
+Guest
+Browse the list of schools
+UC-58
+View Uniform Categories
+Guest
+View uniform categories
+UC-59
+View Uniform Details
+Guest
+View uniform information such as images, description, sizes, material, rules, etc.
+UC-60
+Try-On Demo (Limited Virtual Try-On Experience)
+Guest
+Guest can try the try-on services
+
+
+3. Functional Requirements
+3.1 System Functional Overview
+3.1.1 Screens Flow
+
+
+3.1.2 Screen Descriptions
+
+#
+Feature
+Screen
+Description
+1
+Authentication
+LoginScreen
+Allows users to sign in using email and password with validation and error handling.
+2
+Authentication
+RegisterScreen
+Allows guests to create a new account using email and password and agree to system policies.
+3
+Authentication
+ResetPasswordScreen
+Enables users to reset a forgotten password via email verification link.
+4
+GuestAction
+HomeScreen
+Displays system introduction, featured schools, uniforms, and entry points to browsing and try-on demo features.
+5
+GuestAction
+ChooseSchoolScreen
+Allows guests to browse and select a school to view available uniform collections.
+6
+GuestAction
+ViewProductScreen
+Displays a list of uniforms for the selected school with basic filtering and sorting options.
+7
+GuestAction
+ProductDetailScreen
+Shows detailed information of a selected uniform including images, sizes, descriptions, and try-on demo option.
+8
+GuestAction
+TryOnDemoScreen
+Provides a limited AI virtual try-on experience for guests (maximum 3 attempts).
+9
+Parent
+FillInformationScreen
+Allows parents to complete personal information such as full name and phone number after account registration.
+10
+Parent
+FindSchoolScreen
+Enables parents to search and select their child’s school to verify student enrollment information.
+11
+Parent
+ViewProductScreen
+Displays uniforms available for the verified school after successful student information confirmation.
+12
+Parent
+ProductDetailScreen
+Displays uniform details with options to add to cart or start AI virtual try-on.
+13
+Parent
+TryOnScreen
+Allows parents to upload a student photo, input height and weight, perform AI try-on, save size recommendations, share results, and proceed to purchase.
+14
+Order
+CartScreen
+Displays selected uniforms in the cart with quantity, size, price summary, and edit options.
+15
+Payment
+PaymentShipScreen
+Collects recipient information, shipping address, payment method, and discount codes for home delivery orders.
+16
+Payment
+PaymentSchoolScreen
+Allows parents to select a delivery schedule when choosing school-based uniform distribution.
+17
+Order
+OrderManagementScreen
+Displays all parent orders categorized by status: processing, delivering, completed, or canceled.
+18
+Order
+OrderDetailShipScreen
+Shows detailed order tracking information for home delivery orders.
+19
+Order
+OrderDetailSchoolScreen
+Displays order status and distribution timeline for school-based delivery orders.
+20
+UserProfile
+MyProfileScreen
+Allows parents to view and update personal profile information.
+21
+UserProfile
+AccountSecurityScreen
+Enables password changes and management of two-factor authentication settings.
+22
+UserProfile
+TwoFAScreen
+Allows users to configure and verify two-factor authentication methods.
+23
+UserProfile
+ChildManagementScreen
+Displays the list of registered children and allows basic management actions.
+24
+UserProfile
+ChildrenDetailScreen
+Allows parents to view and update detailed information of a selected child.
+25
+UserProfile
+TryOnHistoryScreen
+Displays the history of AI virtual try-on sessions performed by the parent.
+26
+UserProfile
+AccountSettingScreen
+Allows parents to manage notification preferences, language settings, and reminder options.
+27
+SchoolManagement
+SchoolProfileScreen
+Allows schools to view and update official school profile information.
+28
+SchoolManagement
+StudentListScreen
+Displays the list of students associated with the school.
+29
+SchoolManagement
+ImportDataScreen
+Allows schools to upload an Excel file containing student data.
+30
+SchoolManagement
+CheckPreviewScreen
+Displays imported student records, highlights errors, and allows data review before submission.
+31
+SchoolManagement
+ConfirmSaveScreen
+Allows schools to confirm and save verified student data into the system.
+32
+SchoolManagement
+UniformManagementScreen
+Enables schools to upload, edit, and manage uniform designs pending admin approval.
+33
+SchoolManagement
+OpenOrderScreen
+Allows schools to open uniform ordering periods for parents.
+34
+SchoolManagement
+DashboardScreen
+Displays statistics on orders, participating students, expected revenue, and order timelines.
+35
+SchoolManagement
+OrderManagementScreen
+Displays parent orders with payment and production status tracking.
+36
+SchoolManagement
+DistributionScreen
+Tracks uniform distribution progress, exchanges, and returns by class.
+37
+SchoolManagement
+ReportsStatisticsScreen
+Displays overall sales and uniform performance statistics.
+38
+SchoolManagement
+FeedbackScreen
+Displays satisfaction levels and feedback submitted by parents.
+39
+SchoolManagement
+ReportRevenueScreen
+Displays school financial reports, transaction history, and withdrawal records.
+40
+SchoolManagement
+ChooseSupplierScreen
+Displays approved suppliers and allows schools to select suppliers for production.
+41
+SchoolManagement
+SendSupplierScreen
+Allows schools to send production orders to selected suppliers.
+42
+SchoolManagement
+ReceivingGoodsIntoInventoryScreen
+Tracks received uniforms, discrepancies, and reconciliation with supplier orders.
+43
+AdminPanel
+AdminDashboardScreen
+Displays system-wide analytics, shortcuts, and key performance indicators.
+44
+AdminPanel
+SchoolApprovalScreen
+Allows admin to review and approve school account registration requests.
+45
+AdminPanel
+SupplierApprovalScreen
+Allows admin to review and approve supplier account registration requests.
+46
+AdminPanel
+UserManagementScreen
+Allows admin to manage user accounts, including suspension and reactivation.
+47
+AdminPanel
+SchoolProfileManagementScreen
+Allows admin to create, edit, and manage official school profiles.
+48
+AdminPanel
+SchoolVerificationScreen
+Allows admin to verify school identity and official email domains.
+49
+AdminPanel
+UniformReviewScreen
+Allows admin to review uniform images, descriptions, and metadata before publication.
+50
+AdminPanel
+UniformCatalogPublishScreen
+Allows admin to publish approved uniform catalogs for schools.
+51
+AdminPanel
+UniformAvailabilityScreen
+Allows admin to update uniform availability based on stock information.
+52
+AdminPanel
+FeedbackListScreen
+Displays all user feedback submitted for products and services.
+53
+AdminPanel
+FeedbackModerationScreen
+Allows admin to remove or moderate inappropriate feedback.
+54
+AdminPanel
+AIConfigurationScreen
+Allows admin to configure AI try-on and recommendation rules.
+55
+AdminPanel
+SystemReportScreen
+Allows admin to generate system usage, payment, and feedback reports.
+56
+SupplierPanel
+ProductionBatchListScreen
+Displays new production batches sent by schools awaiting supplier approval.
+57
+SupplierPanel
+ProductionBatchDetailScreen
+Displays detailed information of a production batch with approve or reject options.
+58
+SupplierPanel
+BatchStatusUpdateScreen
+Allows suppliers to update the processing status of an approved batch.
+59
+SupplierPanel
+BatchHistoryScreen
+Displays the history of completed, delivered, or rejected production batches.
+60
+SupplierPanel
+SupplierProfileScreen
+Displays supplier business information and contact details.
+61
+SupplierPanel
+SupplierProfileEditScreen
+Allows suppliers to update business profile, address, and production capacity.
+
+
+3.1.3 Screen Authorization
+
+Screen
+Guest
+Parent
+School
+Supplier
+Admin
+LoginScreen
+X
+X
+X
+X
+X
+RegisterScreen
+X
+
+
+
+
+
+
+
+
+ResetPasswordScreen
+X
+X
+X
+X
+X
+Submit authentication data
+
+
+X
+X
+X
+X
+HomeScreen
+X
+X
+X
+X
+X
+ChooseSchoolScreen
+X
+X
+
+
+
+
+
+
+ViewProductScreen
+X
+X
+
+
+
+
+
+
+ProductDetailScreen
+X
+X
+
+
+
+
+
+
+TryOnDemoScreen
+X
+
+
+
+
+
+
+
+
+Perform AI try-on (limited)
+X
+
+
+
+
+
+
+
+
+TryOnScreen
+
+
+X
+
+
+
+
+
+
+CartScreen
+
+
+X
+
+
+
+
+
+
+PaymentShipScreen
+
+
+X
+
+
+
+
+
+
+PaymentSchoolScreen
+
+
+X
+
+
+
+
+
+
+OrderManagementScreen
+
+
+X
+
+
+
+
+
+
+OrderDetailShipScreen
+
+
+X
+
+
+
+
+
+
+OrderDetailSchoolScreen
+
+
+X
+
+
+
+
+
+
+ParentProfileScreen
+
+
+X
+
+
+
+
+
+
+ChildManagementScreen
+
+
+X
+
+
+
+
+
+
+ChildrenDetailScreen
+
+
+X
+
+
+
+
+
+
+TryOnHistoryScreen
+
+
+X
+
+
+
+
+
+
+AccountSecurityScreen
+
+
+X
+
+
+
+
+
+
+TwoFAScreen
+
+
+X
+
+
+
+
+
+
+AccountSettingScreen
+
+
+X
+
+
+
+
+
+
+SchoolProfileScreen
+
+
+
+
+X
+
+
+
+
+StudentListScreen
+
+
+
+
+X
+
+
+
+
+ImportDataScreen
+
+
+
+
+X
+
+
+
+
+CheckPreviewScreen
+
+
+
+
+X
+
+
+
+
+ConfirmSaveScreen
+
+
+
+
+X
+
+
+
+
+UniformManagementScreen
+
+
+
+
+X
+
+
+
+
+OpenOrderScreen
+
+
+
+
+X
+
+
+
+
+OrderManagementScreen
+
+
+
+
+X
+
+
+
+
+DistributionScreen
+
+
+
+
+X
+
+
+
+
+DashboardScreen
+
+
+
+
+X
+
+
+
+
+ReportsStatisticsScreen
+
+
+
+
+X
+
+
+
+
+FeedbackScreen
+
+
+
+
+X
+
+
+
+
+ReportRevenueScreen
+
+
+
+
+X
+
+
+
+
+ChooseSupplierScreen
+
+
+
+
+X
+
+
+
+
+SendSupplierScreen
+
+
+
+
+X
+
+
+
+
+ReceivingGoodsIntoInventoryScreen
+
+
+
+
+X
+
+
+
+
+ProductionBatchListScreen
+
+
+
+
+
+
+X
+
+
+ProductionBatchDetailScreen
+
+
+
+
+
+
+X
+
+
+BatchStatusUpdateScreen
+
+
+
+
+
+
+X
+
+
+BatchHistoryScreen
+
+
+
+
+
+
+X
+
+
+SupplierProfileScreen
+
+
+
+
+
+
+X
+
+
+SupplierProfileEditScreen
+
+
+
+
+
+
+X
+
+
+SchoolApprovalScreen
+
+
+
+
+
+
+
+
+X
+SupplierApprovalScreen
+
+
+
+
+
+
+
+
+X
+UserManagementScreen
+
+
+
+
+
+
+
+
+X
+SchoolProfileManagementScreen
+
+
+
+
+
+
+
+
+X
+UniformReviewScreen
+
+
+
+
+
+
+
+
+X
+UniformCatalogPublishScreen
+
+
+
+
+
+
+
+
+X
+UniformAvailabilityScreen
+
+
+
+
+
+
+
+
+X
+FeedbackListScreen
+
+
+
+
+
+
+
+
+X
+FeedbackModerationScreen
+
+
+
+
+
+
+
+
+X
+AIConfigurationScreen
+
+
+
+
+
+
+
+
+X
+SystemReportScreen
+
+
+
+
+
+
+
+
+X
+
+
+3.1.4 Non-Screen Functions
+
+#
+Feature
+System Function
+Description
+1
+User Registration & Login
+Credential Validation Service
+Validates phone number, password, and role information during user registration and login processes.
+2
+User Management
+Account Status Management Service
+Automatically enforces account states such as active, suspended, or deactivated during login and system access.
+3
+Child Profile Management
+Child Data Processing Service
+Stores and updates child profile data and uploaded photos for use in AI Try-On and recommendation processes.
+4
+Try-On Process
+AI Try-On Processing Service
+Processes uploaded images, performs background segmentation, outfit alignment, and generates try-on result images.
+5
+Try-On History
+Try-On History Logging Service
+Automatically records try-on sessions, including images, timestamps, and related metadata.
+6
+Recommendation
+Outfit Recommendation Engine
+Calculates recommendation scores and suggests suitable outfits based on child profile, try-on data, and configured rules.
+7
+Recommendation Configuration
+Recommendation Rule Configuration Service
+Applies admin-defined parameters to control the behavior and weighting of AI recommendation algorithms.
+8
+Order Management
+Order Processing Service
+Creates orders, calculates totals, and updates order status throughout the purchasing lifecycle.
+9
+Payment
+Payment Integration Service
+Communicates with external payment gateways to process payments and return transaction results.
+10
+Inventory Management
+Stock Synchronization Service
+Automatically updates stock quantities after purchases, production updates, or supplier adjustments.
+11
+Feedback Management
+Feedback Moderation Service
+Applies moderation rules to user feedback and updates moderation status without direct user interaction.
+12
+Reporting
+Report Generation Service
+Aggregates system data to generate analytical reports for Admin, School Manager, and Supplier roles.
+13
+Student Data Management
+Student Data Matching Service
+Automatically matches imported student data from schools with existing child profiles.
+14
+Production Management
+Production Batch Workflow Service
+Manages production batch status transitions based on supplier actions (approve, reject, update).
+15
+Notification (Future-ready)
+System Notification Service
+Sends system notifications triggered by events such as order status changes or batch approvals.
+16
+Authentication
+JWT Token Issuer Service
+Issues and signs JWT tokens after successful user login.
+17
+Authentication
+Password Hashing Utility
+Hashes user passwords securely before saving to the database.
+
+
+3.1.5 Entity Relationship Diagram
+
+Entities Description
+#
+Entity
+Description
+1
+Role
+Defines system roles and access levels used to control user permissions and authorization within the system.
+2
+User
+Stores account information for all system users, including parents, administrators, school staff, and providers. Manages authentication credentials, role assignment, account status, and contact details.
+3
+School
+Represents a school organization participating in the system. Stores school identity, branding, contact information, and catalog association.
+4
+Children
+Stores personal and academic information of a child registered by a parent, including age, grade, gender, and associated school.
+5
+Outfit
+Represents a uniform or clothing item provided by a school, including pricing, availability, customization options, and size chart reference.
+6
+ProductVariant
+Defines specific variants of an outfit based on size, color, material, and SKU, including stock and pricing information.
+7
+SizeChart
+Represents a size chart used for fitting analysis, defining measurement standards for outfits.
+8
+SizeChartDetail
+Stores detailed measurement ranges for each size within a size chart, including chest, waist, hip, and height values.
+9
+Category
+Defines outfit categories (e.g., uniform type, season, gender-specific) used for organizing and filtering outfits.
+10
+OutfitCategory
+Represents the many-to-many relationship between outfits and categories.
+11
+TryOnHistory
+Records each virtual try-on session, including uploaded images, generated result images, timestamps, child reference, and source platform.
+12
+AIFitAnalysis
+Stores AI-generated body proportion analysis, suggested size, fit score, and algorithm version associated with a try-on session.
+13
+OutfitRecommendation
+Stores system-generated outfit recommendations for users based on AI analysis and configured recommendation rules.
+14
+Feedback
+Stores user ratings and comments related to outfits, including moderation status and soft deletion information.
+15
+Order
+Represents a purchase order created by a parent for a child, including order status, delivery method, campaign reference, and total amount.
+16
+OrderItem
+Stores individual items within an order, including selected product variants, quantity, size, pricing, and customization details.
+17
+PaymentTransaction
+Records payment transactions processed through external payment gateways, including transaction status, amount, and processing logs.
+18
+Invoice
+Stores invoice information generated for completed orders, including issue date and invoice document reference.
+19
+Refund
+Manages refund records linked to payment transactions, including refund status, amount, and dispute reason.
+20
+Provider
+Represents clothing providers responsible for supplying and producing uniforms for schools and campaigns.
+21
+Campaign
+Represents a school uniform campaign with a defined duration, status, description, and associated school.
+22
+CampaignOutfit
+Associates outfits with campaigns and providers, including campaign-specific pricing and quantity limits.
+23
+StudentDataImport
+Stores student data imported from schools to support bulk onboarding and matching with registered child profiles.
+24
+ProductionBatch
+Represents a production batch created for a campaign and provider, tracking manufacturing quantity, status, and lifecycle.
+
+
+3.2 Parent Feature
+3.2.1 View Personal Information
+
+Use Case ID
+UC-05
+USE CASE NAME
+View Personal Information
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+This use case allows a Parent to view detailed information of their current account, including contact details and basic personal settings.
+Priority:
+Medium
+Trigger:
+Parents click the “Profile” button on the main navigation bar and select “Account Information.”
+Preconditions:
+PRE-1: The Parent has successfully logged in to the system.
+PRE-2: The account status is Active.
+Post-Conditions:
+POST-1: The system displays the Account Information interface with all personal data retrieved from the database.
+Basic Flow:
+5.1 View Account Information tab
+The Parent clicks the “Profile” menu at the top-right corner of the screen.
+The system navigates to the default Profile page
+(or the user selects the “Account Information” tab from the left-side menu).
+The system displays the Personal Information form, including:
+Avatar (profile picture)
+Full Name
+Date of Birth (Day/Month/Year)
+Gender (Male / Female / Other)
+Email and Phone Number (with an Update button)
+ The Parent reviews the displayed information.
+Alternative Flow:
+5.2. Switch to Security Tab
+At Step 4, the Parent selects the “Security” tab.
+The system navigates to the Password Change / Security Settings screen.
+5.3. Missing Data
+If fields such as Date of Birth or Gender contain no data (null),
+The system displays empty or default values to indicate that the information needs to be updated.
+Exception:
+5.E1. Connection Error
+The system displays MSG10 and advises the user to try again later.
+
+3.2.2 Update Personal Information
+
+Use Case ID
+UC-06
+USE CASE NAME
+Update Personal Information
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+This use case allows a Parent to edit their personal profile details, specifically ensuring their name and contact phone number are accurate for delivery and support purposes
+Priority:
+Medium
+Trigger:
+The Parent clicks the "Update" button on the Profile page or proceeds through the initial information setup screen
+Preconditions:
+PRE-1: The Parent has successfully logged in to the system.
+PRE-2: The account status is Active.
+Post-Conditions:
+POST-1: The Parent's information (Name, Phone, Avatar) is updated in the database.
+POST-2: A success message is displayed to the user.
+Basic Flow:
+6.1 Update Information Process
+On the Account Information tab, the Parent modifies basic fields: Full Name (Text input), Date of Birth (Day/Month/Year dropdowns), and Gender (Radio buttons: Male/Female/Other). 
+Optionally, the Parent clicks the edit icon on the circular Avatar to upload a new picture. 
+The Parent clicks the Save Changes button located below the Gender selection. 
+The system validates the inputs (e.g., Name is not empty) and updates the basic profile information in the database.
+The system displays a success message.
+Alternative Flow:
+6.2.  Cancel Update
+The Parent clicks "Cancel" or navigates away, causing the system to discard any unsaved changes and revert to the previous data.
+6.3. Update Contact Information
+To change the Email or Phone Number, the Parent clicks the specific "Cập nhật" (Update) button located next to the respective field (which is read-only in the main view).
+The system triggers a separate flow (e.g., a modal or verification process) to handle the sensitive data change.
+6.4. Switch to Security Tab
+The Parent clicks the "Bảo mật" (Security) tab to manage passwords
+Exception:
+6.E1.  Invalid File Format/Size
+If the uploaded image violates BR-04, the system displays MSG02 or MSG08 and keeps the user on the edit screen.
+6.E2.  Missing Mandatory Fields
+If Name is left empty, the system highlights the missing fields in red and prevents submission.
+6.E3.  Connection Error
+If the database update fails, the system MSG11 and requests the user to try again later.
+
+3.2.3 Submit Verification Information
+
+Use Case ID
+UC-07
+USE CASE NAME
+Submit Verification Information
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Allows the Parent to update essential personal contact information (Full Name, Phone Number) and upload an avatar to verify their identity before proceeding to the school selection step.
+Priority:
+High
+Trigger:
+The Parent logs in for the first time or accesses the system without a complete profile.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2: The account is in an "Incomplete Profile" state (Step 1 of 2).
+Post-Conditions:
+POST-1: Parent's contact information is saved in the database. POST-2: The system navigates to the "Select School" interface (Step 2).
+Basic Flow:
+7.1. Submit Contact Details
+The system displays the "Parent Information" screen with the message: "To start the shopping experience, please update your contact info".
+The Parent clicks the camera icon or "Upload avatar" to select a profile picture.
+The system uploads and displays the selected image.
+The Parent enters "Parent's Full Name" (Parent's Full Name) in the text field.
+The Parent enters "Contact Phone Number" in the text field.
+The Parent reviews the note: "Phone number will be used for delivery and contacting the child". 
+The Parent clicks the "Continue: Select School" button.
+The system validates the input data.
+The system saves the information and redirects to the School Selection page.
+Alternative Flow:
+7.2. Skip Avatar Upload
+The Parent skips step 2 and 3 (leaves the default avatar).
+The Parent proceeds to fill in the text fields.
+The system accepts the default avatar and saves the profile.
+Exception:
+7.E1.  Missing Required Fields
+If the Parent leaves "Full Name" or "Phone Number" empty (marked with * red asterisk), the system highlights the fields in red and disables the "Continue" button.
+
+3.2.4 View Child Profile
+
+Use Case ID
+UC-08
+USE CASE NAME
+View Child Profile
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+This use case allows the Parent to view the list of children registered under their account, including key details (School, Class, Measurements) and data status indicators.
+Priority:
+High
+Trigger:
+The Parent clicks the Student Management button on the left-side navigation menu.
+Preconditions:
+PRE-1: The Parent has successfully logged in to the system.
+PRE-2: The account status is Active.
+Post-Conditions:
+POST-1: The system displays the Student Management screen with a list of child profiles.
+Basic Flow:
+8.1 Access Student Management
+The Parent selects the "Student Management" tab from the sidebar menu. The system navigates to the default Profile page
+The system retrieves the list of children linked to the parent's account from the database. 
+The system displays a dashboard containing profile cards for each child. 
+The system indicates the profile status (e.g., "Standard Measurements" in green or "Needs Update" in yellow) on each card.
+Alternative Flow:
+8.2.  No Children Registered
+If no child profiles exist, the system displays an empty state message and prompts the user to "Add New Profile" (Triggers UC-07).
+Exception:
+8.E1. Connection Error
+The system displays MSG10 and advises the user to try again later.
+
+3.2.5 Update Child Information
+
+Use Case ID
+UC-09
+USE CASE NAME
+Update Child Information
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+This use case allows the Parent to modify a child's attributes such as school, class, and body measurements to ensure the AI Try-On feature works accurately
+Priority:
+High
+Trigger:
+The Parent clicks the Update Info button on a specific child card in the Student Management screen.
+Preconditions:
+PRE-1: The Parent is logged in.
+PRE-2: The child profile exists in the system.
+Post-Conditions:
+POST-1: The child's data is updated in the database. 
+POST-2: The AI recommendation engine re-evaluates size suggestions based on new measurements.
+Basic Flow:
+9.1 Update Child Details
+The system displays the "Edit Information" form with current data pre-filled.
+The Parent modifies the available fields shown in the interface: Full Name, School, Class, Gender, Age, Height (cm), and Weight (kg).
+Optionally, the Parent clicks "Change Photo" to upload a new full-body image (Triggers UC-10).
+The Parent clicks the Save Changes button.
+The system validates the inputs (checking for empty mandatory fields and logical ranges for height/weight).
+The system saves the updates to the database and displays a success message.
+Alternative Flow:
+9.2.  Cancel Update
+The Parent clicks the Cancel button.
+The system discards changes and returns to the View Child Profile screen.
+Exception:
+9.E1.  Invalid Data
+If the Parent enters invalid measurements (e.g., negative Height/Weight) or leaves mandatory fields (Name, School) empty, the system highlights the fields in red and prevents saving. 
+9.E2. Update Failed
+ If a server error occurs, the system displays MSG11
+
+3.2.6 Select Child Context
+
+Use Case ID
+UC-12
+USE CASE NAME
+Select Child Context
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Allows the Parent to select a specific child profile to determine the appropriate school uniform catalog and size recommendations for the shopping or try-on session
+Priority:
+High
+Trigger:
+The Parent clicks the Try Now button on a child's profile card in the Student Management screen
+Preconditions:
+PRE-1: The Parent is logged in.
+PRE-2:  At least one child profile has been registered (displayed in the list).
+Post-Conditions:
+POST-1: The system activates the selected child's profile as the current session context.
+POST-2:  The user is redirected to the Virtual Try-on or Product List page filtered for that child's school and gender.
+Basic Flow:
+12.1 Select Context from Management Screen
+The system displays the "Student Management" screen.
+The system lists the registered profiles with summary details:
+- Avatar & Full Name (e.g., "Nguyen Van A").
+- School Name (e.g., "FPT Da Nang High School").
+- Class (e.g., "10A1").
+- Measurements: Height (cm) and Weight (kg).
+- Status Tag (e.g., "Standard measurements" - Standard Measurements).
+The Parent identifies the child they wish to shop for.
+The Parent clicks the "Try Now" button on that child's card.
+The system activates this child's profile as the current session context.
+The system navigates to the Try-On/Catalog interface.
+Alternative Flow:
+12.2. Switch Child Context on Product Page
+On the Product Detail screen, the Parent clicks the "Select Student" dropdown.
+The system displays a list of all registered children (e.g., "Nguyen Van A", "Be Bi").
+The Parent selects a different child profile.
+The system retrieves the new child's measurements (Height/Weight).
+The system automatically updates the Size Recommendation logic (e.g., highlighting "Size S" instead of "Size L" based on the new child's data).
+The system refreshes the "School" information field if the new child belongs to a different school (or shows a warning if the product is not compatible).
+Exception:
+12.E1.  Connection Failed
+If the system cannot set the context due to network issues, it displays MSG10
+
+
+3.2.7 Try-on Uniform
+
+Use Case ID
+UC-11
+USE CASE NAME
+ Try-on Uniform
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Initiate the virtual try-on process to visualize how a selected outfit looks on a specific child using AI technology.
+Priority:
+High
+Trigger:
+Parent clicks the Try On (VR) button on the Product Detail page.
+Parent clicks the Try Now button on the Product List card
+Preconditions:
+PRE-1: The Parent is logged in.
+PRE-2:  At least one child profile exists.
+PRE-3: A child has been selected as a child context
+Post-Conditions:
+POST-1:  The Try-On Modal opens.
+POST-2:  UC-11 is triggered to display the result.
+Basic Flow:
+11.1.  Initiate Try-on from Product Page
+The Parent clicks the Try On (VR) button.
+The system validates that the selected child profile contains a valid photo and body measurements.
+The system opens the Try-On Modal overlay.
+The system automatically triggers UC-11 to generate the visual result.
+Alternative Flow:
+11.2. Missing Photo
+If the child profile has no photo, the system displays a prompt and redirects the user to UC-10 (Upload Child Photo).
+Exception:
+11.E1.  No Child Selected
+If the user clicks "Try On (VR)" without selecting a student, the system alerts "Please select a student first".
+11.E2. System Error
+If the VR service is down, the system displays MSG01 (No outfits available)
+
+3.2.8 Confirm Child for Uniform Try-on
+
+Use Case ID
+UC-10
+USE CASE NAME
+Confirm Child for Uniform Try-on
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+School
+Description:
+Allows the Parent to verify their child's pre-imported profile from the school database and input body measurements (Height/Weight) to link the account and enable the Virtual Try-on feature.
+Priority:
+High
+Trigger:
+The Parent selects a specific school in the "Find School" interface during the registration or setup process.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2: The School has imported the student list into the system (UC-42).
+PRE-3: The Parent’s phone number matches the contact info in the school's database.
+Post-Conditions:
+POST-1: The Parent's account is successfully linked to the official Student Profile.
+POST-2: Body measurements are saved for AI Try-on.
+POST-3: User is redirected to the shopping interface.
+Basic Flow:
+10.1.   Select School and Verify Auto-filled Profile
+The system displays the "Find School" interface.
+The Parent selects the City (e.g., Da Nang) and District (e.g., Ngu Hanh Son District) from the dropdown menus.
+The Parents searches for and selects the correct school (e.g., "Vinschool Time City").
+The system automatically searches the school's database using the Parent's phone number.
+The system displays the "Student Info" panel with a green notification: "Profile found!..." (Profile found).
+The Parent reviews the pre-filled information: Full Name (e.g., Vo Gia Truyen), Block (e.g., Block 5), Class (e.g., 5A1), and Gender.
+The Parent inputs the required Height (cm) and Weight (kg) into the "MEASUREMENTS (FOR TRYING ON DRESS)" section.
+The Parent clicks the "Confirm & Shop" button.
+The system links the profile and redirects the user to the store.
+Alternative Flow:
+10.2.  Profile Not Found (Manual Entry)
+If the system cannot find a profile via phone number, it displays an empty form.
+The Parent manually enters the Student ID or details (Proceeds to UC-01/Register logic).
+Exception:
+10.E1. Connection Error
+If the system fails to retrieve school data or save the confirmation, it displays MSG11
+
+3.2.9 Upload Child Photo
+
+Use Case ID
+UC-13
+USE CASE NAME
+Upload Child Photo
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Upload a full-body photo of the child for the system to process and use for the virtual try-on overlay.
+Priority:
+High
+Trigger:
+Parent clicks the Upload Other button in the Try-On Modal
+Preconditions:
+PRE-1: The Parent is logged in.
+PRE-2:  The Try-On Modal is active. 
+PRE-3: A child has been selected as a child context
+Post-Conditions:
+POST-1:  Image is uploaded and background is removed.
+POST-2:  Try-on result is updated.
+Basic Flow:
+13.1. Upload and Process New Image
+The Parent clicks the Upload Other button
+The system opens the device's file picker dialog.
+The Parent selects an image file from the local device.
+The system validates the file format (JPG/PNG) and size (<10MB).
+The system uploads the image and triggers the AI Background Segmentation process.
+The system displays MSG03 (Image uploaded successfully.
+The system triggers UC-11 to re-apply the outfit on the new photo.
+Alternative Flow:
+13.2. Cancel File Selection
+The Parent clicks Upload Other but closes the file picker dialog without selecting a file.
+The system cancels the upload request.
+The system retains the previous image and the current try-on result.
+No changes are applied.
+Exception:
+13.E1. Invalid Format
+If the file is not an image, display MSG02.
+13.E2. File Too Large
+If file > 10MB, display MSG08.
+
+3.2.10 Generate Try-on Result
+
+Use Case ID
+UC-14
+USE CASE NAME
+ Generate Try-on Result
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+System (Triggered by Parent)
+Secondary Actor:
+None
+Description:
+Trigger the AI system to process the uploaded photo and selected outfit to create a visual simulation and recommend a size.
+Priority:
+High
+Trigger:
+Automatically triggered after UC-08 or UC-10.
+Preconditions:
+PRE-1: Child photo and body measurements (Height/Weight) are available.
+Post-Conditions:
+POST-1:  Composite image displayed
+POST-2:  Size recommendation displayed.
+Basic Flow:
+14.1. AI Processing and Display
+The system retrieves the child's photo and body measurements (e.g., 160cm, 50kg) displayed on the UI.
+The system overlays the selected outfit variant onto the body image using AI.
+The system calculates the fit percentage based on measurements.
+The system displays the composite image and the text: "Suggested Size... M ... 93% Suitable- Standard Form".
+The system displays MSG04 
+Alternative Flow:
+14.2. Auto-Switch to Best Fit Size
+The Parent selects "Size S" on the Product Detail page and enters Try-on.
+The AI calculates that "Size S" has a low fit score (<70%), while "Size M" has a high score (93%).
+The system automatically renders the image using Size M instead of S.
+The system highlights the recommendation: "Suggested Size: M (93% Suitable)".
+The user can manually switch back to S if desired (triggers regeneration).
+Exception:
+14.E1. AI Failure
+If image generation fails, display MSG01
+14.E2. Missing Measurements
+If height/weight are null, the system prompts the user to update the child's profile (UC-06).
+
+3.2.11 Adjust Try-on Result
+
+Use Case ID
+UC-15
+USE CASE NAME
+ Adjust Try-on Result
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Manually adjust the alignment or zoom level of the outfit overlay on the child's photo for a better view.
+Priority:
+Low
+Trigger:
+Parent interacts with the Zoom (+/-) or Undo/Redo arrows in the toolbar.
+Preconditions:
+PRE-1:  Try-on result is currently displayed.
+Post-Conditions:
+POST-1: The view in the modal is updated.
+Basic Flow:
+15.1.  Interactive Adjustment
+The Parent clicks the Magnifying Glass (+) icon to zoom in on fabric details.
+The system enlarges the image within the viewport.
+The Parent clicks the Back Arrow (Undo) icon.
+The system reverts the view to the previous state.
+Alternative Flow:
+15.2. Revert to Original State
+The Parent uses the "Zoom (+)" or "Pan" tools multiple times.
+The Parent decides to start over.
+The Parent clicks the Undo arrow multiple times until the button becomes disabled.
+The view returns to the initial AI-generated position.
+Exception:
+15.E1.  Limit Reached
+If the Parent tries to zoom past the maximum level, the button becomes disabled.
+
+
+3.2.12 Save Try-on Result
+
+Use Case ID
+UC-16
+USE CASE NAME
+ Save Try-on Result
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Save the generated try-on size recommendation to the user's account for future reference.
+Priority:
+Medium
+Trigger:
+Parent clicks the Save Size button.
+Preconditions:
+PRE-1:  A valid size (e.g., Size M) is recommended.
+Post-Conditions:
+POST-1: Size preference is saved to the child's profile.
+Basic Flow:
+16.1.  Save Size Preference
+The Parent reviews the result (e.g., Size M) and clicks the Save Size button.
+The system sends a request to save this size preference for the current product context.
+The system displays a success Toast message.
+Alternative Flow:
+16.2. Update Existing Preference
+The Parent has previously saved a size for this specific uniform.
+The Parent clicks Save Size again with a new size or new photo context.
+The system detects an existing entry.
+The system updates the record with the new data.
+The system displays a Toast message: "Updated size preference successfully."
+Exception:
+16.E1.  Connection Error
+If the server fails to save, display MSG11.
+
+3.2.13 Download Try-on Image
+
+Use Case ID
+UC-17
+USE CASE NAME
+ Download Try-on Image
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Download the resulting try-on image to the local device.
+Priority:
+Medium
+Trigger:
+Parent clicks the Download reference size image button
+Preconditions:
+PRE-1: Try-on image is fully generated.
+Post-Conditions:
+POST-1: Image file is saved to the user's device.
+Basic Flow:
+17.1.  Generate and Download Image
+The Parent clicks the  Download reference size image button.
+The system generates a downloadable file (JPG/PNG) from the current view.
+The system initiates the browser's download process.
+The system displays MSG05 (Your image is ready for download).
+Alternative Flow:
+17.2. Cancel Download Save
+The system opens the browser's "Save As" dialog.
+The Parent clicks "Cancel" in the browser window.
+The download is aborted.
+The system remains on the Try-On Modal.
+Exception:
+17.E1.   Browser Block
+If the browser blocks pop-ups/downloads, the system shows a tooltip requesting permission.
+
+3.2.14  Share Try-on Result
+
+Use Case ID
+UC-18
+USE CASE NAME
+ Share Try-on Result
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Share the try-on image via social media or messaging platforms.
+Priority:
+Low
+Trigger:
+Parent clicks the Share button
+Preconditions:
+PRE-1: Try-on image is fully generated.
+Post-Conditions:
+POST-1: Share dialog opens or link is copied.
+Basic Flow:
+18.1.  Social Sharing
+The Parent clicks the Share button.
+The system opens a modal/dialog with sharing options (Facebook, Zalo, Copy Link).
+The Parent selects a specific platform.
+The system passes the image or link to the external application.
+Alternative Flow:
+18.2. Copy Link to Clipboard
+In the Share dialog, the Parent selects Copy Link instead of a social media app.
+The system generates a public URL for the try-on image.
+The system copies the URL to the device clipboard.
+The system displays a Toast message: "Link copied to clipboard."
+Exception:
+18.E1.   Cancelled
+The Parent closes the share dialog without selecting an option (System takes no action).
+
+3.2.15  View Try-on History
+
+Use Case ID
+UC-19
+USE CASE NAME
+ View Try-on History
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Allows the Parent to browse the history of previous virtual try-on sessions, view generated images, and quickly navigate to the related products.
+Priority:
+Medium
+Trigger:
+Parent clicks the History tab in the User Profile sidebar.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2: At least one try-on session has been performed previously.
+Post-Conditions:
+POST-1:  A grid of recent try-on results is displayed.
+POST-2: Users can re-open specific results or products.
+Basic Flow:
+19.1.   Browse History List
+The Parent clicks the History menu item.
+The system retrieves the list of saved try-on images from the database.
+The system displays the items in a grid layout. Each item includes:<br>   
+- The try-on image.
+- Time elapsed (e.g., "2 hours ago").
+- Product Name (e.g., "Đồng phục tiểu học Trần Đại Nghĩa").
+- Context info: "Thử cho: Bé Khôi (Lớp 3A)".<br>   
+- Product Price.
+The Parent views the list.
+Alternative Flow:
+19.2.  View Detail/Re-try
+The Parent clicks the Review button on a history card.
+The system opens the Try-On Modal (UC-08) with that specific configuration loaded.
+19.3. Search History
+The Parent enters a keyword in the search bar ("Filter by Date…)
+The system filters the visible history items matching the criteria.
+Exception:
+19.E1. Empty History
+If no history exists, the system displays a "No recent try-on sessions" message and a button to "Explore Products".
+
+3.2.16 View Uniform Detail
+
+Use Case ID
+UC-20
+USE CASE NAME
+View Uniform Detail
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Displays detailed information about a specific uniform product, including images, price, school affiliation, material descriptions, and reviews.
+Priority:
+High
+Trigger:
+Parent clicks on a product card from the Home page or Product List.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2: At least one child profile exists or is being confirmed.
+Post-Conditions:
+POST-1: Product details are displayed.
+POST-2:  Context (School/Child) is pre-selected if applicable.
+Basic Flow:
+20.1. Display Product Information
+The system displays the product images on the left and details on the right.
+The system shows key metadata: Name, Rating (e.g., 4.2 stars), Price ("250.000 VNĐ"), and the linked School ("THPT Phan Châu Trinh – Verified.").
+The system loads the Size Selector (XS, S, M, L, XL) and Child Context Selector.
+The system displays detailed tabs below: Description, Material & Care, Reviews.
+Alternative Flow:
+20.2.  Change Child Context
+The Parent changes the selected student by clicking Change Child button
+The system updates the recommended size logic based on the new child's measurements. 
+Exception:
+20.E1.  Product Unavailable
+If the product is out of stock or disabled, the "Add to Cart" button is disabled, and an "Out of Stock" label is shown.
+
+3.2.17 View Uniform Detail
+
+Use Case ID
+UC-21
+USE CASE NAME
+ Add Uniform to Cart
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Adds a specific quantity of a selected uniform variant (Size/Color) for a specific child to the shopping cart.
+Priority:
+High
+Trigger:
+Parent clicks the Add to Cart button on the Product Detail page.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2:  A valid size and child profile must be selected.
+Post-Conditions:
+POST-1:  The item is added to the cart database. 
+POST-2:   The cart icon counter is updated.
+Basic Flow:
+21.1.  Add Item to Cart
+The Parent selects a Size (e.g., M) and ensures the correct Child (e.g., "Nguyễn Văn A") is selected
+The Parent sets the Quantity (e.g., 1).
+The Parent clicks Add to Cart.
+The system validates the stock availability.
+The system adds the item to the session cart.
+The system displays a success Toast message.
+Alternative Flow:
+21.2. Item Already Exists in Cart
+(Trigger: The Parent adds a product variant [Size/Student] that is already present in the cart).
+The Parent selects the same product, Size (e.g., Size S), and Student (e.g., "Nguyễn Minh An") as a previous entry.
+The Parent clicks Add to Cart.
+The system detects the duplicate entry in the cart database.
+The system updates the quantity of the existing item (e.g., from 1 to 2) instead of creating a new row.
+The system displays a success Toast message: "Updated quantity in cart."
+Exception:
+21.E1.   Missing Selection
+If the Parent clicks "Add to Cart" without selecting a size, the system highlights the Size section in red and alerts "Please select a size".
+
+3.2.18 Review Cart
+
+Use Case ID
+UC-22
+USE CASE NAME
+Review Cart
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Allows the Parent to review items in the cart, grouped by school and student, update quantities, remove items, or apply vouchers before checkout.
+Priority:
+High
+Trigger:
+Parent clicks the Cart Icon on the header.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2: At least one item has added to cart
+Post-Conditions:
+POST-1:  Cart details are displayed with accurate calculations. 
+POST-2:   User is ready to proceed to checkout.
+Basic Flow:
+22.1. View and Manage Cart
+The system displays the My Cart screen.
+The system lists items grouped by School (e.g., "THPT Lê Văn Hiến") and Student (e.g., "Nguyễn Minh An").
+The system calculates and displays the Order Summary on the right panel: Subtotal, Shipping Fee, Discount, and Total ("750.000 VNĐ").
+The Parent reviews the items.
+Alternative Flow:
+22.2.  Remove Item
+The Parent clicks Delete next to an item. 
+The system removes the item and recalculates the Total.
+22.3.  Apply Voucher
+The Parent enters a code in Voucher and clicks Apply.
+The system validates the code and updates the "Giảm giá" amount.
+Exception:
+22.E1. Empty Cart
+If the cart is empty, the system displays an empty state image and a "Continue Shopping" button.
+
+3.2.19 Place Uniform Order
+
+Use Case ID
+UC-23
+USE CASE NAME
+Place Uniform Order
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+The Parent inputs shipping information, selects a payment method, and confirms the order to initiate processing.
+Priority:
+High
+Trigger:
+Parent clicks Place Order from the Cart screen.
+Preconditions:
+PRE-1: Parent is logged in.
+PRE-2:  Cart is not empty.
+Post-Conditions:
+POST-1:  Order is created in the system with "Pending" status.
+POST-2: Inventory is reserved.
+Basic Flow:
+23.1. Checkout and Confirm Order
+The system displays the Checkout screen with 3 steps (Cart -> Payment -> Finish).
+The Parent fills in Shipping Information: Name, Phone, Email, Address, City/District.
+The Parent selects a Payment Method (e.g., COD, Bank Transfer/QR, MoMo).
+The Parent reviews the final Total and item list.
+ The Parent clicks the Place Order Now button.
+The system creates the order record and redirects to the Order Success page.
+Alternative Flow:
+23.2.  Online Payment Selected
+If the Parent selects "Momo" or "QR Code" and clicks "Place Order", the system redirects to the Payment Gateway (Triggers UC-21). 
+Exception:
+23.E1. Missing Fields 
+If mandatory shipping fields (Address, Phone) are empty, the system highlights them and prevents order placement.
+
+3.2.20 Make Payment
+
+Use Case ID
+UC-24
+USE CASE NAME
+Make Payment
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Completes the financial transaction for an order using integrated gateways (E-wallet or Bank Transfer) or confirms Cash on Delivery.
+Priority:
+High
+Trigger:
+Parent selects an online payment method (Momo/QR) and clicks Place Order Now on the Payment screen
+Preconditions:
+PRE-1: Order has been created (UC-20).
+PRE-2: Payment gateway services are active.
+Post-Conditions:
+POST-1: Transaction is recorded.
+POST-2: Order status updates to Paid.
+Basic Flow:
+24.1.  Online Payment (Momo/QR)
+On the Payment & Delivery screen, the Parent selects "Digital Wallet (Momo)" or "Bank Transfer (QR Code)".
+The Parent clicks Place Order Now.
+ The system redirects the Parent to the payment gateway (e.g., Momo App or QR Scan interface).
+The Parent completes the transaction on the external platform.
+The system receives the success callback and redirects the Parent to the "Order Success" page.
+The system updates the payment status to Paid.
+Alternative Flow:
+24.2. Cash on Delivery (COD)
+The Parent selects "Cash on Delivery (COD)".
+The Parent clicks Place Order Now. 
+The system confirms the order without external redirection.
+Payment status remains "Unpaid" until delivery.
+Exception:
+24.E1.  Payment Failed
+If the gateway returns an error (insufficient funds/timeout), the system displays MSG12 and allows the user to retry..
+
+3.2.21 Track Order Status
+
+Use Case ID
+UC-25
+USE CASE NAME
+Track Order Status
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Allows the Parent to monitor the detailed progress of a specific order, including manufacturing, shipping status, and estimated delivery.
+Priority:
+High
+Trigger:
+Parent clicks Track Order or selects an order from the list.
+Preconditions:
+PRE-1: Order has been created (UC-20).
+Post-Conditions:
+POST-1: Order progress is displayed in real time
+Basic Flow:
+25.1.  View Order Progress
+1. The system displays the Order Detail screen ("Order Details #ABC-123").
+The system shows the Status Timeline with stages: "Registered", "Paid", "Sewing", "Shipping", "Received".
+The system highlights the current stage (e.g., "Sewing").
+The system displays the estimated completion/delivery date (e.g., "Estimated: August 25").
+The Parent views the list of items (e.g., "Men's Shirt" - Size L - According to AI measurements).
+Alternative Flow:
+25.2.  View Shipping Info
+If the status is "Delivering", the system displays the shipper's contact info or a tracking link.
+Exception:
+25.E1.  Connection Error
+The system displays MSG13 and advises the user to try again later.
+
+3.2.22 View Order History
+
+Use Case ID
+UC-26
+USE CASE NAME
+View Order History
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Displays a log of all past and current orders, allowing filtering by status and searching by Order ID.
+Priority:
+High
+Trigger:
+Parent accesses the Orders section in the Profile menu.
+Preconditions:
+PRE-1: Parent logged in.
+PRE-2: At least one order has been created.
+Post-Conditions:
+POST-1:  A list of orders is displayed.
+Basic Flow:
+26.1. Browse Order List
+The system displays the Order Management dashboard.
+The system shows summary widgets: "Total", "In Transit", "Completed", "Cancelled".
+The system lists orders with key details: Order ID, Date, Total Amount, and Status Tag (e.g., "Shipping", "Delivered").
+The Parent filter the list by clicking tabs: "All", "Pending Confirmation", "In Transit", "Completed".
+Alternative Flow:
+26.2. Search Order
+The Parent enters an ID in the "Filter by order id..." box.
+The system filters and shows the matching order.
+Exception:
+26.E1.  No Orders Found
+If the list is empty, display MSG09.
+
+3.2.23 Request Refund
+
+Use Case ID
+UC-27
+USE CASE NAME
+Request Refund
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Submit a request to cancel a paid order or request a refund for defective items.
+Priority:
+High
+Trigger:
+Parent clicks the Cancel Order button on the Order Detail page
+Preconditions:
+PRE-1: Parent logged in.
+PRE-2:  Order status allows cancellation (e.g., before "Delivering") OR order is eligible for return.
+Post-Conditions:
+POST-1:  The paid order (pre-shipping) was canceled and a refund was given to the parent.
+Basic Flow:
+27.1.  Cancel Paid Order (Pre-shipping)
+On the "Order details" screen, the Parent clicks "Cancel order"
+The system checks the payment status. If "Paid", the system prompts for a refund reason.
+The Parent chooses a reason (e.g., "Changed mind", "Wrong size").
+The Parent confirms the request.
+The system updates the order status to "Cancelled" and initiates the refund process to the original payment method (Momo/Bank).
+Alternative Flow:
+27.2.  Contact Support for Refund
+1. If the order is locked or delivered, the Parent clicks the Support button.
+The Parent submits a request with evidence (photos) for the admin to review.
+Exception:
+27.E1. Status Conflict (Cannot Cancel)
+If the order is not a pre-shipping order, display MSG015.
+
+3.2.24 Give feedback
+
+Use Case ID
+UC-28
+USE CASE NAME
+Give feedback
+Created By: 
+HuyenCTT
+Date Created:
+10/01/2026
+Primary Actor:
+Parent
+Secondary Actor:
+None
+Description:
+Provide ratings and comments on purchased products after the order is completed.
+Priority:
+High
+Trigger:
+Parent clicks the Feedback button on a Completed order card.
+Preconditions:
+PRE-1: Parent logged in.
+PRE-2:  Order status must be Completed.
+Post-Conditions:
+POST-1:  Feedback sent successfully.
+Basic Flow:
+28.1.  Submit Rating
+The Parent navigates to the "Complete" tab in Order History.
+The Parent clicks the "Feedback" button (assumed availability based on e-commerce standards and UC-43).
+The system opens a form with a 5-star scale and text box.
+The Parent chooses a star rating and enters comments about the fit/material.
+The Parent clicks "Submit" (Submit).
+The system saves the feedback and displays a success message.
+Alternative Flow:
+28.2.  Cancel Feedback Submission
+(Trigger: Parent decides not to leave a review after opening the form)
+The Parent clicks the "X" (Close) button on the Feedback modal/dialog.
+The system discards any entered text or rating.<br>3. The system closes the form and returns to the Order History screen.
+28.3. Rate Without Comment
+ (Trigger: Parent wants to give a star rating but no text review)
+The Parent selects a Star Rating (e.g., 5 stars).
+The Parent leaves the "Comment" text box empty.
+The Parent clicks "Submit".
+The system accepts the rating and displays a success message.
+Exception:
+28.E1.  Submission Failed (Network Error)
+If the connection is lost during submission, the system displays MSG11 (Fail to update information) and allows the user to click "Retry".
+28.E2.  Profanity/Policy Violation
+If the comment contains prohibited words (as monitored by Admin in UC-35), the system blocks the submission and displays an MSG14.
+
+
+3.3 Admin Feature
+3.3.1 Approve School Account
+
+
+Use Case ID
+UC-29
+USE CASE NAME
+Approve School Account
+
+
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+School
+Description:
+This use case allows the Admin to approve school accounts after verifying the official school email information submitted to the system.
+Priority:
+High
+Trigger:
+A school account registration request is submitted.
+Preconditions:
+PRE-1: Admin has successfully logged into the system.
+PRE-2: A school registration request exists in Pending status.
+PRE-3: The school provided a valid email format (BR-01).
+Post-Conditions:
+POST-1: The school account status is changed to Approved.
+POST-2: The school can access school-only features (BR-14, BR-09).
+POST-3: The system displays a confirmation message.
+Basic Flow:
+15.1. Approve School Account
+The Admin opens the Account Registration Management page.
+The system displays a list of all Pending School Accounts.
+The Admin selects one school account.
+The system displays the school’s submitted information (email, school name, domain).
+The Admin verifies that the email domain matches a valid school domain.
+The Admin clicks Approve.
+The system updates the school account status to Approved.
+The system displays a confirmation message.
+Alternative Flow:
+15.2A – Leave Account Pending
+Trigger: Admin cannot verify the email or identity.
+15.2A.1. The Admin clicks Keep Pending.
+15.2A.2. The system keeps the account in Pending status.
+Exception:
+15.E1 – Update Failed
+If the system cannot update the account status, the system displays MSG11 – “Fail to update information”.
+
+
+3.3.2 Approve Supplier Account
+
+Use Case ID
+UC-30
+USE CASE NAME
+Approve Supplier Account
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+Supplier
+Description:
+This use case allows the Admin to approve supplier accounts based on supplier email information submitted by schools.
+Priority:
+High
+Trigger:
+A supplier account request is submitted via a school.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: Supplier email information exists.
+Post-Conditions:
+POST-1: Supplier account is set to Approved.
+POST-2: Supplier can access supplier features.
+Basic Flow:
+29.1. Approve Supplier Account
+Admin opens Account Registration Management.
+System displays pending supplier requests.
+Admin selects a supplier.
+System shows supplier email and linked school.
+Admin verifies email.
+Admin clicks Approve.
+System updates account status and displays confirmation.
+Alternative Flow:
+29.2A – Reject Supplier
+Admin clicks Reject, the system marks the request as rejected.
+Exception:
+29.E1 – System Update Error
+System shows MSG11 – Fail to update information.
+
+
+3.3.3 Suspend User Account
+
+Use Case ID
+UC-31
+USE CASE NAME
+Suspend User Account
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+Parent, School, Supplier
+Description:
+This use case allows the Admin to suspend user accounts that violate system policies or display abnormal behavior.
+Priority:
+High
+Trigger:
+Admin identifies a violation or receives a system flag on a user account.
+Preconditions:
+PRE-1: Admin has successfully logged into the system.
+PRE-2: The target user account exists in the system.
+Post-Conditions:
+POST-1: The user account status is changed to Suspended.
+POST-2: The user can no longer access system functions.
+POST-3: The system displays a confirmation message.
+Basic Flow:
+30.1. Ban User for violating policies
+The Admin opens the User Management page.
+The system displays a list of user accounts.
+The Admin selects a user account.
+The system displays the user’s profile and activity history.
+The Admin clicks Suspend Account.
+The system asks for confirmation.
+The Admin confirms the action.
+The system updates the account status to Suspended.
+The system displays a confirmation message.
+Alternative Flow:
+30.5A – Cancel Suspension
+Trigger: Admin decides not to suspend the user.
+30.5A.1. The Admin clicks Cancel.
+30.5A.2. The system returns to the User Management page without changes.
+Exception:
+30.E1 – Update Failed
+If the system fails to update the account status, the system displays MSG11 – Fail to update information.
+
+
+3.3.4 Register School Profile
+
+
+Use Case ID
+UC-32
+USE CASE NAME
+Register School Profile
+
+
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+School
+Description:
+This use case allows the Admin to create and manage official school profiles in the system.
+Priority:
+High
+Trigger:
+A new school is approved.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: School account status is Approved (UC-29).
+PRE-3: No school profile exists for this account.
+Post-Conditions:
+POST-1: A school profile is created and linked to the school account.
+POST-2: The profile is stored and available for uniform management.
+POST-3: A success message is displayed.
+Basic Flow:
+31.1. Create School Profile 
+The Admin opens School Profile Management.
+The system displays approved schools without profiles.
+The Admin selects a school.
+The system displays a blank school profile form.
+The Admin enters school information.
+The Admin clicks Save.
+The system validates the data.
+The system saves the profile.
+The system displays a confirmation message.
+Alternative Flow:
+31.6A – Cancel Profile Creation
+Trigger: Admin decides not to create the profile.
+31.6A.1. The Admin clicks Cancel.
+31.6A.2. The system discards all entered data.
+Exception:
+31.E1 – Save Failed
+If the system cannot save the profile, the system displays MSG11.
+
+
+3.3.5 Verify School Information
+
+
+Use Case ID
+UC-33
+USE CASE NAME
+Verify School Information
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+School
+Description:
+This use case allows the Admin to verify school identity and email domain before activating the school profile.
+Priority:
+High
+Trigger:
+A school profile is submitted.
+Preconditions:
+PRE-1: Admin has successfully logged into the system.
+PRE-2: A school profile exists in Pending Verification status.
+Post-Conditions:
+POST-1: School profile is marked as Verified or Rejected.
+POST-2: Only verified schools can submit uniform catalogs (BR-09, BR-14).
+POST-3: A system message is displayed.
+Basic Flow:
+32.1. Verifying School Profile
+The Admin opens the School Verification page.
+The system displays a list of school profiles pending verification.
+The Admin selects a school profile.
+The system displays school name, email domain, and identity information.
+The Admin confirms that the information is valid.
+The Admin clicks Verify.
+The system updates the school profile status to Verified.
+The system displays a confirmation message.
+Alternative Flow:
+32.6A – Reject School Profile
+Trigger: The school information or email domain is invalid.
+32.6A.1. The Admin clicks Reject.
+32.6A.2. The system marks the profile as Rejected.
+Exception:
+32.E1 – Verification Update Failed
+If the system cannot update the profile status, it displays MSG11 – Fail to update information.
+
+
+3.3.6 Publish Official Uniform Catalog
+
+
+Use Case ID
+UC-34
+USE CASE NAME
+Publish Official Uniform Catalog
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+School, Supplier
+Description:
+This use case allows the Admin to publish official school uniform catalogs after review.
+Priority:
+High
+Trigger:
+Uniform catalog is submitted.
+Preconditions:
+PRE-1: Admin has logged into the system.
+PRE-2: School profile is verified (UC-32).
+PRE-3: Uniform catalog exists and belongs to the school (BR-09).
+Post-Conditions:
+POST-1: Uniform catalog status is changed to Published.
+POST-2: Uniforms become visible to parents.
+POST-3: A confirmation message is displayed.
+Basic Flow:
+33.1. Publishing official uniform catalog 
+The Admin opens Uniform Catalog Management.
+The system displays all catalogs with Pending status.
+The Admin selects a catalog.
+The system displays all uniforms in the catalog.
+The Admin clicks Publish.
+The system validates that all uniforms are approved.
+The system changes the catalog status to Published.
+The system displays MSG06 – Outfit added successfully.
+Alternative Flow:
+33.5A – Cancel Publishing
+Trigger: Admin decides not to publish the catalog.
+33.5A.1. The Admin clicks Back.
+33.5A.2. The catalog remains in Pending status.
+33.6A – Unapproved Uniform Exists
+Trigger: At least one uniform is not approved.
+33.6A.1. The system blocks publishing.
+33.6A.2. The system displays MSG11.
+Exception:
+33.E1 – Update Failed
+If the catalog cannot be updated, the system displays MSG11.
+
+
+
+3.3.7 Review Uniform Content
+
+
+Use Case ID
+UC-35
+USE CASE NAME
+Review Uniform Content
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+None
+Description:
+This use case allows the Admin to review uniform images, descriptions, and metadata before publication.
+Priority:
+Medium
+Trigger:
+Uniform content is submitted.
+Preconditions:
+PRE-1: Admin has successfully logged into the system.
+PRE-2: The uniform item exists in Pending Review status.
+PRE-3: The uniform belongs to a verified school (UC-32).
+Post-Conditions:
+POST-1: The uniform status is updated to Approved or Rejected.
+POST-2: Only approved uniforms can be published (UC-33).
+POST-3: The system displays a confirmation message.
+Basic Flow:
+34.1. Review for confirmation to publish
+The Admin opens the Uniform Review page.
+The system displays a list of all uniforms with Pending Review status.
+The Admin selects a uniform.
+The system displays the uniform image, description, size, and supplier information.
+The Admin checks the content for quality, correctness, and compliance.
+The Admin clicks Approve.
+The system marks the uniform as Approved.
+The system displays a confirmation message.
+Alternative Flow:
+34.6A – Reject Uniform
+Trigger: The image or description is incorrect, misleading, or inappropriate.
+34.6A.1. The Admin clicks Reject.
+34.6A.2. The system marks the uniform as Rejected and blocks it from publication.
+Exception:
+34.E1 – Invalid Image Format or Size
+If the uniform image violates BR-04 (not JPG/PNG or >10MB), the system displays MSG02 – Invalid file type or MSG08 – File too large.
+34.E2 – Update Failed
+If the system cannot update the review status, it displays MSG11 – Fail to update information.
+
+
+3.3.8 Update Uniform Availability
+
+
+Use Case ID
+UC-36
+USE CASE NAME
+Update Uniform Availability
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+School, Supplier
+Description:
+This use case allows the Admin to update uniform availability based on stock or school information.
+Priority:
+Medium
+Trigger:
+Stock or availability information is changed by a school or supplier.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: The uniform item exists in the system.
+Post-Conditions:
+POST-1: The uniform availability status is updated.
+POST-2: The updated status is reflected in parent browsing results.
+POST-3: A confirmation message is displayed.
+Basic Flow:
+35.1. Update availability status
+The Admin opens Uniform Management.
+The system displays a list of uniforms.
+The Admin selects a uniform.
+The system displays the current availability status.
+The Admin changes the availability (e.g., Available, Out of Stock).
+The Admin clicks Save.
+The system updates the uniform availability.
+The system displays a confirmation message.
+Alternative Flow:
+35.6A – Cancel Update
+Trigger: Admin decides not to change the availability.
+35.6A.1. The Admin clicks Cancel.
+35.6A.2. The system discards the change and restores the previous status.
+Exception:
+35.E1 – Update Failed
+If the system cannot save the new availability, it displays MSG11 – Fail to update information.
+
+
+3.3.9 Review User Feedback
+
+
+Use Case ID
+UC-37
+USE CASE NAME
+Review User Feedback
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+Parent
+Description:
+This use case allows the Admin to review feedback submitted by users.
+Priority:
+Medium
+Trigger:
+Feedback is submitted.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: At least one feedback entry exists.
+Post-Conditions:
+POST-1: Feedback is marked as Reviewed or Flagged.
+POST-2: Flagged feedback becomes eligible for removal (UC-37).
+Basic Flow:
+36.1. Open Feedback List for review
+The Admin opens Feedback Management.
+The system displays a list of feedback entries.
+The Admin selects one feedback.
+The system displays the feedback text and rating.
+The Admin reviews the content.
+The Admin marks the feedback as Reviewed.
+The system records the review status.
+Alternative Flow:
+36.6A – Flag Feedback
+Trigger: Feedback contains inappropriate content.
+36.6A.1. The Admin clicks Flag.
+36.6A.2. The system marks the feedback as Flagged.
+Exception:
+36.E1 – Data Load Failure
+If feedback data cannot be loaded, the system displays MSG13 – Unable to load order information.
+
+
+3.3.10 Remove Inappropriate Feedback
+
+
+Use Case ID
+UC-38
+USE CASE NAME
+Remove Inappropriate Feedback
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+None
+Description:
+This use case allows the Admin to remove feedback that violates platform policies.
+Priority:
+Medium
+Trigger:
+Inappropriate feedback is detected.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: The feedback exists and is flagged.
+Post-Conditions:
+POST-1: The feedback is removed from the system.
+POST-2: The feedback is no longer visible to users.
+POST-3: A confirmation message is displayed.
+Basic Flow:
+37.1. Deletion of violated feedbacks
+The Admin opens Feedback Management.
+The system displays flagged feedback.
+The Admin selects a feedback item.
+The Admin clicks Remove.
+The system deletes the feedback.
+The system displays a confirmation message.
+Alternative Flow:
+37.4A – Cancel Removal
+Trigger: Admin decides not to remove the feedback.
+37.4A.1. The Admin clicks Cancel.
+37.4A.2. The feedback remains unchanged.
+Exception:
+37.E1 – Delete Failed
+If the system cannot delete the feedback, it displays MSG11 – Fail to update information.
+
+
+3.3.11 Configure AI Try-on Rules
+
+
+Use Case ID
+UC-39
+USE CASE NAME
+Configure AI Try-on Rules
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+None
+Description:
+This use case allows the Admin to configure AI try-on and recommendation rules.
+Priority:
+Medium
+Trigger:
+Admin accesses AI configuration.
+Preconditions:
+PRE-1: Admin is logged into the system.
+Post-Conditions:
+POST-1: New AI rules are stored and activated.
+POST-2: Future try-on results use the updated configuration.
+Basic Flow:
+38.1. Edit rules for AI Try on rules
+The Admin opens AI Configuration.
+The system displays current AI rules.
+The Admin edits the rule parameters.
+The Admin clicks Save.
+The system validates the values.
+The system stores the new configuration.
+The system displays a confirmation message.
+Alternative Flow:
+38.4A – Discard Changes
+Trigger: Admin decides not to apply the new rules.
+38.4A.1. The Admin clicks Cancel.
+38.4A.2. The system restores previous rules.
+Exception:
+38.E1 – Save Failed
+If the system cannot store the configuration, it displays MSG11.
+
+
+3.3.12 View Dashboard Analytics
+
+
+Use Case ID
+UC-40
+USE CASE NAME
+View Dashboard Analytics
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+None
+Description:
+This use case allows the Admin to view system analytics and metrics.
+Priority:
+Medium
+Trigger:
+Admin opens the dashboard.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: Analytics data exists.
+Post-Conditions:
+POST-1: Analytics are displayed to the Admin.
+Basic Flow:
+39.1. Display Information from Dashboard
+The Admin opens the Dashboard.
+The system loads analytics data.
+The system displays charts and metrics.
+Alternative Flow:
+39.2A – Apply Filter
+Trigger: Admin selects a time range or category.
+39.2A.1. The system reloads the analytics with filters applied.
+Exception:
+39.E1 – Data Load Timeout
+If the request times out, the system displays MSG12 – Request is timeout.
+
+
+3.3.13 Generate System Reports
+
+
+Use Case ID
+UC-41
+USE CASE NAME
+Generate System Reports
+Created By: 
+ThanhNLD
+Date Created:
+06/01/2026
+Primary Actor:
+Admin
+Secondary Actor:
+Parent, School Manager, Supplier
+Description:
+This use case allows the Admin to generate system reports for monitoring and analysis.
+Priority:
+Medium
+Trigger:
+This use case allows the Admin to generate system reports for monitoring and analysis.
+Preconditions:
+PRE-1: Admin is logged into the system.
+PRE-2: System data exists.
+Post-Conditions:
+POST-1: A report file is generated and available for download.
+Basic Flow:
+40.1. Generating Reports for revision
+The Admin opens Report Management.
+The Admin selects a report type.
+The Admin clicks Generate.
+The system collects required data.
+The system generates the report.
+The system provides the report to the Admin.
+Alternative Flow:
+40.3A – Cancel Report Generation
+Trigger: Admin decides not to generate the report.
+40.3A.1. The Admin clicks Cancel.
+40.3A.2. The system stops the request.
+Exception:
+40.E1 – Report Generation Failed
+If the report cannot be created, the system displays MSG11 – Fail to update information.
+
+
+3.4 Supplier Feature
+3.4.1 Provide Supplier Information
+
+Use Case ID
+UC-51
+USE CASE NAME
+Provide Supplier Information
+Created By: 
+TruyenVNG
+Date Created:
+11/01/2026
+Primary Actor:
+Supplier
+Secondary Actor:
+None
+Description:
+This use case allows a Supplier to provide and maintain official business information so that schools can identify, evaluate, and select the supplier for uniform production and delivery.
+Priority:
+High
+Trigger:
+The Supplier clicks the “Profile” button or is redirected to the initial supplier information setup screen after first login.
+Preconditions:
+PRE-1: Supplier has successfully logged in to the system.
+PRE-2: Supplier account status is Approve.
+Post-Conditions:
+POST-1: The Supplier’s business information is stored and associated with the supplier account.
+POST-2: The information becomes visible to schools during the supplier selection process.
+POST-3: A success confirmation message is displayed to the Supplier.
+Basic Flow:
+51.1.  Submit Rating
+The Parent navigates to the "Complete" tab in Order History.
+The Parent clicks the "Feedback" button (assumed availability based on e-commerce standards and UC-43).
+The system opens a form with a 5-star scale and text box.
+The Parent chooses a star rating and enters comments about the fit/material.
+The Parent clicks "Submit" (Submit).
+The system saves the feedback and displays a success message.
+Alternative Flow:
+51.2.  Cancel Feedback Submission
+(Trigger: Parent decides not to leave a review after opening the form)
+The Parent clicks the "X" (Close) button on the Feedback modal/dialog.
+The system discards any entered text or rating.<br>3. The system closes the form and returns to the Order History screen.
+51.3. Rate Without Comment
+ (Trigger: Parent wants to give a star rating but no text review)
+The Parent selects a Star Rating (e.g., 5 stars).
+The Parent leaves the "Comment" text box empty.
+The Parent clicks "Submit".
+The system accepts the rating and displays a success message.
+Exception:
+51.E1.  Submission Failed (Network Error)
+If the connection is lost during submission, the system displays MSG11 (Fail to update information) and allows the user to click "Retry".
+51.E2.  Profanity/Policy Violation
+If the comment contains prohibited words (as monitored by Admin in UC-35), the system blocks the submission and displays an MSG14.
+
+
+3.4.2 Receive Production Order
+
+Use Case ID
+UC-52
+USE CASE NAME
+Receive Production Order
+Created By: 
+TruyenVNG
+Date Created:
+11/01/2026
+Primary Actor:
+Supplier
+Secondary Actor:
+School
+Description:
+Allows the Supplier to receive and view production orders (production batches) sent by Schools after the uniform pre-order phase is completed.
+Priority:
+High
+Trigger:
+School confirms uniform order and sends production request.
+Preconditions:
+PRE-1: Supplier is logged in.
+PRE-2: A production batch has been created by a School.
+Post-Conditions:
+POST-1: Production batch appears in Supplier’s batch list.
+POST-2: Batch status is set to Waiting for Approval.
+Basic Flow:
+52.1. View Incoming Production Batches
+Supplier opens ProductionBatch Screen
+The System displays all production batches with status Waiting for Approval.
+Supplier selects a batch.
+The system displays batch details including:
+School information
+Uniform items
+Sizes and quantities
+Expected timeline
+Alternative Flow:
+52.2. No New Production Orders
+If no pending batches exist, the system displays an empty state message.
+Exception:
+52.E1. Unable to Load Batch Data
+If data cannot be loaded, display MSG13 – Unable to load order information.
+
+
+3.4.3 Confirm Production Order
+
+Use Case ID
+UC-53
+USE CASE NAME
+Confirm Production Order
+Created By: 
+TruyenVNG
+Date Created:
+11/01/2026
+Primary Actor:
+Supplier
+Secondary Actor:
+School
+Description:
+Allows the Supplier to review a received production order and confirm or reject it based on production capacity and feasibility.
+Priority:
+High
+Trigger:
+Supplier clicks Approve or Reject on a production batch.
+Preconditions:
+PRE-1: Supplier is logged in.
+PRE-2: Production batch status is Waiting for Approval.
+Post-Conditions:
+POST-1: Batch status is updated to Approved or Rejected.
+POST-2: School is notified of the decision.
+Basic Flow:
+53.1. Approve Production Order
+Supplier opens ProductionBatchDetail Screen.
+Supplier reviews batch details.
+Supplier clicks Approve.
+The system updates batch status to Approved.
+The system displays a confirmation message.
+Alternative Flow:
+53.2. Reject Production Order
+Supplier clicks Reject.
+Supplier enters a rejection reason (optional).
+The system updates batch status to Rejected.
+Exception:
+53.E1. Update Failed
+If the system cannot update batch status, display MSG11
+
+
+3.4.4 Produce Uniforms
+
+Use Case ID
+UC-54
+USE CASE NAME
+Produce Uniforms
+Created By: 
+TruyenVNG
+Date Created:
+11/01/2026
+Primary Actor:
+Supplier
+Secondary Actor:
+School
+Description:
+Allows the Supplier to manufacture uniforms according to a confirmed production order and update production progress for tracking.
+Priority:
+High
+Trigger:
+Production order is approved.
+Preconditions:
+PRE-1: Production batch status is Approved.
+PRE-2: Supplier is logged in.
+Post-Conditions:
+POST-1: Batch status is updated to reflect production progress.
+POST-2: Schools can monitor production status.
+Basic Flow:
+54.1. Update Production Status
+Supplier opens BatchStatusUpdate Screen.
+Supplier selects a confirmed batch.
+Supplier updates status:
+In production
+Completed
+The system saves the status and displays a success message
+
+
+Alternative Flow:
+54.2. View Production History
+Supplier navigates to BatchHistoryScreen to review completed batches.
+Exception:
+54.E1. Status Update Failed
+If update fails, display MSG11
+
+
+3.4.5 Deliver Uniforms to School
+
+Use Case ID
+UC-55
+USE CASE NAME
+Deliver Uniforms to School
+Created By: 
+TruyenVNG
+Date Created:
+11/01/2026
+Primary Actor:
+Supplier
+Secondary Actor:
+School
+Description:
+Allows the Supplier to deliver completed uniforms to the School and confirm handover after production is finished.
+Priority:
+High
+Trigger:
+Supplier marks production as completed.
+Preconditions:
+PRE-1: Batch status is Completed.
+PRE-2: Supplier is logged in.
+Post-Conditions:
+POST-1: Batch status is updated to Delivered.
+POST-2: School can confirm goods received.
+Basic Flow:
+55.1. Confirm Delivery
+Supplier opens ProductionBatchDetail Screen.
+Supplier clicks Mark as Delivered.
+The system updates batch status to Delivered.
+The system displays a confirmation message.
+
+
+Alternative Flow:
+
+
+Exception:
+55.E1. Update Failed
+If delivery update fails, display MSG11
+
+
+
+
+
+3.5 School Feature
+3.5.1 Maintain School Profile
+
+Use Case ID
+UC-42
+USE CASE NAME
+Maintain School Profile
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+Admin
+Description:
+This use case allows the School to view and update its official profile information such as school name, logo, contact details, and address used across the system.
+Priority:
+High
+Trigger:
+School clicks School Profile from the School Management dashboard.
+Preconditions:
+PRE-1: School user has successfully logged in.
+PRE-2: School account has been approved and verified by Admin.
+Post-Conditions:
+POST-1: School profile information is updated and stored in the system.
+POST-2: Updated information is reflected in parent-facing views..
+Basic Flow:
+42.1. View & Update School Profile
+The School opens School Profile Screen
+The system displays current school information:
+- School Name
+- Logo
+- Contract Email
+- Phone Number
+- Address
+The School edits allowed fields.
+The School clicks Save Changes.
+The system validates input and updates the database.
+The system displays a success message.
+Alternative Flow:
+42.2. Cancel Update
+At step 4, School clicks Cancel
+The system discards changes and reloads previous data.
+Exception:
+42.E1. Update Failed
+System displays MSG11.
+
+
+3.5.2 Import Student Data
+
+Use Case ID
+UC-43
+USE CASE NAME
+Import Student Data
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+None
+Description:
+School uploads and imports student information in bulk (e.g., via Excel files) to create/refresh the official student list for verification and ordering workflows. 
+Priority:
+High
+Trigger:
+School clicks Import Data from Student Management.
+Preconditions:
+PRE-1: School is logged in and verified.
+PRE-2: School profile exists in the system.
+Post-Conditions:
+POST-1: Student data import record is created (import history stored).
+POST-2: Valid student rows are saved to the database.
+POST-3: Invalid rows are rejected and shown to the School for correction.
+Basic Flow:
+43.1. Upload & Preview Student File
+School opens ImportDataScreen.
+School selects an Excel file to upload.
+System validates file type/structure.
+System parses the file and shows CheckPreviewScreen with: valid rows + invalid rows (highlight errors).
+School reviews the preview and clicks Save.
+The system saves valid records and logs the import.
+The system shows a success message and navigates back to StudentListScreen.
+Alternative Flow:
+43.2. Download Template
+At Step 2, the School clicks Download Template to get the standard Excel format, then uploads again.
+43.3 Fix Errors Before Saving
+At Step 4, the School removes/edits invalid rows (re-upload corrected file).
+The system re-parses and updates previews.
+Exception:
+43.E1. Invalid File / Parse Error
+If file format/structure is invalid, the system shows an error (file not accepted) and keeps the School on the Import screen.
+43.E2 Save Failed
+If database save fails, display MSG11.
+
+
+3.5.3 Publish Uniform Pre-order
+
+Use Case ID
+UC-44
+USE CASE NAME
+Publish Uniform Pre-order
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+None
+Description:
+School opens a uniform pre-order campaign, defines ordering timelines, available uniforms, and expected quantities so parents can place orders during the defined period.
+Priority:
+High
+Trigger:
+School clicks Open Order / Create Campaign on the dashboard.
+Preconditions:
+PRE-1: School is logged in and verified.
+PRE-2: At least one uniform is available in the school catalog (approved/published).
+Post-Conditions:
+POST-1: A pre-order campaign is created with status Open.
+POST-2: Parents can view and place orders in the campaign duration.
+Basic Flow:
+44.1. Create and Publish Pre-order Campaign
+School opens OpenOrderScreen.
+School enters campaign information (name/description, start date, end date).
+School selects uniforms included in the campaign and sets limits/expected quantities (if applicable).
+School reviews summary and clicks Publish/Open Campaign.
+System validates dates and selected uniforms.
+System creates the campaign and marks it Open.
+System shows a success message and redirects to DashboardScreen.
+Alternative Flow:
+44.2 Save as Draft
+At Step 4, the School clicks Save Draft instead of publishing.
+The system stores the campaign as Draft (not visible to parents).
+Exception:
+44.E1 Invalid Date Range
+If end date ≤ start date, the system highlights date fields and blocks publishing.
+44.E2 Create Failed
+If server/database fails, display MSG11.
+
+
+3.5.4 View Parent Orders
+
+Use Case ID
+UC-45
+USE CASE NAME
+View Parent Orders
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+None
+Description:
+School views uniform orders placed by parents, including order details, quantities, sizes, payment status, and associated students.
+Priority:
+High
+Trigger:
+School opens Order Management in School portal.
+Preconditions:
+PRE-1: School is logged in.
+PRE-2: A campaign exists or orders have been placed.
+Post-Conditions:
+POST-1: Order list is displayed with accurate totals and statuses.
+Basic Flow:
+45.1. View Order List and Detail
+School opens OrderManagementScreen.
+System displays orders with columns such as Order ID, Parent, Student, Items, Total, Payment Status, Order Status.
+School filters by campaign/class/status (optional).
+School selects an order to view details.
+System displays order line items (uniform, size, quantity) and payment info.
+Alternative Flow:
+45.2 Export Orders
+At Step 3, the School clicks Export to download an order list report.
+Exception:
+45.E1. Unable to Load Orders
+If system cannot load order data, display MSG13.
+
+
+3.5.5 Track Pre-order Progress
+
+Use Case ID
+UC-46
+USE CASE NAME
+Track Pre-order Progress
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+Supplier
+Description:
+School monitors the progress of pre-orders including confirmation status, production stages, delivery timelines, and overall campaign progress.
+Priority:
+High
+Trigger:
+School opens Distribution/Dashboard for a campaign.
+Preconditions:
+PRE-1: School is logged in.
+PRE-2: A campaign exists with orders.
+Post-Conditions:
+POST-1: Campaign progress metrics and status timeline are displayed.
+Basic Flow:
+46.1. Monitor Campaign Progress
+School opens DashboardScreen.
+System shows campaign metrics.
+System displays production/delivery timeline (e.g., Requested → Approved → In Production → Delivered → Distributed).
+School selects a specific batch/order group to view detailed status.
+System displays latest supplier updates.
+Alternative Flow:
+46.2 Filter by Class/Grade
+At Step 2, the School filters progress by class/grade to plan distribution.
+Exception:
+46.E1 Data Load Timeout
+If the request times out, display MSG12.
+
+
+3.5.6 Confirm Goods Received
+
+Use Case ID
+UC-47
+USE CASE NAME
+Confirm Goods Received
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+Supplier
+Description:
+School confirms receipt of uniforms delivered by suppliers, records discrepancies if any, and updates inventory status
+Priority:
+High
+Trigger:
+School clicks Confirm Received on a delivered batch.
+Preconditions:
+PRE-1: School is logged in.
+PRE-2: Supplier marked a batch as Delivered/Handed over.
+Post-Conditions:
+POST-1: Batch status is updated to Received (or Received with Issues).
+POST-2: Inventory is updated accordingly.
+Basic Flow:
+47.1. Confirm Receiving
+School opens Inventory Screen.
+System displays delivered batches awaiting confirmation.
+School selects a batch to view expected quantities by uniform variant.
+School inputs received quantities and notes discrepancies (missing/damaged).
+School clicks Confirm Received.
+System updates batch receiving status and inventory values.
+System shows a success message.
+Alternative Flow:
+47.2 Received with Discrepancy
+At Step 4, if received quantities differ, the School flags the batch and submits discrepancy notes.
+System marks status as “Received with Issues” and notifies relevant parties (future-ready).
+Exception:
+47.E1 Update Failed
+If update fails, display MSG11.
+
+
+3.5.7 Confirm Uniform Order
+
+Use Case ID
+UC-48
+USE CASE NAME
+Confirm Uniform Order
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+Supplier
+Description:
+After the pre-order phase ends, School confirms aggregated order quantities and submits official production requests (production batches) to the selected supplier.
+Priority:
+High
+Trigger:
+Campaign reaches deadline and School clicks Confirm Order / Send to Supplier.
+Preconditions:
+PRE-1: School is logged in.
+PRE-2: Campaign is ended/locked for ordering.
+PRE-3: A supplier is selected for production.
+Post-Conditions:
+POST-1: A Production Batch request is created and sent to Supplier.
+POST-2: Batch status becomes Waiting for Approval.
+Basic Flow:
+48.1. Confirm and Send Production Request
+School opens campaign management and views aggregated quantities by uniform variant.
+School reviews totals and verifies readiness for production.
+School clicks Confirm Uniform Order.
+System asks for confirmation and shows selected supplier.
+School clicks Confirm.
+System creates a production batch and sends it to Supplier.
+System displays a confirmation message.
+Alternative Flow:
+48.2 Adjust Quantities Before Sending
+At Step 2, the School adjusts quantities (if allowed by business rules) before confirmation, then proceeds.
+Exception:
+48.E1 Cannot Confirm (Missing Supplier / Invalid State)
+If no supplier is selected or campaign is still open, the system blocks the action and shows an error.
+48.E2 Save Failed
+Display MSG11.
+
+
+3.5.8 View Sales Reports
+
+Use Case ID
+UC-49
+USE CASE NAME
+View Sales Reports
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+None
+Description:
+School views sales statistics including total orders, revenue, item quantities, and campaign performance.
+Priority:
+Medium
+Trigger:
+School opens Reports/Statistics section.
+Preconditions:
+PRE-1: School is logged in.
+PRE-2: At least one order exists.
+Post-Conditions:
+POST-1: Sales report data is displayed and can be exported (optional).
+Basic Flow:
+49.1. View Sales Summary
+School opens Reports Screen.
+System displays sales KPIs
+School selects time range/campaign filters.
+System refreshes report results.
+Alternative Flow:
+49.2 Export Report
+The School clicks Export to download the report file.
+Exception:
+49.E1 Data Load Failure
+If report data cannot be loaded, display MSG13
+
+
+3.5.9 View Feedback Reports
+
+Use Case ID
+UC-50
+USE CASE NAME
+View Feedback Reports
+Created By: 
+KhoiNDQ
+Date Created:
+18/01/2026
+Primary Actor:
+School Manager
+Secondary Actor:
+None
+Description:
+School reviews summarized feedback and ratings from parents related to uniforms, size accuracy, quality, and overall satisfaction to improve future catalogs and campaigns
+Priority:
+Medium
+Trigger:
+School clicks Feedback from the School dashboard.
+Preconditions:
+PRE-1: School is logged in.
+PRE-2: Feedback exists for the school’s uniforms (from Parent feedback use case).
+Post-Conditions:
+POST-1: Feedback analytics and review list are displayed to School.
+Basic Flow:
+50.1 View Feedback Summary
+School opens Feedback Screen
+System shows summary metrics
+System displays feedback list by product/campaign.
+School filters feedback by uniform item, time range, or rating level.
+Alternative Flow:
+50.2 View Feedback Detail
+School clicks one feedback item to see full comment, rating, and related order/product context
+Exception:
+50.E1 Unable to Load Feedback
+If the system fails to load feedback data, display MSG13.
+
+
+3.6 Guest Feature
+3.6.1 View Homepage & System Introduction
+
+Use Case ID
+UC-56
+USE CASE NAME
+View Homepage & System Introduction
+Created By: 
+QuanNSH
+Date Created:
+10/01/2026
+Primary Actor:
+Guest
+Secondary Actor:
+None
+Description:
+This use case allows the Guest to view the homepage, read the system introduction, and access main entry points (e.g., View Schools, Try Demo, Login)
+Priority:
+Medium
+Trigger:
+Guest accesses the system homepage.
+Preconditions:
+PRE-1: The system is available.
+PRE-2: Homepage content exists.
+Post-Conditions:
+POST-1: Homepage and introduction content are displayed.
+Basic Flow:
+56.1 Guest view Homepage
+Guest opens the homepage.
+System displays homepage content and system introduction.
+System shows navigation options (View School List / Try Demo / Login/Register).
+Alternative Flow:
+56.1A – Switch Language
+Trigger: Guest selects a different language.
+56.1A.1. The Guest selects a language from the language selector.
+56.1A.2. The system reloads homepage content in the selected language.
+Exception:
+56.E1 – Homepage Load Failed
+If the homepage content cannot be loaded, the system displays MSG01 – Unable to load homepage and suggests the Guest retry or refresh.
+
+
+3.6.2 View School List
+
+Use Case ID
+UC-57
+USE CASE NAME
+View School List
+Created By: 
+QuanNSH
+Date Created:
+10/01/2026
+Primary Actor:
+Guest
+Secondary Actor:
+None
+Description:
+This use case allows the Guest to browse the list of schools available in the system.
+Priority:
+Medium
+Trigger:
+Guest selects “Danh sách trường” from homepage/menu.
+Preconditions:
+PRE-1: School data exists.
+Post-Conditions:
+POST-1: The school list is displayed.
+Basic Flow:
+57.1 Guest opens School List
+Guest opens the School List page.
+System retrieves school list data.
+System displays the list of schools.
+Alternative Flow:
+57.3A – Search or Filter Schools
+Trigger: Guest enters search keywords or applies filters.
+57.3A.1. The Guest enters search criteria.
+57.3A.2. The system filters and displays matched schools.
+Exception:
+57.E1 – School Data Load Failed
+If school data cannot be retrieved, the system displays MSG13 – Unable to load school list.
+
+3.6.3 View Uniform Categories
+
+Use Case ID
+UC-58
+USE CASE NAME
+View Uniform Categories
+Created By: 
+QuanNSH
+Date Created:
+10/01/2026
+Primary Actor:
+Guest
+Secondary Actor:
+None
+Description:
+This use case allows the Guest to view uniform categories of a selected school .
+Priority:
+Medium
+Trigger:
+Guest selects a school (or clicks “View Uniform Categories”).
+Preconditions:
+PRE-1: A school is selected (or default school is set).
+PRE-2: Categories exist for the selected school.
+Post-Conditions:
+POST-1: Uniform categories are displayed.
+Basic Flow:
+58.1 Guest Views Uniform 
+Guest selects a school.
+System loads uniform categories for that school.
+System displays the category list.
+Alternative Flow:
+58.3A – No Categories Available
+Trigger: The selected school has no uniform categories.
+58.3A.1. The system displays MSG14 – No uniform categories available.
+Exception:
+58.E1 – Category Load Failed
+If category data cannot be retrieved, the system displays MSG13 – Unable to load category information.
+
+
+3.6.4 View Uniform Details
+
+Use Case ID
+UC-59
+USE CASE NAME
+View Uniform Details
+Created By: 
+QuanNSH
+Date Created:
+10/01/2026
+Primary Actor:
+Guest
+Secondary Actor:
+None
+Description:
+This use case allows the Guest to view detailed information of a uniform item (images, description, material, size guide, rules).
+Priority:
+Medium
+Trigger:
+Guest selects a uniform item from the list/grid.
+Preconditions:
+PRE-1:  A uniform item exists in the selected category/school.
+Post-Conditions:
+POST-1:  Uniform details are displayed.
+Basic Flow:
+59.1 Guest view Uniform Details
+Guest selects a uniform item.
+System retrieves uniform details.
+System displays images and uniform information (size/material/rules).
+Alternative Flow:
+59.E1 – Uniform Not Found
+If the uniform does not exist or is unavailable, the system displays MSG15 – Uniform not found.
+Exception:
+59.E2 – Uniform Data Load Failed
+If uniform data cannot be retrieved, the system displays MSG13 – Unable to load uniform information.
+
+
+3.6.5 Try-On Demo (Limited Virtual Try-On Experience)
+
+
+Use Case ID
+UC-60
+USE CASE NAME
+Try-On Demo (Limited Virtual Try-On Experience)
+Created By: 
+QuanNSH
+Date Created:
+10/01/2026
+Primary Actor:
+Guest
+Secondary Actor:
+None
+Description:
+This use case allows the Guest to try a limited virtual try-on demo to preview how a uniform may look, with restrictions (limited attempts, watermark, no saving history).
+Priority:
+Medium
+Trigger:
+Guest clicks “Try Demo” / “Try-On Demo”.
+Preconditions:
+PRE-1: Demo feature is enabled.
+PRE-2: Demo uniform data exists.
+Post-Conditions:
+POST-1: Try-on demo result is displayed (limited mode).
+Basic Flow:
+60.1 Guest uses Try-On Demo
+Guest opens Try-On Demo.
+Guest selects a demo uniform (and sample model or uploads image if allowed).
+System validates input (format/resolution/size).
+System generates the try-on demo result.
+System displays the result with limitations (e.g., watermark, no saving).
+Alternative Flow:
+60.2A – Upload Invalid Image
+Trigger: Guest uploads an image that violates BR-04 (format, size, resolution).
+60.2A.1. The system displays MSG02 – Invalid file type or MSG08 – File too large.
+60.2A.2. The system requests the Guest to upload another image.
+
+60.2B – Demo Usage Limit Reached
+Trigger: Guest exceeds demo usage limit (BR-10).
+60.2B.1. The system displays MSG16 – Demo limit reached.
+60.2B.2. The system prompts the Guest to Login/Register to continue.
+Exception:
+60.E1 – Try-On Generation Failed
+If the AI service cannot generate the result, the system displays MSG17 – Try-on generation failed.
+60.E2 – Service Timeout or Unavailable
+ If the AI service is not responding, the system displays MSG12 – Request is timeout.
+
+4. Non-Functional Requirements
+4.1 External Interfaces
+This system shall interact with the following external systems and interfaces:
+Payment Gateway API for processing online payments and refunds.
+AI Image Processing Services for background removal, body segmentation, and virtual try-on generation.
+Cloud Storage Service for storing uploaded photos and generated try-on results.
+Web Browser Interface supporting modern browsers (Chrome, Edge, Firefox).
+Optional Mobile Browser Interface for parent users accessing the system on mobile devices.
+4.2 Quality Attributes
+4.2.1 Usability 
+The system shall allow a normal parent user to complete basic operations (register, try-on, purchase) with no more than 10 minutes of initial learning time.
+The system shall support intuitive navigation with consistent layout and terminology across all user roles.
+The system shall provide clear error messages for invalid inputs and failed operations.
+The system shall support responsive design for both desktop and mobile browsers.
+Administrative users shall be able to complete management tasks without requiring specialized technical training.
+4.2.2 Reliability 
+Availability:
+ The system shall be available at least 99.5% of the time, excluding scheduled maintenance.
+MTBF (Mean Time Between Failures):
+ The system shall have an MTBF of at least 30 days.
+MTTR (Mean Time To Repair):
+ The system shall be restored to normal operation within 4 hours after a failure.
+Accuracy:
+ AI Try-On and size recommendation results shall be generated using the latest validated algorithm version.
+Defect Rate:
+Critical defects: 0 tolerance (e.g. data loss, payment failure)
+Major defects: ≤ 2 bugs per KLOC
+Minor defects: ≤ 5 bugs per KLOC
+4.2.3 Performance
+The system must ensure real-time responsiveness in web interfaces:
+The system shall generate a Try-On preview result within 5 seconds under normal load.
+The system shall support at least 1,000 concurrent users without significant performance degradation
+Average API response time shall be less than 2 seconds.
+The system shall be capable of processing at least 50 transactions per minute during peak usage.
+Uploaded images shall be processed asynchronously to avoid blocking user interactions.
+4.2.4 Security
+User passwords shall be stored using secure hashing mechanisms.
+Access to child data shall be restricted to authorized parents and administrators only.
+All payment-related communications shall use secure encrypted channels.
+The system shall prevent unauthorized access to administrative functions.
+4.2.5 Privacy
+Child personal data and images shall not be visible to other users.
+Uploaded images shall be used only for Try-On processing purposes.
+The system shall comply with basic data privacy principles regarding storage and access control.
+
+5. Requirement Appendix
+5.1 Business Rules
+ID
+Rule Definition
+BR-01
+User must have a valid email to create an account.
+BR-02
+Password must follow security policy: minimum 8 characters, include upper/lowercase letters, numbers, and symbols.
+BR-03
+User login session expires after 30 minutes of inactivity.
+BR-04
+Personal photos uploaded must be under 10MB and in PNG/JPG format.
+BR-05
+User photos are processed for AI segmentation locally on server, and raw photos are not shared with third parties.
+BR-06
+AI try-on overlay must not permanently store processed user photos unless user explicitly saves them.
+BR-07
+Parent accounts can manage multiple child profiles under one account.
+BR-08
+Child profile data cannot be publicly visible or searchable.
+BR-09
+School-only data (uniforms, stock, pricing) can only be edited by school/admin accounts.
+BR-10
+Payment records must match verified transaction IDs from gateways (VNPay/MoMo).
+BR-11
+Refunds follow each payment gateway's policy and must be verified via webhook.
+BR-12
+System must encrypt sensitive data at rest (AES-256 recommended).
+BR-13
+User cannot delete try-on history that is being used for analytics (anonymized).
+BR-14
+Admin must approve school accounts before they can upload uniform catalog.
+
+
+5.2 Common Requirements
+
+None.
+
+5.3 Application Messages List
+#
+Message code
+Message Type
+Context
+Content
+1
+MSG01
+In line
+No outfits found
+No outfits available.
+2
+MSG02
+In red, under the text box
+Invalid file type
+Please upload a JPG or PNG image.
+3
+MSG03
+Toast message
+Upload success
+Image uploaded successfully.
+4
+MSG04
+Toast message
+Outfit applied
+Outfit applied to your photo.
+5
+MSG05
+Toast message
+Download success
+Your image is ready for download.
+6
+MSG06
+Toast message
+Admin add outfit
+Outfit added successfully.
+7
+MSG07
+Toast message
+Admin delete outfit
+Outfit deleted successfully.
+8
+MSG08
+In red, under the text box
+File too large
+File exceeds maximum size (10MB).
+9
+MSG09
+In line
+No matching category
+No items available in this category.
+10
+MSG10
+Toast message
+Unable to load account information.
+Fails to load the account profile data
+11
+MSG11
+Toast message
+Update failed
+Fail to update information
+12
+MSG12
+Toast message
+Timeout request
+Request is timeout
+13
+MSG13
+Toast message
+Unable to load order information.
+Fails to load the order data
+14
+MSG14
+Toast message
+Report Violation comment
+Comment contains inappropriate content.
+15
+MSG15
+Toast message
+System blocks the cancel request.
+Order is already in production/shipping and cannot be cancelled.
+
+
+
