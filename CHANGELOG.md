@@ -4,6 +4,25 @@ All notable changes to the VTOS Backend project.
 
 ---
 
+## [2026-01-23] - Auth & Configuration Implementation
+
+### Added
+- **Authentication Module**
+  - Registration with Email OTP (`POST /api/auth/register`)
+  - Email Verification (`POST /api/auth/verify-email`)
+  - Phone Verification for linking children (`POST /api/auth/verify-phone`)
+  - OTP Resend mechanism (`POST /api/auth/resend-otp`)
+- **Infrastructure**
+  - `EmailService` using MailKit
+  - `EmailVerification` entity and table
+  - `OTPGenerator` utility
+- **Configuration**
+  - Secured sensitive settings in `appsettings.Development.json` (Email, JWT, DbConnection)
+
+### Changed
+- **Register Flow**: Deferred phone collection to post-login to reduce friction and improve security
+- **Login Flow**: Enforced `IsActive` check before issuing JWT
+
 ## [2026-01-22] - Documentation Review (/save_brain)
 
 ### Added
