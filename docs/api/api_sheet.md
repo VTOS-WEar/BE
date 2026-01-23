@@ -25,8 +25,11 @@
 
 | Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Packages |
 |----------|-------------|--------|-------|------------------------|--------|-------|----------|
-| `/api/auth/register` | Đăng ký tài khoản mới | `POST` | `{ "email": "string", "password": "string", "fullName": "string", "phone": "string" }` | `{ "userId": "guid", "email": "string", "fullName": "string", "message": "Registration successful" }` | `400` Email đã tồn tại, `400` Password không hợp lệ | Password ≥8 ký tự | `FluentValidation`, `BCrypt.Net-Next` |
+| `/api/auth/register` | Đăng ký tài khoản mới (Gửi OTP email) | `POST` | `{ "email": "string", "password": "string", "fullName": "string" }` | `{ "userId": "guid", "email": "string", "message": "OTP sent to email" }` | `400` Email đã tồn tại | Password ≥8 ký tự | `FluentValidation`, `BCrypt`, `MailKit` |
 | `/api/auth/login` | Đăng nhập hệ thống | `POST` | `{ "email": "string", "password": "string" }` | `{ "accessToken": "jwt_string", "refreshToken": "string", "expiresIn": 3600, "user": { "userId": "guid", "email": "string", "fullName": "string", "role": "string" } }` | `401` Sai email/password, `403` Tài khoản bị khóa | JWT + Refresh token | `System.IdentityModel.Tokens.Jwt` |
+| `/api/auth/verify-email` | Xác thực OTP đăng ký | `POST` | `{ "email": "string", "otp": "string" }` | `{ "userId": "guid", "email": "string", "token": "jwt_string", "message": "Email verified" }` | `400` OTP sai/hết hạn | Creates Active User | - |
+| `/api/auth/verify-phone` | Xác thực SĐT & Link trẻ em | `POST` | `{ "phoneNumber": "string" }` | `{ "success": true, "message": "Phone verified", "linkedChildren": [{ "childId": "guid", "fullName": "string" }], "schoolCount": 1 }` | `401` auth, `404` Not found | Requires Login | - |
+| `/api/auth/resend-otp` | Gửi lại mã OTP | `POST` | `{ "email": "string" }` | `{ "message": "OTP resent" }` | `400` User not found | Rate limit 60s | - |
 | `/api/auth/refresh-token` | Refresh access token | `POST` | `{ "refreshToken": "string" }` | `{ "accessToken": "jwt_string", "refreshToken": "new_refresh_token", "expiresIn": 3600 }` | `401` Token hết hạn/không hợp lệ | Refresh token 7 ngày | - |
 | `/api/auth/logout` | Đăng xuất | `POST` | Header: `Authorization: Bearer {token}` | `{ "message": "Logout successful" }` | `401` Unauthorized | Revoke refresh token | - |
 | `/api/auth/forgot-password` | Quên mật khẩu | `POST` | `{ "email": "string" }` | `{ "message": "Reset link sent to email" }` | `404` Email không tồn tại, `429` Rate limit | Token 15 phút | `MailKit` |
