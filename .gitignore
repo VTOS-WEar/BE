@@ -42,6 +42,12 @@ bld/
 !**/packages/build/
 
 # =========================
+# AI Brain (Session is local state)
+# =========================
+.brain/session.json
+.brain/brain.json
+
+# =========================
 # Secrets & Sensitive Data (IMPORTANT!)
 # =========================
 appsettings.Development.json
