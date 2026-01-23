@@ -4,7 +4,7 @@
 
 | Member | Actor | Use Cases | Priority APIs |
 |--------|-------|-----------|---------------|
-| **KhoiNDQ + QuanNSH** | Guest + Auth | UC-01 → UC-04, UC-56 → UC-60 | Login, Register, TryOn Demo |
+| **KhoiNDQ** | Guest + Auth | UC-01 → UC-04, UC-56 → UC-60 | Login, Register, TryOn Demo |
 | **HuyenCTT** | Parent | UC-05 → UC-28 | Children, TryOn, Orders, Cart |
 | **KhoiNDQ** | School | UC-42 → UC-50 | School Profile, Students, Campaigns |
 | **TruyenVNG** | Supplier | UC-51 → UC-55 | Provider, ProductionBatch |
@@ -12,7 +12,7 @@
 
 ---
 
-## 👤 KhoiNDQ + QuanNSH: Guest + Authentication
+## 👤 KhoiNDQ: Guest + Authentication
 
 ### Use Cases (9 UCs)
 | UC ID | Use Case | API Endpoint |
@@ -309,10 +309,10 @@ Controllers/
 ```
 main
   └── develop
-       ├── feature/auth-login (M1)
-       ├── feature/parent-children (M2)
-       ├── feature/school-profile (M3)
-       ├── feature/provider-batches (M4)
-       └── feature/admin-users (M5)
+       ├── feature/auth-login (KhoiNDQ)
+       ├── feature/parent-children (HuyenCTT)
+       ├── feature/school-profile (KhoiNDQ)
+       ├── feature/provider-batches (TruyenVNG)
+       └── feature/admin-users (ThanhNLD)
 ```
 
