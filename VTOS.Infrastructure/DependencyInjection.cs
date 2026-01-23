@@ -1,7 +1,12 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using VTOS.Application.Abstractions;
+using VTOS.Application.Features.Auth.Commands;
+using VTOS.Application.Features.Auth.Queries;
 using VTOS.Infrastructure.Persistence;
+using VTOS.Infrastructure.Services;
 
 namespace VTOS.Infrastructure;
 
@@ -15,7 +20,30 @@ public static class DependencyInjection
                 configuration.GetConnectionString("DefaultConnection"),
                 b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName)));
 
+        // Register DbContext as IApplicationDbContext
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<VTOSDbContext>());
+
+        // Register JWT Settings
+        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+
+        // Register Email Settings
+        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
+
+        // Register Services
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IEmailService, EmailService>();
+
+        // Register Handlers
+        services.AddScoped<IRegisterCommandHandler, RegisterCommandHandler>();
+        services.AddScoped<ILoginQueryHandler, LoginQueryHandler>();
+        services.AddScoped<IVerifyEmailCommandHandler, VerifyEmailCommandHandler>();
+        services.AddScoped<ResendOTPCommandHandler>();
+        services.AddScoped<VerifyPhoneCommandHandler>();
+
+        // Register Validators
+        services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
+
         return services;
     }
 }
-

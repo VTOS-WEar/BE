@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using VTOS.Application.Abstractions;
 using VTOS.Domain.Entities;
 
 namespace VTOS.Infrastructure.Persistence;
 
-public class VTOSDbContext : DbContext
+public class VTOSDbContext : DbContext, IApplicationDbContext
 {
     public VTOSDbContext(DbContextOptions<VTOSDbContext> options) : base(options)
     {
@@ -14,6 +15,7 @@ public class VTOSDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<School> Schools { get; set; }
     public DbSet<ChildProfile> ChildProfiles { get; set; }
+    public DbSet<EmailVerification> EmailVerifications { get; set; }
 
     // Outfit & Catalog Management
     public DbSet<Outfit> Outfits { get; set; }
