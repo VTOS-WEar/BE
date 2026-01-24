@@ -13,6 +13,7 @@ public interface IApplicationDbContext
     DbSet<Role> Roles { get; }
     DbSet<EmailVerification> EmailVerifications { get; }
     DbSet<ChildProfile> ChildProfiles { get; }
+    public DbSet<Feedback> Feedbacks { get; }
 
     DbSet<T> Set<T>() where T : class;
     

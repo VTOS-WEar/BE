@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Auth.Commands;
 using VTOS.Application.Features.Auth.Queries;
+using VTOS.Application.Features.Admin.Queries;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
 
@@ -43,6 +44,10 @@ public static class DependencyInjection
 
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
+
+        //View User List & Feedbacks
+        services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
+        services.AddScoped<IGetAllFeedbacksQueryHandler, GetAllFeedbacksQueryHandler>();
 
         return services;
     }
