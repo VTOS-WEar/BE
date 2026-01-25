@@ -3,6 +3,13 @@
 All notable changes to the VTOS Backend project.
 
 ---
+## [2026-01-24] - View User List & Feedback
+
+### Added
+- **Admin Function**
+  - View User List (`GET /api/admin/users`)
+  - View User Feedbacks (`GET /api/admin/feedbacks`)
+
 
 ## [2026-01-23] - Auth & Configuration Implementation
 
