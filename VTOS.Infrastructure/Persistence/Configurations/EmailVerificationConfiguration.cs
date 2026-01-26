@@ -35,5 +35,11 @@ public class EmailVerificationConfiguration : IEntityTypeConfiguration<EmailVeri
         
         // Index for cleanup queries
         builder.HasIndex(e => e.ExpiresAt);
+
+        // Purpose field for distinguishing OTP types
+        builder.Property(e => e.Purpose)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("Registration");
     }
 }

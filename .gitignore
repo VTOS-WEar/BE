@@ -105,3 +105,4 @@ publish/
 *.swp
 *~
 
+"VTOS.API/appsettings.json" 

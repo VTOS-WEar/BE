@@ -41,6 +41,10 @@ public static class DependencyInjection
         services.AddScoped<IVerifyEmailCommandHandler, VerifyEmailCommandHandler>();
         services.AddScoped<ResendOTPCommandHandler>();
         services.AddScoped<VerifyPhoneCommandHandler>();
+        services.AddScoped<ForgotPasswordCommandHandler>();
+        services.AddScoped<ResetPasswordCommandHandler>();
+        services.AddScoped<RequestChangePasswordOTPCommandHandler>();
+        services.AddScoped<ChangePasswordCommandHandler>();
 
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
