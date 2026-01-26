@@ -47,6 +47,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.LastLogin);
 
+        // Password Reset Token (SHA-256 hash = 64 chars)
+        builder.Property(u => u.PasswordResetToken)
+            .HasMaxLength(64);
+
+        builder.Property(u => u.PasswordResetTokenExpiry);
+
         // Relationships
         builder.HasOne(u => u.Role)
             .WithMany(r => r.Users)

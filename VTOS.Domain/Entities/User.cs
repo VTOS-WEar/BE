@@ -17,6 +17,10 @@ public class User : BaseEntity
     public bool IsDeleted { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLogin { get; set; }
+    
+    // Password Reset (stored as SHA-256 hash)
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiry { get; set; }
 
     // Navigation properties
     public Role Role { get; set; } = null!;

@@ -13,4 +13,5 @@ public class EmailVerification : BaseEntity
     public DateTime ExpiresAt { get; set; }
     public bool IsVerified { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string Purpose { get; set; } = "Registration"; // "Registration" | "ChangePassword"
 }
