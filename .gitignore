@@ -53,6 +53,7 @@ bld/
 appsettings.Development.json
 appsettings.Local.json
 appsettings.*.local.json
+appsettings.json
 *.pfx
 *.key
 secrets.json
@@ -105,4 +106,3 @@ publish/
 *.swp
 *~
 
-"VTOS.API/appsettings.json" 
