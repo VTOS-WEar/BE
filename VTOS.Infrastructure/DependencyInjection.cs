@@ -6,6 +6,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Auth.Commands;
 using VTOS.Application.Features.Auth.Queries;
 using VTOS.Application.Features.Admin.Queries;
+using VTOS.Application.Features.Public.Queries;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
 
@@ -52,6 +53,11 @@ public static class DependencyInjection
         //View User List & Feedbacks
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
         services.AddScoped<IGetAllFeedbacksQueryHandler, GetAllFeedbacksQueryHandler>();
+
+        // Public Module Handlers (UC-57, UC-58, UC-59)
+        services.AddScoped<GetSchoolsQueryHandler>();
+        services.AddScoped<GetCategoriesQueryHandler>();
+        services.AddScoped<GetOutfitDetailQueryHandler>();
 
         return services;
     }
