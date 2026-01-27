@@ -33,7 +33,10 @@
 | `/api/auth/refresh-token` | Refresh access token | `POST` | `{ "refreshToken": "string" }` | `{ "accessToken": "jwt_string", "refreshToken": "new_refresh_token", "expiresIn": 3600 }` | `401` Token hết hạn/không hợp lệ | Refresh token 7 ngày | - |
 | `/api/auth/logout` | Đăng xuất | `POST` | Header: `Authorization: Bearer {token}` | `{ "message": "Logout successful" }` | `401` Unauthorized | Revoke refresh token | - |
 | `/api/auth/forgot-password` | Quên mật khẩu | `POST` | `{ "email": "string" }` | `{ "message": "Reset link sent to email" }` | `404` Email không tồn tại, `429` Rate limit | Token 15 phút | `MailKit` |
+| `/api/auth/forgot-password` | Quên mật khẩu | `POST` | `{ "email": "string" }` | `{ "message": "Reset link sent to email" }` | `404` Email không tồn tại, `429` Rate limit | Token 15 phút | `MailKit` |
 | `/api/auth/reset-password` | Đặt lại mật khẩu | `POST` | `{ "token": "string", "newPassword": "string" }` | `{ "message": "Password reset successful" }` | `400` Token hết hạn/Password không hợp lệ | - | - |
+| `/api/auth/change-password/request-otp` | Yêu cầu OTP đổi mật khẩu | `POST` | Header: `Authorization` | `{ "message": "OTP sent to email" }` | `401` Auth | Rate limit 3/hour | - |
+| `/api/auth/change-password` | Đổi mật khẩu (OTP) | `POST` | `{ "otp": "string", "currentPassword": "string", "newPassword": "string" }` | `{ "message": "Password changed successfully" }` | `400` OTP sai/Password sai | Requires Auth | - |
 
 ---
 

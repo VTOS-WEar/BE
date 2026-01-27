@@ -3,6 +3,36 @@
 All notable changes to the VTOS Backend project.
 
 ---
+## [2026-01-27] - Public Guest APIs (UC-57, UC-58, UC-59)
+
+### Added
+- **Public Module**
+  - View School List (`GET /api/public/schools`) - search, pagination
+  - View Uniform Categories (`GET /api/public/categories`) - with outfit counts
+  - View Uniform Details (`GET /api/public/outfits/{id}`) - full details
+- **Application Layer**
+  - 7 DTOs: SchoolDto, CategoryDto, OutfitDetailResponse, etc.
+  - 6 Query/Handlers for public data access
+- **API Layer**
+  - `PublicController.cs` with 3 endpoints (no auth required)
+
+---
+## [2026-01-25] - Password Management Implementation
+
+### Added
+- **Authentication Module**
+  - Forgot Password flow (`POST /api/auth/forgot-password`)
+  - Reset Password flow (`POST /api/auth/reset-password`)
+    - Secure token generation (SHA256 hashed)
+    - 1-hour token expiry
+  - Change Password flow (`POST /api/auth/change-password`)
+    - Two-step process: Request OTP -> Change Password
+    - Secure OTP verification (10 minutes expiry)
+- **Infrastructure**
+  - `EmailVerification` entity updated with `Purpose` field
+  - `EmailService` updated for Change Password OTPs
+
+
 ## [2026-01-24] - View User List & Feedback
 
 ### Added

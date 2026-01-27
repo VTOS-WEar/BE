@@ -13,7 +13,14 @@ public interface IApplicationDbContext
     DbSet<Role> Roles { get; }
     DbSet<EmailVerification> EmailVerifications { get; }
     DbSet<ChildProfile> ChildProfiles { get; }
-    public DbSet<Feedback> Feedbacks { get; }
+    DbSet<Feedback> Feedbacks { get; }
+    DbSet<School> Schools { get; }
+    DbSet<Category> Categories { get; }
+    DbSet<Outfit> Outfits { get; }
+    DbSet<ProductVariant> ProductVariants { get; }
+    DbSet<SizeChart> SizeCharts { get; }
+    DbSet<SizeChartDetail> SizeChartDetails { get; }
+    DbSet<OutfitCategory> OutfitCategories { get; }
 
     DbSet<T> Set<T>() where T : class;
     
