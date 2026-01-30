@@ -3,6 +3,86 @@
 All notable changes to the VTOS Backend project.
 
 ---
+## [2026-01-29] - UC-60 Guest Try-On Implementation
+
+### Added
+- **UC-60: Guest Virtual Try-On Feature**
+  - `POST /api/tryon/guest` endpoint for anonymous users
+  - Integration with 302.ai Virtual Try-On V2 API
+  - Integration with ImgBB image hosting service
+  - Rate limiting: 5 tries per guest session per day
+  - Guest session tracking with `GuestSessionId`
+  - Photo validation (max 10MB, jpg/png/webp only)
+  - Try-on history persistence to database
+
+- **Application Layer**
+  - `IImageUploadService` interface for image upload abstraction
+  - `IVirtualTryOnService` interface for AI try-on abstraction
+  - `GuestTryOnCommand`, `GuestTryOnResponse` DTOs
+  - `GuestTryOnCommandValidator` with FluentValidation
+  - `GuestTryOnCommandHandler` with rate limiting logic
+  - `IGuestTryOnCommandHandler` interface
+
+- **Infrastructure Layer**
+  - `VirtualTryOnService` - 302.ai API client
+  - `VirtualTryOnSettings` - 302.ai configuration
+  - `ImgBBImageService` - ImgBB upload client
+  - `ImgBBSettings` - ImgBB configuration
+  - HttpClientFactory registration for external APIs
+
+- **API Layer**
+  - `TryOnController` with `POST /api/tryon/guest` endpoint
+  - `GuestTryOnRequest` DTO for Swagger compatibility
+  - Configuration sections in `appsettings.Development.json`
+
+### Fixed
+- **Build Errors**
+  - Fixed `Microsoft.AspNetCore.Http.Features` package not found by using `FrameworkReference` instead of `PackageReference`
+  - Fixed Swagger error with multiple `[FromForm]` parameters by using single request DTO
+  - Fixed 302.ai JSON deserialization by adding `[JsonPropertyName]` attributes for snake_case properties
+
+### Technical Details
+- **Pattern**: Custom `IHandler` + `Result<T>` (not MediatR)
+- **External APIs**: 302.ai Virtual Try-On V2, ImgBB Image Upload
+- **Rate Limiting**: Track by `GuestSessionID` + `Date` for daily limits
+- **Validation**: 10MB max file size, jpg/png/webp formats only
+
+---
+## [2026-01-29] - Frontend-Backend Integration & CORS Setup
+
+### Added
+- **CORS Configuration**
+  - CORS policy in `Program.cs` allowing Frontend origins
+  - Support for both HTTP and HTTPS origins (localhost:5173, 127.0.0.1:5173)
+  - Credentials, headers, and methods enabled for multipart/form-data uploads
+- **Frontend Integration**
+  - Created `.env` with Backend API URL (`https://localhost:7093`)
+  - Created `src/services/api.ts` - Base HTTP client with error handling
+  - Created `src/services/tryOnService.ts` - TryOn API service with session management
+  - Created `src/vite-env.d.ts` - TypeScript environment variable types
+  - Updated `TryOnModal.tsx` with full API integration:
+    - Photo upload functionality
+    - Loading states and error handling
+    - Result image display
+    - Vietnamese error messages
+  - Updated `ProductDetail.tsx` to pass outfit ID to TryOnModal
+
+### Fixed
+- **CORS 307 Redirect Issue**
+  - Root cause: Backend redirecting HTTP → HTTPS
+  - Solution: Updated Frontend to use HTTPS URL (`https://localhost:7093`)
+  - Added HTTPS origins to CORS policy
+- **Port Mismatch Issue**
+  - Root cause: Frontend calling port 5000, Backend running on 5130/7093
+  - Solution: Updated all URLs to match Backend's actual ports
+
+### Technical Details
+- Backend HTTPS: `https://localhost:7093`
+- Backend HTTP: `http://localhost:5130`
+- Frontend: `http://localhost:5173`
+- Try-On endpoint: `POST /api/tryon/guest` (multipart/form-data)
+
+---
 ## [2026-01-27] - Public Guest APIs (UC-57, UC-58, UC-59)
 
 ### Added
@@ -111,7 +191,7 @@ All notable changes to the VTOS Backend project.
 - `.gitignore` for .NET project (protects `appsettings.Development.json`)
 
 ### Infrastructure
-- Server: `DESKTOP-P5MIN4R\SQLEXPRESS`
+- Server: `DESKTOP-P5MIN4R\\SQLEXPRESS`
 - Database: `VTOSDatabase`
 - 26 tables created matching DB.txt schema
 

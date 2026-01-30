@@ -7,8 +7,11 @@ using VTOS.Application.Features.Auth.Commands;
 using VTOS.Application.Features.Auth.Queries;
 using VTOS.Application.Features.Admin.Queries;
 using VTOS.Application.Features.Public.Queries;
+using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
+using VTOS.Infrastructure.ExternalServices.TryOn;
+using VTOS.Infrastructure.ExternalServices.ImageStorage;
 
 namespace VTOS.Infrastructure;
 
@@ -31,10 +34,19 @@ public static class DependencyInjection
         // Register Email Settings
         services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
 
+        // Register TryOn Settings (UC-60)
+        services.Configure<VirtualTryOnSettings>(configuration.GetSection(VirtualTryOnSettings.SectionName));
+        services.Configure<TryOnSettings>(configuration.GetSection(TryOnSettings.SectionName));
+        services.Configure<ImgBBSettings>(configuration.GetSection(ImgBBSettings.SectionName));
+
         // Register Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IEmailService, EmailService>();
+
+        // Register TryOn Services with HttpClient (UC-60)
+        services.AddHttpClient<IVirtualTryOnService, VirtualTryOnService>();
+        services.AddHttpClient<IImageUploadService, ImgBBImageService>();
 
         // Register Handlers
         services.AddScoped<IRegisterCommandHandler, RegisterCommandHandler>();
@@ -59,6 +71,10 @@ public static class DependencyInjection
         services.AddScoped<GetCategoriesQueryHandler>();
         services.AddScoped<GetOutfitDetailQueryHandler>();
 
+        // TryOn Module Handlers (UC-60)
+        services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
+
         return services;
     }
 }
+

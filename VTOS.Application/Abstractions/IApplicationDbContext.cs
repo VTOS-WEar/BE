@@ -21,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<SizeChart> SizeCharts { get; }
     DbSet<SizeChartDetail> SizeChartDetails { get; }
     DbSet<OutfitCategory> OutfitCategories { get; }
+    DbSet<TryOnHistory> TryOnHistories { get; }
 
     DbSet<T> Set<T>() where T : class;
     
