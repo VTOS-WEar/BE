@@ -1,4 +1,5 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
@@ -12,6 +13,9 @@ public class User : BaseEntity
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public DateTime? DOB { get; set; }
+    public Gender Gender { get; set; } = Gender.Other;
+    public string Avatar { get; set; } = string.Empty;
     public Guid RoleID { get; set; }
     public bool IsActive { get; set; }
     public bool IsDeleted { get; set; }

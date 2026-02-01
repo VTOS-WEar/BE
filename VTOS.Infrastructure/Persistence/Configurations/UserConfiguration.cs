@@ -30,6 +30,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Phone)
             .HasMaxLength(30);
+            
+        builder.Property(u => u.DOB)
+            .HasColumnType("date");
+
+        builder.Property(u => u.Gender)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(u => u.Avatar)
+            .HasMaxLength(500);
 
         builder.Property(u => u.RoleID)
             .IsRequired();

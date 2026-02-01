@@ -28,6 +28,12 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
             .HasMaxLength(20)
             .HasConversion<string>();
 
+        builder.Property(u => u.DOB)
+           .HasColumnType("date");
+
+        builder.Property(u => u.Avatar)
+            .HasMaxLength(500);
+
         builder.Property(cp => cp.SchoolID);
 
         builder.Property(cp => cp.IsDeleted)
