@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,8 @@ using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
+using VTOS.Application.Features.Users.Queries;
+using VTOS.Application.Features.Users.Commands;
 using VTOS.Infrastructure.ExternalServices.TryOn;
 using VTOS.Infrastructure.ExternalServices.ImageStorage;
 
@@ -43,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // Register TryOn Services with HttpClient (UC-60)
         services.AddHttpClient<IVirtualTryOnService, VirtualTryOnService>();
@@ -65,6 +70,13 @@ public static class DependencyInjection
         //View User List & Feedbacks
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
         services.AddScoped<IGetAllFeedbacksQueryHandler, GetAllFeedbacksQueryHandler>();
+
+        //Parent Personal Infor
+        services.AddScoped<IGetProfileQueryHandler, GetProfileQueryHandler>();
+        services.AddScoped<IUpdateProfileCommandHandler, UpdateProfileCommandHandler>();
+        services.AddScoped<IUpdateAvatarCommandHandler, UpdateAvatarCommandHandler>();
+        services.AddScoped<UpdateProfileCommandHandler>();
+        services.AddScoped<UpdateAvatarCommandHandler>();
 
         // Public Module Handlers (UC-57, UC-58, UC-59)
         services.AddScoped<GetSchoolsQueryHandler>();

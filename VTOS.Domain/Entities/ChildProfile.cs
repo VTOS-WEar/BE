@@ -16,6 +16,8 @@ public class ChildProfile : BaseEntity
     public Gender Gender { get; set; }
     public Guid SchoolID { get; set; }
     public bool IsDeleted { get; set; }
+    public DateTime? DOB { get; set; }
+    public string Avatar { get; set; } = string.Empty;
 
     // Navigation properties
     public User ParentUser { get; set; } = null!;

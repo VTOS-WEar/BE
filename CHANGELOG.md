@@ -2,6 +2,62 @@
 
 All notable changes to the VTOS Backend project.
 
+
+---
+## [2026-02-01] - UC-05 View Personal Information
+
+### Added
+- **UC-05: View Personal Information**
+  - `GET /api/users/profile` endpoint for authenticated users
+  - Returns complete user profile including avatar, contact info, account status
+
+- **Application Layer** (`VTOS.Application/Features/Users/`)
+  - **DTOs**
+    - `UserProfileDto` - User profile response model
+  - **Queries**
+    - `GetUserProfileQuery` - Query to fetch current user profile
+    - `GetUserProfileQueryHandler` - Handler with database lookup by UserID from JWT
+
+- **API Layer**
+  - `UserController.cs` - `GET /api/users/profile` endpoint
+
+### Technical Details
+- **Authentication**: JWT Bearer token required (`[Authorize]`)
+- **Current User**: Retrieved via `ICurrentUserService` from JWT claims
+- **Response Fields**: UserID, FullName, Email, Phone, AvatarURL, Address, CreatedAt, IsActive
+- **Pattern**: Custom `IHandler` + `Result<T>`
+
+---
+## [2026-02-01] - UC-06 Update Personal Information
+
+### Added
+- **UC-06: Update Personal Information**
+  - `PUT /api/users/profile` endpoint for profile field updates
+  - `PUT /api/users/avatar` endpoint for avatar image upload
+  - Integration with ImgBB for avatar storage
+
+- **Application Layer** (`VTOS.Application/Features/Users/`)
+  - **DTOs**
+    - `UpdateProfileRequest` - Profile update request model
+    - `UpdateAvatarRequest` - Avatar upload request model
+  - **Commands**
+    - `UpdateProfileCommand` + `UpdateProfileCommandHandler` - Update FullName, Phone, Address
+    - `UpdateAvatarCommand` + `UpdateAvatarCommandHandler` - Upload & update avatar URL
+  - **Validators**
+    - `UpdateProfileCommandValidator` - FullName (required, max 100 chars), Phone (VN format)
+    - `UpdateAvatarCommandValidator` - Max 5MB, jpg/png/webp only
+
+- **API Layer**
+  - `UserController.cs`:
+    - `PUT /api/users/profile` - Update profile fields
+    - `PUT /api/users/avatar` - Upload avatar (multipart/form-data)
+
+### Technical Details
+- **Authentication**: JWT Bearer token required (`[Authorize]`)
+- **Avatar Upload**: Uses `IImageUploadService` (ImgBB integration, reused from UC-60)
+- **Validation**: FluentValidation with Vietnamese error messages
+- **Pattern**: Custom `IHandler` + `Result<T>`
+
 ---
 ## [2026-01-29] - UC-60 Guest Try-On Implementation
 
