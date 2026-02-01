@@ -13,11 +13,16 @@ CREATE TABLE [User] (
   [Email] varchar(255) UNIQUE,
   [PasswordHash] varchar(512),
   [Phone] varchar(30),
+  [DOB] datetime,
+  [Gender] nvarchar(20),
+  [Avatar] varchar(500),
   [RoleID] uniqueidentifier NOT NULL,
   [IsActive] bit,
   [IsDeleted] bit,
   [CreatedAt] datetime,
-  [LastLogin] datetime
+  [LastLogin] datetime,
+  [PasswordResetToken] varchar(512),
+  [PasswordResetTokenExpiry] datetime
 )
 GO
 
