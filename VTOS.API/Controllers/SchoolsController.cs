@@ -1,0 +1,188 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using VTOS.Application.Abstractions;
+using VTOS.Application.Features.Schools.Commands;
+using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Queries;
+
+namespace VTOS.API.Controllers;
+
+/// <summary>
+/// School management APIs (requires School role).
+/// UC-42: Maintain School Profile
+/// UC-45: View Parent Orders
+/// UC-46: Track Pre-order Progress
+/// UC-49: View Sales Reports
+/// UC-50: View Feedback Reports
+/// </summary>
+[ApiController]
+[Route("api/schools")]
+[Authorize(Roles = "School")]
+public class SchoolsController : ControllerBase
+{
+    private readonly ICurrentUserService _currentUser;
+    private readonly IGetSchoolProfileQueryHandler _getProfileHandler;
+    private readonly IUpdateSchoolProfileCommandHandler _updateProfileHandler;
+    private readonly IGetSchoolOrdersQueryHandler _getOrdersHandler;
+    private readonly IGetCampaignProgressQueryHandler _getCampaignProgressHandler;
+    private readonly IGetSalesReportQueryHandler _getSalesReportHandler;
+    private readonly IGetFeedbackReportQueryHandler _getFeedbackReportHandler;
+    private readonly IValidator<UpdateSchoolProfileCommand> _updateProfileValidator;
+
+    public SchoolsController(
+        ICurrentUserService currentUser,
+        IGetSchoolProfileQueryHandler getProfileHandler,
+        IUpdateSchoolProfileCommandHandler updateProfileHandler,
+        IGetSchoolOrdersQueryHandler getOrdersHandler,
+        IGetCampaignProgressQueryHandler getCampaignProgressHandler,
+        IGetSalesReportQueryHandler getSalesReportHandler,
+        IGetFeedbackReportQueryHandler getFeedbackReportHandler,
+        IValidator<UpdateSchoolProfileCommand> updateProfileValidator)
+    {
+        _currentUser = currentUser;
+        _getProfileHandler = getProfileHandler;
+        _updateProfileHandler = updateProfileHandler;
+        _getOrdersHandler = getOrdersHandler;
+        _getCampaignProgressHandler = getCampaignProgressHandler;
+        _getSalesReportHandler = getSalesReportHandler;
+        _getFeedbackReportHandler = getFeedbackReportHandler;
+        _updateProfileValidator = updateProfileValidator;
+    }
+
+    /// <summary>
+    /// UC-42: Get current school's profile.
+    /// </summary>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(SchoolProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetProfile(CancellationToken ct)
+    {
+        var result = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// UC-42: Update current school's profile.
+    /// </summary>
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(SchoolProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateSchoolProfileRequest request, CancellationToken ct)
+    {
+        var command = new UpdateSchoolProfileCommand(
+            _currentUser.UserId,
+            request.SchoolName,
+            request.LogoURL,
+            request.ContactInfo
+        );
+
+        var validationResult = await _updateProfileValidator.ValidateAsync(command, ct);
+        if (!validationResult.IsValid)
+            return BadRequest(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+
+        var result = await _updateProfileHandler.HandleAsync(command, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// UC-45: View parent orders for the school.
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per page (default: 10)</param>
+    /// <param name="status">Optional order status filter</param>
+    [HttpGet("me/orders")]
+    [ProducesResponseType(typeof(SchoolOrderListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetOrders(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        // First get school ID from current user
+        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
+        if (!profileResult.IsSuccess)
+            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
+
+        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status);
+        var result = await _getOrdersHandler.HandleAsync(query, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// UC-46: Track pre-order progress for a campaign.
+    /// </summary>
+    /// <param name="id">Campaign ID</param>
+    [HttpGet("me/campaigns/{id:guid}/progress")]
+    [ProducesResponseType(typeof(CampaignProgressDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCampaignProgress(Guid id, CancellationToken ct)
+    {
+        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
+        if (!profileResult.IsSuccess)
+            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
+
+        var query = new GetCampaignProgressQuery(profileResult.Value!.Id, id);
+        var result = await _getCampaignProgressHandler.HandleAsync(query, ct);
+        if (!result.IsSuccess)
+            return NotFound(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// UC-49: View sales reports.
+    /// </summary>
+    /// <param name="fromDate">Optional start date filter</param>
+    /// <param name="toDate">Optional end date filter</param>
+    [HttpGet("me/reports/sales")]
+    [ProducesResponseType(typeof(SalesReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetSalesReport(
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
+        if (!profileResult.IsSuccess)
+            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
+
+        var query = new GetSalesReportQuery(profileResult.Value!.Id, fromDate, toDate);
+        var result = await _getSalesReportHandler.HandleAsync(query, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// UC-50: View feedback reports.
+    /// </summary>
+    /// <param name="fromDate">Optional start date filter</param>
+    /// <param name="toDate">Optional end date filter</param>
+    [HttpGet("me/reports/feedback")]
+    [ProducesResponseType(typeof(FeedbackReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetFeedbackReport(
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
+        if (!profileResult.IsSuccess)
+            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
+
+        var query = new GetFeedbackReportQuery(profileResult.Value!.Id, fromDate, toDate);
+        var result = await _getFeedbackReportHandler.HandleAsync(query, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+}

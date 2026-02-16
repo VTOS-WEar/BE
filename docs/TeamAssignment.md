@@ -66,8 +66,8 @@ Controllers/
 ## 👨‍👩‍👧 HuyenCTT: Parent
 
 ### Use Cases (24 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
 | UC-05 | View Personal Information | `GET /api/users/me` | ✅ Done |
 | UC-06 | Update Personal Information | `PUT /api/users/me/profile` + `PUT /api/users/me/avatar` | ✅ Done |
 | UC-07 | Submit Verification Info | `POST /api/users/me/verify` |
@@ -145,17 +145,17 @@ Controllers/
 ## 🏫 KhoiNDQ: School
 
 ### Use Cases (9 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
-| UC-42 | Maintain School Profile | `GET/PUT /api/schools/me` |
-| UC-43 | Import Student Data | `POST /api/schools/me/students/import` |
-| UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` |
-| UC-45 | View Parent Orders | `GET /api/schools/me/orders` |
-| UC-46 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` |
-| UC-47 | Confirm Goods Received | `POST /api/schools/me/batches/{id}/confirm` |
-| UC-48 | Confirm Uniform Order | `POST /api/schools/me/campaigns/{id}/confirm` |
-| UC-49 | View Sales Reports | `GET /api/schools/me/reports/sales` |
-| UC-50 | View Feedback Reports | `GET /api/schools/me/reports/feedback` |
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
+| UC-42 | Maintain School Profile | `GET/PUT /api/schools/me` | ✅ Done |
+| UC-43 | Import Student Data | `POST /api/schools/me/students/import` |  |
+| UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` |  |
+| UC-45 | View Parent Orders | `GET /api/schools/me/orders` | ✅ Done |
+| UC-46 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` | ✅ Done |
+| UC-47 | Confirm Goods Received | `POST /api/schools/me/batches/{id}/confirm` |  |
+| UC-48 | Confirm Uniform Order | `POST /api/schools/me/campaigns/{id}/confirm` |  |
+| UC-49 | View Sales Reports | `GET /api/schools/me/reports/sales` | ✅ Done |
+| UC-50 | View Feedback Reports | `GET /api/schools/me/reports/feedback` | ✅ Done |
 
 ### Additional APIs (from Screens)
 | Feature | API Endpoint |
@@ -197,7 +197,7 @@ Controllers/
 
 ---
 
-## 🏭 TruyenVNG: Supplier (Provider)
+## 🏭 TruyenVNG: Provider
 
 ### Use Cases (5 UCs)
 | UC ID | Use Case | API Endpoint |
@@ -236,8 +236,8 @@ Controllers/
 ## 👑 ThanhNLD: Admin
 
 ### Use Cases (13 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
 | UC-29 | Approve School Account | `POST /api/admin/schools/{id}/approve` |
 | UC-30 | Approve Supplier Account | `POST /api/admin/providers/{id}/approve` |
 | UC-31 | Suspend User Account | `POST /api/admin/users/{id}/suspend` |
