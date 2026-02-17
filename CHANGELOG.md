@@ -2,6 +2,45 @@
 
 All notable changes to the VTOS Backend project.
 
+## [2026-02-17] - UC-29 Approve / Suspend Account & UC-31 Remove Inappropriate Feedback
+
+### Added
+- **UC-29: Approve / Suspend Account**
+  - `POST /api/admin/users/{id}/approve` endpoint for approving pending accounts
+  - Activates pending user accounts
+  - `POST /api/admin/users/{id}/suspend` endpoint for suspending active accounts
+  - Disables active user accounts without deletion
+- **UC-31: Remove Inappropriate Feedback**
+  - `DELETE /api/admin/feedbacks/{id}` endpoint for approving pending accounts
+  - Allows admin to remove inappropriate or reported feedback
+
+- **Application Layer** (`VTOS.Application/Features/Admin/Commands`)
+  - **Commands**
+    - `ApproveUserCommand`
+    - `ApproveUserCommandHandler`
+    - `SuspendUserCommand`
+    - `SuspendUserCommandHandler`
+    - `RemoveFeedbackCommand`
+    - `RemoveFeedbackCommandHandler`
+
+- **API Layer**
+  - `AdminController.cs` - `POST /api/admin/users/{id}/approve` endpoint - `POST /api/admin/users/{id}/suspend` endpoint - `DELETE /api/admin/feedbacks/{id}`
+
+### Technical Details
+- **Authorization**: Admin role required (`[Authorize(Roles = "Admin")]`)
+- **Database**: Soft state management using `IsActive` flag for user suspension
+- **Pattern**: Custom `IHandler` + `Result<T>`
+
+### Infrastructure Improvements
+- **Added DataSeeder for development testing:**:
+  - `Seeded roles (Admin, Parent)`
+  - `Seeded admin account`
+  - `Seeded users with different statuses:`
+    - `Pending approval user`
+    - `Active user`
+    - `Suspended user`
+  - `Seeded sample outfits and feedback records`
+- **Seeder runs automatically on application startup after migrations**
 
 ---
 ## [2026-02-01] - UC-05 View Personal Information
