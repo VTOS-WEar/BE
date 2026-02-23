@@ -7,6 +7,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Auth.Commands;
 using VTOS.Application.Features.Auth.Queries;
 using VTOS.Application.Features.Admin.Queries;
+using VTOS.Application.Features.Admin.Commands;
 using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Infrastructure.Persistence;
@@ -71,6 +72,11 @@ public static class DependencyInjection
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
         services.AddScoped<IGetAllFeedbacksQueryHandler, GetAllFeedbacksQueryHandler>();
 
+        //Approve-Suspend User & Remove Feedback
+        services.AddScoped<IApproveUserCommandHandler, ApproveUserCommandHandler>();
+        services.AddScoped<ISuspendUserCommandHandler, SuspendUserCommandHandler>();
+        services.AddScoped<IRemoveFeedbackCommandHandler, RemoveFeedbackCommandHandler>();
+
         //Parent Personal Infor
         services.AddScoped<IGetProfileQueryHandler, GetProfileQueryHandler>();
         services.AddScoped<IUpdateProfileCommandHandler, UpdateProfileCommandHandler>();
@@ -85,6 +91,20 @@ public static class DependencyInjection
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
+
+        // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolProfileQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolProfileCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateSchoolProfileCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolOrdersQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolOrdersQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignProgressQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignProgressQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSalesReportQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSalesReportQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetFeedbackReportQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetFeedbackReportQueryHandler>();
 
         return services;
     }

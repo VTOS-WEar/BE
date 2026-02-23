@@ -12,39 +12,53 @@
 
 ---
 
-## 👤 KhoiNDQ: Guest + Authentication
+## 👤 KhoiNDQ: Guest + Authentication ✅ DONE
 
-### Use Cases (9 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
-| UC-01 | Register | `POST /api/auth/register` |
-| UC-02 | Login | `POST /api/auth/login` |
-| UC-03 | Forget Password | `POST /api/auth/forgot-password` |
-| UC-04 | Change Password | `PUT /api/auth/change-password` |
-| UC-56 | View Homepage | `GET /api/public/home` |
-| UC-57 | View School List | `GET /api/public/schools` |
-| UC-58 | View Uniform Categories | `GET /api/public/categories` |
-| UC-59 | View Uniform Details | `GET /api/public/outfits/{id}` |
-| UC-60 | Try-On Demo (3 times max) | `POST /api/public/tryon-demo` |
+### Use Cases (9 UCs) — All Implemented
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
+| UC-01 | Register | `POST /api/auth/register` | ✅ Done |
+| UC-02 | Login | `POST /api/auth/login` | ✅ Done |
+| UC-03 | Forget Password | `POST /api/auth/forgot-password` + `POST /api/auth/reset-password` | ✅ Done |
+| UC-04 | Change Password | `POST /api/auth/change-password` + `POST /api/auth/change-password/request-otp` | ✅ Done |
+| UC-56 | View Homepage | Frontend composes from public endpoints | ✅ Done (FE) |
+| UC-57 | View School List | `GET /api/public/schools` | ✅ Done |
+| UC-58 | View Uniform Categories | `GET /api/public/categories` | ✅ Done |
+| UC-59 | View Uniform Details | `GET /api/public/outfits/{id}` | ✅ Done |
+| UC-60 | Try-On Demo (rate limited) | `POST /api/tryon/guest` | ✅ Done |
+
+#### Bonus Features (beyond UCs)
+| Feature | API Endpoint |
+|---------|--------------|
+| Verify Email (OTP) | `POST /api/auth/verify-email` |
+| Resend OTP | `POST /api/auth/resend-otp` |
+| Verify Phone + Link Children | `POST /api/auth/verify-phone` |
 
 ### Screens
 - LoginScreen, RegisterScreen, ResetPasswordScreen
 - HomeScreen, ChooseSchoolScreen, ViewProductScreen
 - ProductDetailScreen, TryOnDemoScreen
 
-### Files to Create
+### Files Created
 ```
 Features/Auth/
-├── Commands/Register, Login, ForgotPassword, ChangePassword
-└── Queries/ValidateToken
+├── Commands/Register, Login, ForgotPassword, ResetPassword, ChangePassword
+├── Commands/VerifyEmail, ResendOTP, VerifyPhone, RequestChangePasswordOTP
+├── Queries/LoginQuery
+├── DTOs/RegisterRequest, LoginRequest, ForgotPasswordRequest, etc.
+└── Validators/RegisterCommandValidator, LoginQueryValidator, etc.
 
 Features/Public/
-├── Queries/GetHome, GetSchools, GetCategories, GetOutfitDetail
-└── Commands/TryOnDemo
+├── Queries/GetSchools, GetCategories, GetOutfitDetail
+└── DTOs/SchoolDto, CategoryDto, OutfitDetailResponse, etc.
+
+Features/TryOn/
+└── Commands/GuestTryOn
 
 Controllers/
 ├── AuthController.cs
-└── PublicController.cs
+├── PublicController.cs
+└── TryOnController.cs
 ```
 
 ---
@@ -52,10 +66,10 @@ Controllers/
 ## 👨‍👩‍👧 HuyenCTT: Parent
 
 ### Use Cases (24 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
-| UC-05 | View Personal Information | `GET /api/users/me` |
-| UC-06 | Update Personal Information | `PUT /api/users/me` |
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
+| UC-05 | View Personal Information | `GET /api/users/me` | ✅ Done |
+| UC-06 | Update Personal Information | `PUT /api/users/me/profile` + `PUT /api/users/me/avatar` | ✅ Done |
 | UC-07 | Submit Verification Info | `POST /api/users/me/verify` |
 | UC-08 | View Child Profile | `GET /api/children` |
 | UC-09 | Update Child Information | `PUT /api/children/{id}` |
@@ -131,17 +145,17 @@ Controllers/
 ## 🏫 KhoiNDQ: School
 
 ### Use Cases (9 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
-| UC-42 | Maintain School Profile | `GET/PUT /api/schools/me` |
-| UC-43 | Import Student Data | `POST /api/schools/me/students/import` |
-| UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` |
-| UC-45 | View Parent Orders | `GET /api/schools/me/orders` |
-| UC-46 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` |
-| UC-47 | Confirm Goods Received | `POST /api/schools/me/batches/{id}/confirm` |
-| UC-48 | Confirm Uniform Order | `POST /api/schools/me/campaigns/{id}/confirm` |
-| UC-49 | View Sales Reports | `GET /api/schools/me/reports/sales` |
-| UC-50 | View Feedback Reports | `GET /api/schools/me/reports/feedback` |
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
+| UC-42 | Maintain School Profile | `GET/PUT /api/schools/me` | ✅ Done |
+| UC-43 | Import Student Data | `POST /api/schools/me/students/import` |  |
+| UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` |  |
+| UC-45 | View Parent Orders | `GET /api/schools/me/orders` | ✅ Done |
+| UC-46 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` | ✅ Done |
+| UC-47 | Confirm Goods Received | `POST /api/schools/me/batches/{id}/confirm` |  |
+| UC-48 | Confirm Uniform Order | `POST /api/schools/me/campaigns/{id}/confirm` |  |
+| UC-49 | View Sales Reports | `GET /api/schools/me/reports/sales` | ✅ Done |
+| UC-50 | View Feedback Reports | `GET /api/schools/me/reports/feedback` | ✅ Done |
 
 ### Additional APIs (from Screens)
 | Feature | API Endpoint |
@@ -183,7 +197,7 @@ Controllers/
 
 ---
 
-## 🏭 TruyenVNG: Supplier (Provider)
+## 🏭 TruyenVNG: Provider
 
 ### Use Cases (5 UCs)
 | UC ID | Use Case | API Endpoint |
@@ -222,8 +236,8 @@ Controllers/
 ## 👑 ThanhNLD: Admin
 
 ### Use Cases (13 UCs)
-| UC ID | Use Case | API Endpoint |
-|-------|----------|--------------|
+| UC ID | Use Case | API Endpoint | Status |
+|-------|----------|--------------|--------|
 | UC-29 | Approve School Account | `POST /api/admin/schools/{id}/approve` |
 | UC-30 | Approve Supplier Account | `POST /api/admin/providers/{id}/approve` |
 | UC-31 | Suspend User Account | `POST /api/admin/users/{id}/suspend` |
@@ -232,7 +246,7 @@ Controllers/
 | UC-34 | Publish Uniform Catalog | `POST /api/admin/outfits/{id}/publish` |
 | UC-35 | Review Uniform Content | `GET /api/admin/outfits/pending` |
 | UC-36 | Update Uniform Availability | `PUT /api/admin/outfits/{id}/availability` |
-| UC-37 | Review User Feedback | `GET /api/admin/feedback` |
+| UC-37 | Review User Feedback | `GET /api/admin/feedbacks` | ✅ Done |
 | UC-38 | Remove Inappropriate Feedback | `DELETE /api/admin/feedback/{id}` |
 | UC-39 | Configure AI Try-on Rules | `GET/PUT /api/admin/config/ai` |
 | UC-40 | View Dashboard Analytics | `GET /api/admin/dashboard` |
