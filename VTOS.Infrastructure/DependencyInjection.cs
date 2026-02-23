@@ -92,6 +92,20 @@ public static class DependencyInjection
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
 
+        // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolProfileQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolProfileCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateSchoolProfileCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolOrdersQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolOrdersQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignProgressQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignProgressQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSalesReportQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSalesReportQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetFeedbackReportQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetFeedbackReportQueryHandler>();
+
         return services;
     }
 }
