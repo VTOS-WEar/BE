@@ -1,12 +1,10 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 using VTOS.Infrastructure;
 using VTOS.Infrastructure.Services;
 //For using Data Seeders for testing - Delete if neccessary
-using VTOS.Infrastructure.Persistence;
-using VTOS.Application.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,7 +77,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                  "http://localhost:5173", 
+                  "http://localhost:5173",
                   "http://127.0.0.1:5173",
                   "https://localhost:5173",
                   "https://127.0.0.1:5173"
@@ -93,13 +91,13 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 //Use SeedData for testing - Delete when have actual Data in Database
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
-    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+//using (var scope = app.Services.CreateScope())
+//{
+//    var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
+//    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
-    await DataSeeder.SeedAsync(context, hasher);
-}
+//    await DataSeeder.SeedAsync(context, hasher);
+//}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

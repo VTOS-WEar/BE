@@ -4,12 +4,13 @@ using VTOS.Application.Features.Auth.DTOs;
 namespace VTOS.Application.Features.Auth.Commands;
 
 /// <summary>
-/// Command for user registration (NO phone - collected after first login).
+/// Command for user registration. RoleName defaults to "Parent".
 /// </summary>
 public record RegisterCommand(
     string Email,
     string Password,
-    string FullName
+    string FullName,
+    string? RoleName = null
 );
 
 /// <summary>

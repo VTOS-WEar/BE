@@ -11,6 +11,7 @@ namespace VTOS.API.Controllers;
 /// <summary>
 /// School management APIs (requires School role).
 /// UC-42: Maintain School Profile
+/// UC-43: Import Student Data
 /// UC-45: View Parent Orders
 /// UC-46: Track Pre-order Progress
 /// UC-49: View Sales Reports
@@ -28,6 +29,7 @@ public class SchoolsController : ControllerBase
     private readonly IGetCampaignProgressQueryHandler _getCampaignProgressHandler;
     private readonly IGetSalesReportQueryHandler _getSalesReportHandler;
     private readonly IGetFeedbackReportQueryHandler _getFeedbackReportHandler;
+    private readonly IImportStudentDataCommandHandler _importStudentHandler;
     private readonly IValidator<UpdateSchoolProfileCommand> _updateProfileValidator;
 
     public SchoolsController(
@@ -38,6 +40,7 @@ public class SchoolsController : ControllerBase
         IGetCampaignProgressQueryHandler getCampaignProgressHandler,
         IGetSalesReportQueryHandler getSalesReportHandler,
         IGetFeedbackReportQueryHandler getFeedbackReportHandler,
+        IImportStudentDataCommandHandler importStudentHandler,
         IValidator<UpdateSchoolProfileCommand> updateProfileValidator)
     {
         _currentUser = currentUser;
@@ -47,6 +50,7 @@ public class SchoolsController : ControllerBase
         _getCampaignProgressHandler = getCampaignProgressHandler;
         _getSalesReportHandler = getSalesReportHandler;
         _getFeedbackReportHandler = getFeedbackReportHandler;
+        _importStudentHandler = importStudentHandler;
         _updateProfileValidator = updateProfileValidator;
     }
 
@@ -90,6 +94,85 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
+
+    /// <summary>
+    /// UC-43: Download student import template as .xlsx (proper Excel format).
+    /// Uses ClosedXML — locale-independent, preserves leading zeros, full Vietnamese support.
+    /// </summary>
+    [HttpGet("me/students/import/template")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    public IActionResult DownloadImportTemplate()
+    {
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Import Template");
+
+        // --- Header row ---
+        var headers = new[] { "Student Name", "DOB", "Grade", "Gender", "Parent Phone Number" };
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var cell = ws.Cell(1, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#4472C4");
+        }
+
+        // --- Sample data rows ---
+        // Phone column (E) must be Text type to preserve leading zero
+        var phoneCol = ws.Column(5);
+        phoneCol.Style.NumberFormat.NumberFormatId = 49; // @ = Text format
+
+        ws.Cell(2, 1).Value = "Nguyễn Văn A";
+        ws.Cell(2, 2).Value = "15/03/2015";
+        ws.Cell(2, 3).Value = "3A";
+        ws.Cell(2, 4).Value = "Nam";
+        ws.Cell(2, 5).SetValue("0901234567");
+
+        ws.Cell(3, 1).Value = "Trần Thị B";
+        ws.Cell(3, 2).Value = "22/07/2014";
+        ws.Cell(3, 3).Value = "4B";
+        ws.Cell(3, 4).Value = "Nữ";
+        ws.Cell(3, 5).SetValue("0912345678");
+
+        // Auto-fit columns for readability
+        ws.Columns().AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        var fileBytes = stream.ToArray();
+
+        return File(fileBytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "student_import_template.xlsx");
+    }
+
+    /// <summary>
+    /// UC-43: Import student data from CSV file.
+    /// </summary>
+    /// <param name="file">CSV file (UTF-8, max 5MB). Row 1 = header, Row 2+ = data.</param>
+    [HttpPost("me/students/import")]
+    [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(5 * 1024 * 1024)] // 5MB
+    public async Task<IActionResult> ImportStudents(IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
+
+        var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+        if (extension != ".csv")
+            return BadRequest(new { error = "Only .csv files are supported.", code = "INVALID_FILE_TYPE" });
+
+        using var stream = file.OpenReadStream();
+        var command = new ImportStudentDataCommand(_currentUser.UserId, stream);
+        var result = await _importStudentHandler.HandleAsync(command, ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
 
     /// <summary>
     /// UC-45: View parent orders for the school.

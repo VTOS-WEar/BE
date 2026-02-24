@@ -28,6 +28,7 @@ public interface IApplicationDbContext
     DbSet<CampaignOutfit> CampaignOutfits { get; }
     DbSet<Provider> Providers { get; }
     DbSet<ProductionBatch> ProductionBatches { get; }
+    DbSet<StudentDataImport> StudentDataImports { get; }
 
     DbSet<T> Set<T>() where T : class;
     

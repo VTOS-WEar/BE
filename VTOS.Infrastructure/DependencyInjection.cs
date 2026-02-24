@@ -106,6 +106,10 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetFeedbackReportQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetFeedbackReportQueryHandler>();
 
+        // School Module - UC-43: Import Student Data
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IImportStudentDataCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ImportStudentDataCommandHandler>();
+
         return services;
     }
 }
