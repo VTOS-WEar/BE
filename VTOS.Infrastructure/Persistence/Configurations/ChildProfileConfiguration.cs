@@ -13,7 +13,9 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
         builder.HasKey(cp => cp.Id);
         builder.Property(cp => cp.Id).HasColumnName("ChildID");
 
-        builder.Property(cp => cp.ParentUserID);
+        // ParentUserID is nullable — imported students don't have a linked parent yet
+        builder.Property(cp => cp.ParentUserID)
+            .IsRequired(false);
 
         builder.Property(cp => cp.FullName)
             .IsRequired()
@@ -28,10 +30,10 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
             .HasMaxLength(20)
             .HasConversion<string>();
 
-        builder.Property(u => u.DOB)
-           .HasColumnType("date");
+        builder.Property(cp => cp.DOB)
+            .HasColumnType("date");
 
-        builder.Property(u => u.Avatar)
+        builder.Property(cp => cp.Avatar)
             .HasMaxLength(500);
 
         builder.Property(cp => cp.SchoolID);
@@ -41,10 +43,11 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
 
         builder.HasIndex(cp => cp.IsDeleted);
 
-        // Relationships
+        // ParentUser is optional (null for school-imported students)
         builder.HasOne(cp => cp.ParentUser)
             .WithMany(u => u.ChildProfiles)
             .HasForeignKey(cp => cp.ParentUserID)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(cp => cp.School)

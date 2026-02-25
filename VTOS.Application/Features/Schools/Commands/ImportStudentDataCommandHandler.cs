@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
@@ -9,12 +8,11 @@ using VTOS.Domain.Entities;
 namespace VTOS.Application.Features.Schools.Commands;
 
 /// <summary>
-/// UC-43: Import student data from CSV.
-/// - UTF-8 with BOM detection for Vietnamese
-/// - Row 1 = header (skipped), Row 2+ = data
-/// - Columns: Student Name, DOB, Grade, Gender, Parent Phone Number
-/// - Duplicate detection by FullName + DOB within same school
-/// - Row-level error reporting (doesn't fail entire import)
+/// UC-43: Import student data from .xlsx or .csv.
+/// Design:
+///   1. Creates a Children record (ParentUserID = null — not linked to a parent yet)
+///   2. Creates a StudentDataImport log record with MatchedChildID pointing to the Children row
+/// Duplicate detection: load school's Children → HashSet(FullName+DOB) → O(1) per row
 /// </summary>
 public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
 {
@@ -27,7 +25,7 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
 
     public async Task<Result<ImportStudentResultDto>> HandleAsync(ImportStudentDataCommand command, CancellationToken ct = default)
     {
-        // 1. Resolve school from current user
+        // 1. Resolve school
         var user = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
@@ -37,45 +35,31 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
 
         var schoolId = user.SchoolID.Value;
 
-        // 2. Load existing imports for duplicate detection
-        var existingImports = await _db.StudentDataImports
+        // 2. Load existing Children for this school → HashSet for O(1) duplicate check
+        var existingChildren = await _db.ChildProfiles
             .AsNoTracking()
-            .Where(s => s.SchoolID == schoolId)
-            .Select(s => new { s.FullName, s.DateOfBirth })
+            .Where(c => c.SchoolID == schoolId && !c.IsDeleted)
+            .Select(c => new { c.FullName, c.DOB })
             .ToListAsync(ct);
 
-        var existingSet = existingImports
-            .Select(e => $"{e.FullName?.Trim().ToLowerInvariant()}|{e.DateOfBirth:yyyy-MM-dd}")
+        var existingSet = existingChildren
+            .Select(c => MakeKey(c.FullName, c.DOB))
             .ToHashSet();
 
-        // 3. Parse CSV
+        // 3. Process rows
         var result = new ImportStudentResultDto();
-        var newRecords = new List<StudentDataImport>();
-        var errors = new List<ImportErrorDto>();
+        var newChildren   = new List<ChildProfile>();
+        var newImports    = new List<StudentDataImport>();
+        var errors        = new List<ImportErrorDto>();
 
-        using var reader = new StreamReader(command.CsvStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-
-        // Skip header row
-        var headerLine = await reader.ReadLineAsync(ct);
-        if (headerLine == null)
-            return Result<ImportStudentResultDto>.Failure("CSV file is empty.", "CSV_EMPTY");
-
-        int rowNumber = 1; // header is row 1
-
-        while (!reader.EndOfStream)
+        int rowNumber = 1; // row 1 = header (excluded by caller)
+        foreach (var columns in command.Rows)
         {
             rowNumber++;
-            var line = await reader.ReadLineAsync(ct);
-
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
-
             result.TotalRows++;
 
             try
             {
-                var columns = ParseCsvLine(line);
-
                 if (columns.Length < 5)
                 {
                     errors.Add(new ImportErrorDto
@@ -88,39 +72,27 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                     continue;
                 }
 
-                var fullName = columns[0].Trim();
-                var dobStr = columns[1].Trim();
-                var grade = columns[2].Trim();
-                var gender = columns[3].Trim();
+                var fullName    = columns[0].Trim();
+                var dobStr      = columns[1].Trim();
+                var grade       = columns[2].Trim();
+                var gender      = columns[3].Trim();
                 var parentPhone = columns[4].Trim();
 
-                // Validate: FullName is required
+                // Validate FullName
                 if (string.IsNullOrWhiteSpace(fullName))
                 {
-                    errors.Add(new ImportErrorDto
-                    {
-                        RowNumber = rowNumber,
-                        StudentName = null,
-                        ErrorMessage = "Student Name is required."
-                    });
+                    errors.Add(new ImportErrorDto { RowNumber = rowNumber, ErrorMessage = "Student Name is required." });
                     result.ErrorCount++;
                     continue;
                 }
-
-                // Validate: FullName max length
                 if (fullName.Length > 255)
                 {
-                    errors.Add(new ImportErrorDto
-                    {
-                        RowNumber = rowNumber,
-                        StudentName = fullName[..50],
-                        ErrorMessage = "Student Name exceeds 255 characters."
-                    });
+                    errors.Add(new ImportErrorDto { RowNumber = rowNumber, StudentName = fullName[..50], ErrorMessage = "Student Name exceeds 255 characters." });
                     result.ErrorCount++;
                     continue;
                 }
 
-                // Parse DOB (dd/MM/yyyy)
+                // Parse DOB
                 DateTime? dob = null;
                 if (!string.IsNullOrWhiteSpace(dobStr))
                 {
@@ -131,90 +103,87 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                     }
                     else
                     {
-                        errors.Add(new ImportErrorDto
-                        {
-                            RowNumber = rowNumber,
-                            StudentName = fullName,
-                            ErrorMessage = $"Invalid DOB format '{dobStr}'. Expected dd/MM/yyyy."
-                        });
+                        errors.Add(new ImportErrorDto { RowNumber = rowNumber, StudentName = fullName, ErrorMessage = $"Invalid DOB format '{dobStr}'. Expected dd/MM/yyyy." });
                         result.ErrorCount++;
                         continue;
                     }
                 }
 
-                // Normalize phone number
+                // Validate phone
                 if (!string.IsNullOrWhiteSpace(parentPhone))
                 {
                     parentPhone = parentPhone.Replace(" ", "").Replace("-", "");
                     if (parentPhone.Length < 10 || parentPhone.Length > 11 || !parentPhone.All(char.IsDigit))
                     {
-                        errors.Add(new ImportErrorDto
-                        {
-                            RowNumber = rowNumber,
-                            StudentName = fullName,
-                            ErrorMessage = $"Invalid phone number '{columns[4].Trim()}'. Expected 10-11 digits."
-                        });
+                        errors.Add(new ImportErrorDto { RowNumber = rowNumber, StudentName = fullName, ErrorMessage = $"Invalid phone number '{columns[4].Trim()}'. Expected 10-11 digits." });
                         result.ErrorCount++;
                         continue;
                     }
                 }
 
-                // Validate gender
-                if (!string.IsNullOrWhiteSpace(gender) && gender.Length > 10)
-                {
-                    gender = gender[..10];
-                }
+                if (!string.IsNullOrWhiteSpace(gender) && gender.Length > 20)
+                    gender = gender[..20];
 
-                // Duplicate detection
-                var key = $"{fullName.Trim().ToLowerInvariant()}|{dob:yyyy-MM-dd}";
-                if (existingSet.Contains(key))
-                {
-                    result.SkippedCount++;
-                    continue;
-                }
+                // Duplicate check (existing DB + current batch)
+                var key = MakeKey(fullName, dob);
+                if (existingSet.Contains(key)) { result.SkippedCount++; continue; }
+                if (newChildren.Any(c => MakeKey(c.FullName, c.DOB) == key)) { result.SkippedCount++; continue; }
 
-                // Also check within current batch
-                if (newRecords.Any(r =>
-                    r.FullName.Trim().Equals(fullName.Trim(), StringComparison.OrdinalIgnoreCase) &&
-                    r.DateOfBirth == dob))
-                {
-                    result.SkippedCount++;
-                    continue;
-                }
+                // Calculate age from DOB
+                int age = dob.HasValue
+                    ? DateTime.UtcNow.Year - dob.Value.Year - (DateTime.UtcNow.DayOfYear < dob.Value.DayOfYear ? 1 : 0)
+                    : 0;
 
-                // Create record
-                var record = new StudentDataImport
+                // Parse gender to enum (default Unknown)
+                var genderEnum = ParseGender(gender);
+
+                // --- Create Children record ---
+                var childId = Guid.NewGuid();
+                var child = new ChildProfile
                 {
-                    Id = Guid.NewGuid(),
-                    SchoolID = schoolId,
-                    FullName = fullName,
-                    DateOfBirth = dob,
-                    Class = string.IsNullOrWhiteSpace(grade) ? null : grade,
-                    Gender = string.IsNullOrWhiteSpace(gender) ? null : gender,
-                    ParentPhone = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
-                    IsRegistered = false,
-                    CreatedAt = DateTime.UtcNow
+                    Id           = childId,
+                    SchoolID     = schoolId,
+                    ParentUserID = null,          // will be linked when Parent registers
+                    FullName     = fullName,
+                    DOB          = dob,
+                    Age          = age,
+                    Grade        = string.IsNullOrWhiteSpace(grade) ? string.Empty : grade,
+                    Gender       = genderEnum,
+                    Avatar       = string.Empty,
+                    IsDeleted    = false
                 };
+                newChildren.Add(child);
 
-                newRecords.Add(record);
+                // --- Create StudentDataImport log record ---
+                newImports.Add(new StudentDataImport
+                {
+                    Id             = Guid.NewGuid(),
+                    SchoolID       = schoolId,
+                    FullName       = fullName,
+                    DateOfBirth    = dob,
+                    Class          = string.IsNullOrWhiteSpace(grade) ? null : grade,
+                    Gender         = string.IsNullOrWhiteSpace(gender) ? null : gender,
+                    ParentPhone    = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
+                    IsRegistered   = false,
+                    MatchedChildID = childId,
+                    CreatedAt      = DateTime.UtcNow
+                });
+
                 existingSet.Add(key);
                 result.SuccessCount++;
             }
             catch (Exception ex)
             {
-                errors.Add(new ImportErrorDto
-                {
-                    RowNumber = rowNumber,
-                    ErrorMessage = $"Unexpected error: {ex.Message}"
-                });
+                errors.Add(new ImportErrorDto { RowNumber = rowNumber, ErrorMessage = $"Unexpected error: {ex.Message}" });
                 result.ErrorCount++;
             }
         }
 
-        // 4. Batch insert
-        if (newRecords.Count > 0)
+        // 4. Batch insert both tables atomically
+        if (newChildren.Count > 0)
         {
-            _db.StudentDataImports.AddRange(newRecords);
+            _db.ChildProfiles.AddRange(newChildren);
+            _db.StudentDataImports.AddRange(newImports);
             await _db.SaveChangesAsync(ct);
         }
 
@@ -222,57 +191,17 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
         return Result<ImportStudentResultDto>.Success(result);
     }
 
-    /// <summary>
-    /// Simple CSV line parser that handles quoted fields (for commas inside values).
-    /// </summary>
-    private static string[] ParseCsvLine(string line)
+    private static string MakeKey(string? name, DateTime? dob)
+        => $"{name?.Trim().ToLowerInvariant()}|{dob:yyyy-MM-dd}";
+
+    private static VTOS.Domain.Enums.Gender ParseGender(string? raw)
     {
-        var fields = new List<string>();
-        var current = new StringBuilder();
-        bool inQuotes = false;
-
-        for (int i = 0; i < line.Length; i++)
+        if (string.IsNullOrWhiteSpace(raw)) return VTOS.Domain.Enums.Gender.Other;
+        return raw.Trim().ToLowerInvariant() switch
         {
-            var c = line[i];
-
-            if (inQuotes)
-            {
-                if (c == '"')
-                {
-                    if (i + 1 < line.Length && line[i + 1] == '"')
-                    {
-                        current.Append('"');
-                        i++; // skip escaped quote
-                    }
-                    else
-                    {
-                        inQuotes = false;
-                    }
-                }
-                else
-                {
-                    current.Append(c);
-                }
-            }
-            else
-            {
-                if (c == '"')
-                {
-                    inQuotes = true;
-                }
-                else if (c == ',')
-                {
-                    fields.Add(current.ToString());
-                    current.Clear();
-                }
-                else
-                {
-                    current.Append(c);
-                }
-            }
-        }
-
-        fields.Add(current.ToString());
-        return fields.ToArray();
+            "nam" or "male" or "m"          => VTOS.Domain.Enums.Gender.Male,
+            "nữ" or "nu" or "female" or "f" => VTOS.Domain.Enums.Gender.Female,
+            _                               => VTOS.Domain.Enums.Gender.Other
+        };
     }
 }

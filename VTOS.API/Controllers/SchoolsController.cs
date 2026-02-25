@@ -1,3 +1,5 @@
+using System.Text;
+using ClosedXML.Excel;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -147,9 +149,9 @@ public class SchoolsController : ControllerBase
     }
 
     /// <summary>
-    /// UC-43: Import student data from CSV file.
+    /// UC-43: Import student data from a .csv or .xlsx file.
     /// </summary>
-    /// <param name="file">CSV file (UTF-8, max 5MB). Row 1 = header, Row 2+ = data.</param>
+    /// <param name="file">.csv or .xlsx file (max 5MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Grade, Gender, Parent Phone Number.</param>
     [HttpPost("me/students/import")]
     [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -160,11 +162,24 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
 
         var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-        if (extension != ".csv")
-            return BadRequest(new { error = "Only .csv files are supported.", code = "INVALID_FILE_TYPE" });
+        if (extension != ".csv" && extension != ".xlsx")
+            return BadRequest(new { error = "Only .csv and .xlsx files are supported.", code = "INVALID_FILE_TYPE" });
 
-        using var stream = file.OpenReadStream();
-        var command = new ImportStudentDataCommand(_currentUser.UserId, stream);
+        // Parse rows in the controller (where ClosedXML is available)
+        IReadOnlyList<string[]> rows;
+        try
+        {
+            using var stream = file.OpenReadStream();
+            rows = extension == ".xlsx"
+                ? ParseXlsxRows(stream)
+                : await ParseCsvRowsAsync(stream, ct);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = $"Could not read file: {ex.Message}", code = "FILE_READ_ERROR" });
+        }
+
+        var command = new ImportStudentDataCommand(_currentUser.UserId, rows);
         var result = await _importStudentHandler.HandleAsync(command, ct);
 
         if (!result.IsSuccess)
@@ -172,6 +187,71 @@ public class SchoolsController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    /// <summary>Parse all data rows (skip header) from an XLSX stream using ClosedXML.</summary>
+    private static IReadOnlyList<string[]> ParseXlsxRows(Stream stream)
+    {
+        using var workbook = new XLWorkbook(stream);
+        var ws = workbook.Worksheets.First();
+        var rows = new List<string[]>();
+        bool isHeader = true;
+        foreach (var row in ws.RowsUsed())
+        {
+            if (isHeader) { isHeader = false; continue; } // skip header row
+            if (row.Cells(1, 5).All(c => c.IsEmpty())) continue; // skip fully empty rows
+
+            var cols = new string[5];
+            for (int i = 0; i < 5; i++)
+                cols[i] = row.Cell(i + 1).IsEmpty() ? string.Empty : row.Cell(i + 1).GetString().Trim();
+            rows.Add(cols);
+        }
+        return rows;
+    }
+
+    /// <summary>Parse all data rows (skip header) from a CSV stream.</summary>
+    private static async Task<IReadOnlyList<string[]>> ParseCsvRowsAsync(Stream stream, CancellationToken ct)
+    {
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var rows = new List<string[]>();
+        await reader.ReadLineAsync(ct); // skip header
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(ct);
+            if (!string.IsNullOrWhiteSpace(line))
+                rows.Add(ParseCsvLine(line));
+        }
+        return rows;
+    }
+
+    /// <summary>Simple CSV line parser supporting quoted fields.</summary>
+    private static string[] ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var current = new StringBuilder();
+        bool inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (inQuotes)
+            {
+                if (c == '"')
+                {
+                    if (i + 1 < line.Length && line[i + 1] == '"') { current.Append('"'); i++; }
+                    else inQuotes = false;
+                }
+                else current.Append(c);
+            }
+            else
+            {
+                if (c == '"') inQuotes = true;
+                else if (c == ',') { fields.Add(current.ToString()); current.Clear(); }
+                else current.Append(c);
+            }
+        }
+        fields.Add(current.ToString());
+        return fields.ToArray();
+    }
+
 
 
     /// <summary>

@@ -9,7 +9,7 @@ namespace VTOS.Domain.Entities;
 /// </summary>
 public class ChildProfile : BaseEntity
 {
-    public Guid ParentUserID { get; set; }
+    public Guid? ParentUserID { get; set; }  // null = student imported, not yet linked to a parent
     public string FullName { get; set; } = string.Empty;
     public int Age { get; set; }
     public string Grade { get; set; } = string.Empty;
