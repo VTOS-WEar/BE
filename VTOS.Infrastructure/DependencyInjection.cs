@@ -4,19 +4,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using VTOS.Application.Abstractions;
+using VTOS.Application.Features.Admin.Queries;
 using VTOS.Application.Features.Auth.Commands;
 using VTOS.Application.Features.Auth.Queries;
 using VTOS.Application.Features.Admin.Queries;
 using VTOS.Application.Features.Admin.Commands;
 using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
+using VTOS.Application.Features.Users.Commands;
+using VTOS.Application.Features.Users.Queries;
+using VTOS.Infrastructure.ExternalServices.ImageStorage;
+using VTOS.Infrastructure.ExternalServices.TryOn;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
-using VTOS.Application.Features.Users.Queries;
-using VTOS.Application.Features.Users.Commands;
-using VTOS.Infrastructure.ExternalServices.TryOn;
-using VTOS.Infrastructure.ExternalServices.ImageStorage;
-
+using AutoMapper;
+using VTOS.Application.Features.Children.Commands;
+using VTOS.Application.Features.Children.Mappings;
+using VTOS.Application.Features.Children.Queries;
 namespace VTOS.Infrastructure;
 
 public static class DependencyInjection
@@ -68,6 +72,9 @@ public static class DependencyInjection
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
 
+        // Register Mappers
+        services.AddAutoMapper(typeof(ChildProfileMappingProfile).Assembly);
+
         //View User List & Feedbacks
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
         services.AddScoped<IGetAllFeedbacksQueryHandler, GetAllFeedbacksQueryHandler>();
@@ -81,8 +88,12 @@ public static class DependencyInjection
         services.AddScoped<IGetProfileQueryHandler, GetProfileQueryHandler>();
         services.AddScoped<IUpdateProfileCommandHandler, UpdateProfileCommandHandler>();
         services.AddScoped<IUpdateAvatarCommandHandler, UpdateAvatarCommandHandler>();
-        services.AddScoped<UpdateProfileCommandHandler>();
-        services.AddScoped<UpdateAvatarCommandHandler>();
+        services.AddScoped<ISubmitVerificationCommandHandler, SubmitVerificationCommandHandler>();
+
+        //Child Infor
+        services.AddScoped<IGetMyChildProfileQueryHandler, GetMyChildProfileQueryHandler>();
+        services.AddScoped<IGetChildProfileQueryHandler, GetChildProfileQueryHandler>();
+        services.AddScoped<IUpdateChildProfileCommandHandler, UpdateChildProfileCommandHandler>();
 
         // Public Module Handlers (UC-57, UC-58, UC-59)
         services.AddScoped<GetSchoolsQueryHandler>();

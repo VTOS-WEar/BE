@@ -24,6 +24,8 @@ public class UserController : ControllerBase
     private readonly IValidator<UpdateProfileCommand> _updateProfileValidator;
     private readonly IUpdateAvatarCommandHandler _updateAvatarHandler;
     private readonly IValidator<UpdateAvatarCommand> _updateAvatarValidator;
+    private readonly ISubmitVerificationCommandHandler _submitVerificationHandler;
+    private readonly IValidator<SubmitVerificationCommand> _submitVerificationValidator;
 
     public UserController(
         ICurrentUserService currentUser,
@@ -31,7 +33,9 @@ public class UserController : ControllerBase
         IUpdateProfileCommandHandler updateProfileHandler,
         IValidator<UpdateProfileCommand> updateProfileValidator,
         IUpdateAvatarCommandHandler updateAvatarHandler,
-        IValidator<UpdateAvatarCommand> updateAvatarValidator)
+        IValidator<UpdateAvatarCommand> updateAvatarValidator,
+        ISubmitVerificationCommandHandler submitVerificationHandler,
+        IValidator<SubmitVerificationCommand> submitVerificationValidator)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -39,6 +43,8 @@ public class UserController : ControllerBase
         _updateProfileValidator = updateProfileValidator;
         _updateAvatarHandler = updateAvatarHandler;
         _updateAvatarValidator = updateAvatarValidator;
+        _submitVerificationHandler = submitVerificationHandler;
+        _submitVerificationValidator = submitVerificationValidator;
     }
 
      /// <summary>
@@ -96,6 +102,38 @@ public class UserController : ControllerBase
         }
 
         var result = await _updateAvatarHandler.HandleAsync(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Update user profile with avatar, name, and phone
+    /// </summary>
+    [HttpPost("me/verify")]
+    [ProducesResponseType(typeof(SubmitVerificationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SubmitVerification([FromForm] SubmitVerificationRequest request, CancellationToken cancellationToken)
+    {
+        var command = new SubmitVerificationCommand(
+            _currentUser.UserId,
+            request.FullName,
+            request.Phone,
+            request.Avatar
+        );
+
+        var validationResult = await _submitVerificationValidator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        }
+
+        var result = await _submitVerificationHandler.HandleAsync(command, cancellationToken);
 
         if (!result.IsSuccess)
         {

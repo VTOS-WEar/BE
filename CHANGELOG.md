@@ -43,7 +43,98 @@ All notable changes to the VTOS Backend project.
 - **Seeder runs automatically on application startup after migrations**
 
 ---
+## [2026-02-26] - UC-07, UC-08, UC-09: Submit Verification & Child Profile Management
+
+### Added
+- **UC-07: Submit Verification Information**
+  - `POST /api/users/me/verify` endpoint for updating parent profile (avatar, name, phone)
+  - All fields are optional - client can update any combination
+  - Integration with ImgBB for avatar upload
+  - Validation: FullName (max 100 chars), Phone (E.164 format), Avatar (max 5MB)
+
+- **UC-08: View Child Profile (Enhanced)**
+  - `GET /api/children` endpoint to view all my children
+    - Returns paginated list of child profiles with school info
+    - Includes body metrics (height, weight), grade, gender, avatar
+  - `GET /api/children/{id}` endpoint to view specific child profile
+    - Returns detailed child information including body metrics and school details
+  - Response includes: ChildId, FullName, Age, Grade, Gender, School, Avatar, BodyMetric, IsStandardSize
+
+- **UC-09: Update Child Profile**
+  - `PUT /api/children` endpoint for updating child profile
+  - Supports updating: FullName, DOB (with auto age calculation), Grade, Gender, HeightCm, WeightKg
+  - All fields are optional
+
+- **Application Layer** (`VTOS.Application/Features/Users/`)
+  - **Commands** (Submit Verification)
+    - `SubmitVerificationCommand` - Update avatar, FullName, Phone
+    - `SubmitVerificationCommandHandler` - Handler with ImgBB integration
+  - **Queries** (View Child Profile)
+    - `GetMyChildProfileQuery` + `GetMyChildProfileQueryHandler` - Load all children from authenticated parent
+    - `GetChildProfileQuery` + `GetChildProfileQueryHandler` - Load specific child by ID
+  - **Commands** (Update Child Profile)
+    - `UpdateChildProfileCommand` - Update child attributes
+    - `UpdateChildProfileCommandHandler` - Handler with DOB→Age calculation
+  - **DTOs**
+    - `SubmitVerificationRequest`, `SubmitVerificationResponse` - Parent profile update
+    - `GetChildProfileResponse` - Child profile display with `ChildBodyMetricDto`
+    - `UpdateChildProfileRequest`, `UpdateChildProfileResponse` - Child profile updates
+  - **Validators**
+    - `SubmitVerificationValidator` - Parent profile validation
+    - `UpdateChildProfileValidator` - Child profile validation
+
+- **API Layer**
+  - `UserController.cs`:
+    - `POST /api/users/me/verify` - Submit verification (multipart/form-data)
+  - `ChildrenController.cs`:
+    - `GET /api/children` - View all my children
+    - `GET /api/children/{id}` - View specific child profile
+    - `PUT /api/children` - Update child profile (JSON)
+
+- **Infrastructure Layer**
+  - Dependency injection registration for all new handlers and validators in `DependencyInjection.cs`
+
+### Technical Details
+- **Pattern**: Custom `IHandler` + `Result<T>` (consistent with project)
+- **Authentication**: JWT Bearer token required (`[Authorize(Roles = "Parent")]`)
+- **Current User**: Retrieved via `ICurrentUserService` from JWT claims
+- **Database Relationships**: ChildProfile includes School navigation for school details
+- **AutoMapper**: Used for DTO mapping in query handlers
+- **Validation**: FluentValidation with optional field support
+- **Response Format**: JSON for GET/PUT, multipart/form-data for avatar upload
+
+### Example Usage
+```
+# UC-07: Submit Verification
+POST /api/users/me/verify
+Content-Type: multipart/form-data
+
+FullName: "Nguyễn Văn A"
+Phone: "+84912345678"
+Avatar: <file>
+
+# UC-08: View Children
+GET /api/children - All children
+GET /api/children/{childId} - Specific child
+
+# UC-09: Update Child Profile
+PUT /api/children
+Content-Type: application/json
+
+{
+  "childId": "...",
+  "fullName": "Nguyễn Thị B",
+  "dob": "2015-05-20",
+  "grade": "Grade 7",
+  "gender": "Female",
+  "heightCm": 165,
+  "weightKg": 52.5
+}
+```
+
+---
 ## [2026-02-01] - UC-05 View Personal Information
+
 
 ### Added
 - **UC-05: View Personal Information**
