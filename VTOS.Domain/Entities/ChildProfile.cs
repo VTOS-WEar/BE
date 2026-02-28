@@ -18,6 +18,8 @@ public class ChildProfile : BaseEntity
     public bool IsDeleted { get; set; }
     public DateTime? DOB { get; set; }
     public string Avatar { get; set; } = string.Empty;
+    public int HeightCm { get; set; }
+    public float WeightKg { get; set; }
 
     // Navigation properties
     public User ParentUser { get; set; } = null!;

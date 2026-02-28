@@ -34,6 +34,10 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
         builder.Property(u => u.Avatar)
             .HasMaxLength(500);
 
+        builder.Property(cp => cp.HeightCm);
+
+        builder.Property(cp => cp.WeightKg);
+
         builder.Property(cp => cp.SchoolID);
 
         builder.Property(cp => cp.IsDeleted)
