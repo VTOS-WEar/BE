@@ -71,7 +71,8 @@ public class AuthController : ControllerBase
         var command = new RegisterCommand(
             request.Email,
             request.Password,
-            request.FullName
+            request.FullName,
+            request.RoleName
         );
 
         // Validate

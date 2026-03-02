@@ -17,7 +17,7 @@ public class StudentDataImportConfiguration : IEntityTypeConfiguration<StudentDa
             .IsRequired();
 
         builder.Property(sdi => sdi.StudentCode)
-            .IsRequired()
+            .IsRequired(false)
             .HasMaxLength(50);
 
         builder.Property(sdi => sdi.FullName)
@@ -31,6 +31,9 @@ public class StudentDataImportConfiguration : IEntityTypeConfiguration<StudentDa
             .HasMaxLength(50);
 
         builder.Property(sdi => sdi.DateOfBirth);
+
+        builder.Property(sdi => sdi.Gender)
+            .HasMaxLength(10);
 
         builder.Property(sdi => sdi.IsRegistered)
             .IsRequired();

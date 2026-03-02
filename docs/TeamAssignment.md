@@ -148,7 +148,7 @@ Controllers/
 | UC ID | Use Case | API Endpoint | Status |
 |-------|----------|--------------|--------|
 | UC-42 | Maintain School Profile | `GET/PUT /api/schools/me` | ✅ Done |
-| UC-43 | Import Student Data | `POST /api/schools/me/students/import` |  |
+| UC-43 | Import Student Data | `POST /api/schools/me/students/import` | ✅ Done |
 | UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` |  |
 | UC-45 | View Parent Orders | `GET /api/schools/me/orders` | ✅ Done |
 | UC-46 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` | ✅ Done |

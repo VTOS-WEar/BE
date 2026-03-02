@@ -41,22 +41,34 @@ public class RegisterCommandHandler : IRegisterCommandHandler
                 "EMAIL_EXISTS");
         }
 
-        // Get default "Parent" role
-        var parentRole = await _context.Roles
-            .FirstOrDefaultAsync(r => r.RoleName == "Parent", cancellationToken);
+        // Determine role (default: "Parent", allowed: "Parent", "School")
+        var allowedRoles = new[] { "Parent", "School" };
+        var roleName = string.IsNullOrWhiteSpace(command.RoleName) ? "Parent" : command.RoleName.Trim();
 
-        if (parentRole == null)
+        if (!allowedRoles.Contains(roleName, StringComparer.OrdinalIgnoreCase))
         {
-            // Create Parent role if not exists (first-time setup)
-            parentRole = new Role
+            return Result<RegisterResponse>.Failure(
+                $"Invalid role '{roleName}'. Allowed roles: Parent, School.",
+                "INVALID_ROLE");
+        }
+
+        // Normalize role name
+        roleName = allowedRoles.First(r => r.Equals(roleName, StringComparison.OrdinalIgnoreCase));
+
+        var role = await _context.Roles
+            .FirstOrDefaultAsync(r => r.RoleName == roleName, cancellationToken);
+
+        if (role == null)
+        {
+            role = new Role
             {
                 Id = Guid.NewGuid(),
-                RoleName = "Parent",
-                Description = "Parent user role",
+                RoleName = roleName,
+                Description = $"{roleName} user role",
                 IsSystemRole = true,
                 CreatedAt = DateTime.UtcNow
             };
-            _context.Roles.Add(parentRole);
+            _context.Roles.Add(role);
         }
 
         // Create new user (INACTIVE until email verified)
@@ -67,7 +79,7 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             PasswordHash = _passwordHasher.HashPassword(command.Password),
             FullName = command.FullName,
             Phone = null, // Phone collected after first login
-            RoleID = parentRole.Id,
+            RoleID = role.Id,
             IsActive = false, // INACTIVE until email verified
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow
