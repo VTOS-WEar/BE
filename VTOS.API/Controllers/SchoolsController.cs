@@ -14,6 +14,7 @@ namespace VTOS.API.Controllers;
 /// School management APIs (requires School role).
 /// UC-42: Maintain School Profile
 /// UC-43: Import Student Data
+/// UC-44: Publish Pre-order Campaign
 /// UC-45: View Parent Orders
 /// UC-46: Track Pre-order Progress
 /// UC-49: View Sales Reports
@@ -32,7 +33,9 @@ public class SchoolsController : ControllerBase
     private readonly IGetSalesReportQueryHandler _getSalesReportHandler;
     private readonly IGetFeedbackReportQueryHandler _getFeedbackReportHandler;
     private readonly IImportStudentDataCommandHandler _importStudentHandler;
+    private readonly IPublishCampaignCommandHandler _publishCampaignHandler;
     private readonly IValidator<UpdateSchoolProfileCommand> _updateProfileValidator;
+    private readonly IValidator<PublishCampaignCommand> _publishCampaignValidator;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -43,7 +46,9 @@ public class SchoolsController : ControllerBase
         IGetSalesReportQueryHandler getSalesReportHandler,
         IGetFeedbackReportQueryHandler getFeedbackReportHandler,
         IImportStudentDataCommandHandler importStudentHandler,
-        IValidator<UpdateSchoolProfileCommand> updateProfileValidator)
+        IPublishCampaignCommandHandler publishCampaignHandler,
+        IValidator<UpdateSchoolProfileCommand> updateProfileValidator,
+        IValidator<PublishCampaignCommand> publishCampaignValidator)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -53,7 +58,9 @@ public class SchoolsController : ControllerBase
         _getSalesReportHandler = getSalesReportHandler;
         _getFeedbackReportHandler = getFeedbackReportHandler;
         _importStudentHandler = importStudentHandler;
+        _publishCampaignHandler = publishCampaignHandler;
         _updateProfileValidator = updateProfileValidator;
+        _publishCampaignValidator = publishCampaignValidator;
     }
 
     /// <summary>
@@ -252,7 +259,39 @@ public class SchoolsController : ControllerBase
         return fields.ToArray();
     }
 
+    /// <summary>
+    /// UC-44: Publish (or save as draft) a pre-order campaign.
+    /// </summary>
+    [HttpPost("me/campaigns")]
+    [ProducesResponseType(typeof(PublishCampaignResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> PublishCampaign([FromBody] PublishCampaignRequest request, CancellationToken ct)
+    {
+        var command = new PublishCampaignCommand(
+            _currentUser.UserId,
+            request.CampaignName,
+            request.Description,
+            request.StartDate,
+            request.EndDate,
+            request.Outfits.Select(o => new CampaignOutfitInput(
+                o.OutfitId,
+                o.ProviderId,
+                o.CampaignPrice,
+                o.MaxQuantity
+            )).ToList(),
+            request.SaveAsDraft
+        );
 
+        var validationResult = await _publishCampaignValidator.ValidateAsync(command, ct);
+        if (!validationResult.IsValid)
+            return BadRequest(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+
+        var result = await _publishCampaignHandler.HandleAsync(command, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
 
     /// <summary>
     /// UC-45: View parent orders for the school.

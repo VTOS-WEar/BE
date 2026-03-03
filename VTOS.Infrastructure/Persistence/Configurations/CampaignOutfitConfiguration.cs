@@ -38,6 +38,7 @@ public class CampaignOutfitConfiguration : IEntityTypeConfiguration<CampaignOutf
         builder.HasOne(co => co.Provider)
             .WithMany(p => p.CampaignOutfits)
             .HasForeignKey(co => co.ProviderID)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

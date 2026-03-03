@@ -121,6 +121,10 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IImportStudentDataCommandHandler,
             VTOS.Application.Features.Schools.Commands.ImportStudentDataCommandHandler>();
 
+        // School Module - UC-44: Publish Campaign
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
+            VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();
+
         return services;
     }
 }

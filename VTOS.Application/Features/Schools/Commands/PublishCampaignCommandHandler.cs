@@ -7,10 +7,11 @@ using VTOS.Domain.Enums;
 namespace VTOS.Application.Features.Schools.Commands;
 
 /// <summary>
-/// UC-44: Publish a uniform pre-order campaign.
+/// UC-44: Publish (or save as draft) a uniform pre-order campaign.
 /// - Resolves SchoolID from the logged-in user.
 /// - Validates all outfit IDs belong to the school and are available.
 /// - Creates Campaign + CampaignOutfit records atomically.
+/// - Supports SaveAsDraft (status = Draft) or Publish (status = Active).
 /// </summary>
 public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
 {
@@ -37,7 +38,12 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
 
         var schoolId = user.SchoolID.Value;
 
-        // 2. Validate all outfits exist, belong to school, and are available
+        // 2. Validate date range (SRS 44.E1)
+        if (command.EndDate <= command.StartDate)
+            return Result<PublishCampaignResponseDto>.Failure(
+                "End date must be after start date.", "INVALID_DATE_RANGE");
+
+        // 3. Validate all outfits exist, belong to school, and are available
         var outfitIds = command.Outfits.Select(o => o.OutfitId).Distinct().ToList();
 
         var schoolOutfits = await _db.Outfits
@@ -45,7 +51,6 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
             .Where(o => outfitIds.Contains(o.Id) && !o.IsDeleted)
             .ToListAsync(ct);
 
-        // Check every requested outfit is found and belongs to this school
         foreach (var input in command.Outfits)
         {
             var outfit = schoolOutfits.FirstOrDefault(o => o.Id == input.OutfitId);
@@ -55,14 +60,14 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
 
             if (outfit.SchoolID != schoolId)
                 return Result<PublishCampaignResponseDto>.Failure(
-                    $"Outfit '{input.OutfitId}' does not belong to your school.", "OUTFIT_NOT_FOUND");
+                    $"Outfit '{input.OutfitId}' does not belong to your school.", "OUTFIT_NOT_OWNED");
 
             if (!outfit.IsAvailable)
                 return Result<PublishCampaignResponseDto>.Failure(
                     $"Outfit '{outfit.OutfitName}' is not available.", "OUTFIT_NOT_AVAILABLE");
         }
 
-        // 3. Create Campaign
+        // 4. Create Campaign — Draft or Active based on SaveAsDraft flag
         var campaign = new Campaign
         {
             Id = Guid.NewGuid(),
@@ -71,13 +76,13 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
             Description = command.Description,
             StartDate = command.StartDate,
             EndDate = command.EndDate,
-            Status = CampaignStatus.Active,
+            Status = command.SaveAsDraft ? CampaignStatus.Draft : CampaignStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
 
         _db.Campaigns.Add(campaign);
 
-        // 4. Create CampaignOutfit entries
+        // 5. Create CampaignOutfit entries (ProviderID nullable — can be assigned later)
         foreach (var input in command.Outfits)
         {
             var campaignOutfit = new CampaignOutfit
@@ -92,7 +97,7 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
             _db.CampaignOutfits.Add(campaignOutfit);
         }
 
-        // 5. Save atomically
+        // 6. Save atomically
         await _db.SaveChangesAsync(ct);
 
         return Result<PublishCampaignResponseDto>.Success(new PublishCampaignResponseDto
