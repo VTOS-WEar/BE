@@ -14,15 +14,18 @@ public class OrdersController : ControllerBase
 {
     private readonly ICurrentUserService _currentUserService;
     private readonly ICheckoutCommandHandler _checkoutCommandHandler;
+    private readonly ICancelOrderCommandHandler _cancelOrderCommandHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         ICurrentUserService currentUserService,
         ICheckoutCommandHandler checkoutCommandHandler,
+        ICancelOrderCommandHandler cancelOrderCommandHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
         _checkoutCommandHandler = checkoutCommandHandler;
+        _cancelOrderCommandHandler = cancelOrderCommandHandler;
         _logger = logger;
     }
 
@@ -101,6 +104,59 @@ public class OrdersController : ControllerBase
                 StatusCodes.Status500InternalServerError,
                 Result<CheckoutResponse>.Failure(
                     "An unexpected error occurred during checkout",
+                    "INTERNAL_SERVER_ERROR"));
+        }
+    }
+
+    /// <summary>
+    /// Cancel an order and its payment transaction
+    /// </summary>
+    /// <remarks>
+    /// This endpoint handles the cancel order flow:
+    /// 1. Validates the order belongs to the current parent
+    /// 2. Checks the order is cancellable (Pending or Confirmed)
+    /// 3. Cancels the PayOS payment link
+    /// 4. Updates Order status to Cancelled
+    /// 5. Updates PaymentTransaction status to Cancelled
+    /// </remarks>
+    /// <param name="orderId">The ID of the order to cancel</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result indicating success or failure</returns>
+    [HttpPut("{orderId}/cancel")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CancelOrder(
+        [FromRoute] Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Cancel order initiated: OrderId={OrderId}", orderId);
+
+            var command = new CancelOrderCommand(_currentUserService.UserId, orderId);
+            var result = await _cancelOrderCommandHandler.HandleAsync(command, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Cancel order failed: {Error}", result.Error);
+                return result.ErrorCode == "ORDER_NOT_FOUND"
+                    ? NotFound(result)
+                    : BadRequest(result);
+            }
+
+            _logger.LogInformation("Order cancelled successfully: OrderId={OrderId}", orderId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during order cancellation");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                Result.Failure(
+                    "An unexpected error occurred during order cancellation",
                     "INTERNAL_SERVER_ERROR"));
         }
     }

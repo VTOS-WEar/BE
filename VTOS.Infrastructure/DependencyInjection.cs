@@ -115,8 +115,9 @@ public static class DependencyInjection
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
 
-        // Orders Module Handlers (Checkout)
+        // Orders Module Handlers (Checkout, Cancel)
         services.AddScoped<ICheckoutCommandHandler, CheckoutCommandHandler>();
+        services.AddScoped<ICancelOrderCommandHandler, CancelOrderCommandHandler>();
         services.AddScoped<IPaymentWebhookHandler, PaymentWebhookHandler>();
 
         // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
