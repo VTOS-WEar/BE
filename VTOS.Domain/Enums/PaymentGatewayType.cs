@@ -4,6 +4,7 @@ public enum PaymentGatewayType
 {
     VNPay = 1,
     MoMo = 2,
-    Other = 3
+    PayOS = 3,
+    Other = 4
 }
 
