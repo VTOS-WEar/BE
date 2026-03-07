@@ -23,6 +23,7 @@ using VTOS.Application.Features.Children.Mappings;
 using VTOS.Application.Features.Children.Queries;
 using VTOS.Infrastructure.ExternalServices.PayOS;
 using VTOS.Application.Features.Orders.Commands;
+using VTOS.Application.Features.Orders.Queries;
 namespace VTOS.Infrastructure;
 
 public static class DependencyInjection
@@ -115,10 +116,11 @@ public static class DependencyInjection
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
 
-        // Orders Module Handlers (Checkout, Cancel)
+        // Orders Module Handlers (Checkout, Cancel, Track Status)
         services.AddScoped<ICheckoutCommandHandler, CheckoutCommandHandler>();
         services.AddScoped<ICancelOrderCommandHandler, CancelOrderCommandHandler>();
         services.AddScoped<IPaymentWebhookHandler, PaymentWebhookHandler>();
+        services.AddScoped<IGetOrderStatusQueryHandler, GetOrderStatusQueryHandler>();
 
         // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,

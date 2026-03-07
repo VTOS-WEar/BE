@@ -4,6 +4,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.DTOs;
+using VTOS.Application.Features.Orders.Queries;
 
 namespace VTOS.API.Controllers;
 
@@ -15,17 +16,20 @@ public class OrdersController : ControllerBase
     private readonly ICurrentUserService _currentUserService;
     private readonly ICheckoutCommandHandler _checkoutCommandHandler;
     private readonly ICancelOrderCommandHandler _cancelOrderCommandHandler;
+    private readonly IGetOrderStatusQueryHandler _getOrderStatusQueryHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         ICurrentUserService currentUserService,
         ICheckoutCommandHandler checkoutCommandHandler,
         ICancelOrderCommandHandler cancelOrderCommandHandler,
+        IGetOrderStatusQueryHandler getOrderStatusQueryHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
         _checkoutCommandHandler = checkoutCommandHandler;
         _cancelOrderCommandHandler = cancelOrderCommandHandler;
+        _getOrderStatusQueryHandler = getOrderStatusQueryHandler;
         _logger = logger;
     }
 
@@ -114,10 +118,10 @@ public class OrdersController : ControllerBase
     /// <remarks>
     /// This endpoint handles the cancel order flow:
     /// 1. Validates the order belongs to the current parent
-    /// 2. Checks the order is cancellable (Pending or Confirmed)
-    /// 3. Cancels the PayOS payment link
-    /// 4. Updates Order status to Cancelled
-    /// 5. Updates PaymentTransaction status to Cancelled
+    /// 2. Checks the order is cancellable (Pending or Paid)
+    /// 3. If Pending: cancels the PayOS payment link
+    /// 4. If Paid: creates a refund request
+    /// 5. Updates Order and PaymentTransaction status to Cancelled
     /// </remarks>
     /// <param name="orderId">The ID of the order to cancel</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -157,6 +161,46 @@ public class OrdersController : ControllerBase
                 StatusCodes.Status500InternalServerError,
                 Result.Failure(
                     "An unexpected error occurred during order cancellation",
+                    "INTERNAL_SERVER_ERROR"));
+        }
+    }
+
+    /// <summary>
+    /// Get order status and details
+    /// </summary>
+    /// <param name="orderId">The ID of the order to track</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Order status with item details and payment status</returns>
+    [HttpGet("{orderId}/status")]
+    [ProducesResponseType(typeof(Result<OrderStatusResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrderStatus(
+        [FromRoute] Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = new GetOrderStatusQuery(_currentUserService.UserId, orderId);
+            var result = await _getOrderStatusQueryHandler.HandleAsync(query, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode == "ORDER_NOT_FOUND"
+                    ? NotFound(result)
+                    : BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting order status");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                Result<OrderStatusResponse>.Failure(
+                    "An unexpected error occurred",
                     "INTERNAL_SERVER_ERROR"));
         }
     }
