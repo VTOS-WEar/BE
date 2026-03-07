@@ -6,6 +6,7 @@ namespace VTOS.Domain.Entities;
 public class PaymentTransaction : AuditableEntity
 {
     public Guid OrderID { get; set; }
+    public Guid? WalletID { get; set; }
     public PaymentGatewayType GatewayType { get; set; }
     public PaymentStatus TransactionStatus { get; set; }
     public decimal Amount { get; set; }
@@ -14,6 +15,7 @@ public class PaymentTransaction : AuditableEntity
 
     // Navigation properties
     public Order Order { get; set; } = null!;
+    public SchoolWallet? Wallet { get; set; }
     public ICollection<Refund> Refunds { get; set; } = new List<Refund>();
 }
 
