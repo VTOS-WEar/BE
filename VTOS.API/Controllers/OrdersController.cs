@@ -8,7 +8,7 @@ using VTOS.Application.Features.Orders.DTOs;
 namespace VTOS.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/orders")]
 [Authorize(Roles = "Parent")]
 public class OrdersController : ControllerBase
 {

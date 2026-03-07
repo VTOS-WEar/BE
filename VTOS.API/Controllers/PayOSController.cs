@@ -3,23 +3,28 @@ using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Common.Models;
+using VTOS.Application.Features.Orders.Commands;
+using VTOS.Application.Features.Orders.DTOs;
 
 namespace VTOS.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/payos")]
 [Authorize(Roles = "Parent,Admin")]
 public class PayOSController : ControllerBase
 {
     private readonly IPayOSService _payOSService;
+    private readonly IPaymentWebhookHandler _paymentWebhookHandler;
     private readonly ILogger<PayOSController> _logger;
     private const string InternalServerError = "INTERNAL_SERVER_ERROR";
 
     public PayOSController(
         IPayOSService payOSService,
+        IPaymentWebhookHandler paymentWebhookHandler,
         ILogger<PayOSController> logger)
     {
         _payOSService = payOSService;
+        _paymentWebhookHandler = paymentWebhookHandler;
         _logger = logger;
     }
 
@@ -296,6 +301,58 @@ public class PayOSController : ControllerBase
             _logger.LogError(ex, "Unexpected error getting payment invoices");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 Result<GetPaymentInvoicesResponse>.Failure("An unexpected error occurred while retrieving payment invoices", InternalServerError));
+        }
+    }
+    /// <summary>
+    /// Webhook endpoint for PayOS payment notifications
+    /// </summary>
+    /// <remarks>
+    /// Receives payment confirmation from PayOS and updates:
+    /// - PaymentTransaction status (Completed/Failed)
+    /// - Order status (Paid)
+    /// - SchoolWallet balance (add payment amount)
+    /// - Product variants inventory
+    /// 
+    /// Only processes if:
+    /// 1. Payment webhook success = true
+    /// 2. Transaction is not already in final state (Completed/Cancelled)
+    /// </remarks>
+    /// <param name="webhook">Payment webhook response from PayOS</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpPost("webhook")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(Result<PaymentWebhookProcessResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> PaymentWebhook(
+        [FromBody] PaymentWebhookResponse webhook,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Received PayOS webhook for PaymentLinkId: {PaymentLinkId}, Success: {Success}",
+                webhook?.Data?.PaymentLinkId, webhook?.Success);
+
+            var result = await _paymentWebhookHandler.HandleWebhookAsync(webhook, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Webhook processing failed: {Error}", result.Error);
+                return BadRequest(result);
+            }
+
+            _logger.LogInformation("Webhook processed successfully: {Message}", result.Value?.Message);
+            return Ok(result);
+            //return Ok("OK");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error processing payment webhook");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                Result<PaymentWebhookProcessResponse>.Failure(
+                    "An unexpected error occurred while processing the webhook",
+                    "INTERNAL_SERVER_ERROR"));
         }
     }
 }

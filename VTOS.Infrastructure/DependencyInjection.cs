@@ -117,6 +117,7 @@ public static class DependencyInjection
 
         // Orders Module Handlers (Checkout)
         services.AddScoped<ICheckoutCommandHandler, CheckoutCommandHandler>();
+        services.AddScoped<IPaymentWebhookHandler, PaymentWebhookHandler>();
 
         // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,

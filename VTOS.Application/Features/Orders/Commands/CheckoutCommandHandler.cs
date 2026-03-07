@@ -104,7 +104,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             }
 
             // Step 7: Create payment transaction
-            var paymentTransaction = CreatePaymentTransaction(order.Id, totalAmount, paymentLink.PaymentLinkId ?? Guid.NewGuid().ToString(), schoolWalletId);
+            var paymentTransaction = CreatePaymentTransaction(order.Id, totalAmount, paymentLink.PaymentLinkId, schoolWalletId);
             _context.PaymentTransactions.Add(paymentTransaction);
 
             // Step 8: Add order items to context and save
@@ -333,9 +333,10 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     {
         return new PaymentTransaction
         {
-            Id = Guid.Parse(paymentLinkId),
+            Id = Guid.NewGuid(),
             OrderID = orderId,
             WalletID = schoolWalletId,
+            PaymentLinkId = paymentLinkId,
             GatewayType = PaymentGatewayType.PayOS,
             TransactionStatus = PaymentStatus.Pending,
             Amount = totalAmount,
