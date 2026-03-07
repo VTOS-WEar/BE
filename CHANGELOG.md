@@ -2,8 +2,63 @@
 
 All notable changes to the VTOS Backend project.
 
-## [2026-02-17] - UC-29 Approve / Suspend Account & UC-31 Remove Inappropriate Feedback
+## [2026-03-03] - UC-44 Publish Pre-order Campaign
 
+### Added
+- **School Module: Publish Campaign (UC-44)**
+  - `POST /api/schools/me/campaigns` — Create and publish (or save as draft) a pre-order campaign
+  - `PublishCampaignCommandValidator` — FluentValidation (campaign name, date range, outfits, prices)
+  - `PublishCampaignRequest` DTO — API request body contract
+  - Supports `SaveAsDraft` flag: Draft (not visible to parents) vs Active (ordering open)
+
+### Changed
+- **CampaignOutfit.ProviderID** — Made nullable (`Guid?`). School can assign provider later (UC-48)
+- **CampaignOutfitConfiguration** — FK `.IsRequired(false)` for optional Provider relationship
+- **Outfit entity** — Added `IsDeleted` property for soft-delete support
+- **SchoolsController** — Injected `IPublishCampaignCommandHandler` + `IValidator<PublishCampaignCommand>`
+- **DependencyInjection.cs** — Registered `IPublishCampaignCommandHandler`
+- **SRS.txt** — Renamed "Supplier" to "Provider" throughout the document
+
+### Technical Notes
+- Campaign status uses `CampaignStatus` enum: Draft=1, Active=2, Paused=3, Completed=4, Cancelled=5
+- Handler validates: user exists, school profile set up, all outfits belong to school, outfits are available
+- Atomic creation: Campaign + CampaignOutfit entries saved in single `SaveChangesAsync`
+- ⚠️ **DB Migration needed**: `CampaignOutfit.ProviderID` → nullable, `Outfits.IsDeleted` → new column
+
+---
+
+## [2026-03-03] - Outfit CRUD Functionality
+
+### Added
+- **School Module: Manage Outfits**
+  - `GET /api/public/outfits` - List outfits for public viewing with filters
+  - `GET /api/public/outfits/{id}` - View specific outfit details
+  - `GET /api/schools/me/outfits` - List outfits belonging to the authenticated school
+  - `POST /api/schools/me/outfits` - Create a new outfit with variants
+  - `PUT /api/schools/me/outfits/{id}` - Update an existing outfit and its variants
+  - `DELETE /api/schools/me/outfits/{id}` - Remove an outfit
+
+- **Application Layer**
+  - **Commands**
+    - `CreateOutfitCommand` + `CreateOutfitCommandHandler`
+    - `UpdateOutfitCommand` + `UpdateOutfitCommandHandler`
+    - `DeleteOutfitCommand` + `DeleteOutfitCommandHandler`
+  - **Queries**
+    - `GetSchoolOutfitsQuery` + `GetSchoolOutfitsQueryHandler`
+  - **DTOs**
+    - `OutfitDto`, `OutfitVariantDto`, `CreateOutfitRequest`, `UpdateOutfitRequest`
+  - **Validators**
+    - `CreateOutfitCommandValidator`, `UpdateOutfitCommandValidator`
+
+- **API Layer**
+  - Updated `SchoolsController.cs` with Outfit CRUD endpoints
+
+### Technical Details
+- **Image Hosting**: Integrated with ImgBB for uploading and storing Outfit image URLs.
+- **Validation**: Strict validation rules for price (must be >= 0), outfit name, and variant sizes.
+
+---
+## [2026-02-17] - UC-29 Approve / Suspend Account & UC-31 Remove Inappropriate Feedback
 ### Added
 - **UC-29: Approve / Suspend Account**
   - `POST /api/admin/users/{id}/approve` endpoint for approving pending accounts

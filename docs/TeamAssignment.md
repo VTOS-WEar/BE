@@ -70,9 +70,9 @@ Controllers/
 |-------|----------|--------------|--------|
 | UC-05 | View Personal Information | `GET /api/users/me` | ✅ Done |
 | UC-06 | Update Personal Information | `PUT /api/users/me/profile` + `PUT /api/users/me/avatar` | ✅ Done |
-| UC-07 | Submit Verification Info | `POST /api/users/me/verify` |
-| UC-08 | View Child Profile | `GET /api/children` |
-| UC-09 | Update Child Information | `PUT /api/children/{id}` |
+| UC-07 | Submit Verification Info | `POST /api/users/me/verify` | ✅ Done |
+| UC-08 | View Child Profile | `GET /api/children` | ✅ Done |
+| UC-09 | Update Child Information | `PUT /api/children/{id}` | ✅ Done |
 | UC-10 | Confirm Child for Try-on | `POST /api/children/{id}/confirm` |
 | UC-11 | Try-on Uniform | `POST /api/tryon` |
 | UC-12 | Select Child Context | `POST /api/tryon/context` |
@@ -149,7 +149,7 @@ Controllers/
 |-------|----------|--------------|--------|
 | UC-42 | Maintain School Profile | `GET/PUT /api/schools/me` | ✅ Done |
 | UC-43 | Import Student Data | `POST /api/schools/me/students/import` | ✅ Done |
-| UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` |  |
+| UC-44 | Publish Uniform Pre-order | `POST /api/schools/me/campaigns` | ✅ Done |
 | UC-45 | View Parent Orders | `GET /api/schools/me/orders` | ✅ Done |
 | UC-46 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` | ✅ Done |
 | UC-47 | Confirm Goods Received | `POST /api/schools/me/batches/{id}/confirm` |  |

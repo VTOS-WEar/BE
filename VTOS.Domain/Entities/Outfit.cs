@@ -14,6 +14,7 @@ public class Outfit : AuditableEntity
     public Guid? SizeChartID { get; set; }
     public bool IsAvailable { get; set; }
     public bool IsCustomizable { get; set; }
+    public bool IsDeleted { get; set; }
 
     // Navigation properties
     public School School { get; set; } = null!;

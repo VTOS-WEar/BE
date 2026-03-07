@@ -32,7 +32,7 @@ II. Software Requirement Specification	5
 2.2.1.3 Usecase for Parent	9
 2.2.1.4 Usecase for Admin	10
 2.2.1.5 Usecase for School	11
-2.2.1.6 Usecase for Supplier	12
+2.2.1.6 Usecase for Provider	12
 2.2.2 Descriptions	12
 3. Functional Requirements	16
 3.1 System Functional Overview	16
@@ -43,7 +43,7 @@ II. Software Requirement Specification	5
 3.1.5 Entity Relationship Diagram	23
 3.2 Parent Feature	24
 3.3 Admin Feature	47
-3.4 Supplier Feature	59
+3.4 Provider Feature	59
 3.5 School Feature	63
 3.6 Guest Feature	71
 4. Non-Functional Requirements	76
@@ -85,11 +85,11 @@ Add usecases for admin and school, merge and modify usecases of parent
 29/12/2025
 M
 ThanhNLD
-Modify usecases for Parent, Admin, School, Supplier.
+Modify usecases for Parent, Admin, School, Provider.
 30/12/2025
 A
 HuyenCTT
-Add usecase description for Supplier
+Add usecase description for Provider
 31/12/2025
 A
 ThanhNLD
@@ -113,7 +113,7 @@ Add usecase description detail for Guest
 17/1/2026
 A, M
 ThanhNLD
-Add Screen Flow Diagram, Screen Description, Screen Authorization; Modify Usecase Descrition of Admin Feature, Actor System to Supplier in Actor list
+Add Screen Flow Diagram, Screen Description, Screen Authorization; Modify Usecase Descrition of Admin Feature, Actor System to Provider in Actor list
 18/1/2026
 A
 KhoiNDQ
@@ -121,11 +121,11 @@ Add usecase description detail for School
 18/1/2026
 A
 TruyenVNG
-Add usecase description detail for Supplier
+Add usecase description detail for Provider
 20/1/2026
 M
 ThanhNLD, KhoiNDQ
-Modify Guest Feature, Supplier Feature and School Feature to match format; Modify Table of Contents 
+Modify Guest Feature, Provider Feature and School Feature to match format; Modify Table of Contents 
 
 *A - Added M - Modified D - Deleted
 
@@ -164,7 +164,7 @@ Registers, uploads a child’s photo, tries uniforms, saves history, receives re
 School Manager
 Manages school-specific uniforms, pricing, stock, reports.
 4
-Supplier
+Provider
 Receives and manages production batches from schools, approves or rejects orders, updates production and delivery status, and maintains official business and capacity information for uniform manufacturing and fulfillment.
 5
 Guest
@@ -188,7 +188,7 @@ Handles VNPay, MoMo, banking transactions.
 
 2.2.1.4. Usecase for School Manager
 
-2.2.1.5. Usecase for Supplier
+2.2.1.5. Usecase for Provider
 
 
 
@@ -203,15 +203,15 @@ Parent
 Parents register an account using a phone number.
 UC-02
 Login
-Parent, Admin, School Manager, Supplier
+Parent, Admin, School Manager, Provider
 User logs into the system
 UC-03
 Forget password
-Parent, Admin, School Manager, Supplier
+Parent, Admin, School Manager, Provider
 Users can reset their password when they forget it by verifying their registered email or account
 UC-04
  Change Password
-Parent, Admin, School Manager, Supplier
+Parent, Admin, School Manager, Provider
 Users change their current password after logging in to improve account security.
 UC-05
  View Personal Information
@@ -314,9 +314,9 @@ Approve School Account
 Admin
 Admin approves school accounts after verifying official school email information.
 UC-30
-Approve Supplier Account
+Approve Provider Account
 Admin
-Admin approves supplier accounts based on supplier email submitted by the school.
+Admin approves Provider accounts based on Provider email submitted by the school.
 UC-31
 Suspend User Account
 Admin
@@ -340,7 +340,7 @@ Admin reviews uniform images, descriptions, and metadata before publication.
 UC-36
 Update Uniform Availability
 Admin
-Admin updates uniform availability based on supplier stock or school information.
+Admin updates uniform availability based on Provider stock or school information.
 UC-37
 Review User Feedback
 Admin
@@ -384,7 +384,7 @@ School monitors the progress of pre-orders, including confirmation status, produ
 UC-47
 Confirm Goods Received
 School Manager
-School confirms receipt of uniforms delivered by suppliers, records discrepancies if any, and updates inventory status.
+School confirms receipt of uniforms delivered by Providers, records discrepancies if any, and updates inventory status.
 UC-48
 Confirm Uniform Order
 School Manager
@@ -398,25 +398,25 @@ View Feedback Reports
 School Manager
 School reviews summarized feedback and ratings from parents related to uniforms, sizes, quality, and overall satisfaction.
 UC-51
-Provide Supplier Information
-Supplier
-Allows the Supplier to view, provide, and update official business information including company name, address, contact details, and production capacity.
+Provide Provider Information
+Provider
+Allows the Provider to view, provide, and update official business information including company name, address, contact details, and production capacity.
 UC-52
 Receive Production Order
-Supplier
-Allows the Supplier to receive production orders sent by Schools after the uniform pre-order phase is completed.
+Provider
+Allows the Provider to receive production orders sent by Schools after the uniform pre-order phase is completed.
 UC-53
 Confirm Production Order
-Supplier
-Allows the Supplier to review a received production order and confirm or reject it based on production capacity and feasibility
+Provider
+Allows the Provider to review a received production order and confirm or reject it based on production capacity and feasibility
 UC-54
 Produce Uniforms
-Supplier
-Allows the Supplier to manufacture uniforms according to a confirmed production order.
+Provider
+Allows the Provider to manufacture uniforms according to a confirmed production order.
 UC-55
 Deliver Uniforms to School
-Supplier
-Allows the Supplier to deliver completed uniforms to the School after production is finished.
+Provider
+Allows the Provider to deliver completed uniforms to the School after production is finished.
 UC-56
 View Homepage & System Introduction
 Guest
@@ -608,16 +608,16 @@ ReportRevenueScreen
 Displays school financial reports, transaction history, and withdrawal records.
 40
 SchoolManagement
-ChooseSupplierScreen
-Displays approved suppliers and allows schools to select suppliers for production.
+ChooseProviderScreen
+Displays approved Providers and allows schools to select Providers for production.
 41
 SchoolManagement
-SendSupplierScreen
-Allows schools to send production orders to selected suppliers.
+SendProviderScreen
+Allows schools to send production orders to selected Providers.
 42
 SchoolManagement
 ReceivingGoodsIntoInventoryScreen
-Tracks received uniforms, discrepancies, and reconciliation with supplier orders.
+Tracks received uniforms, discrepancies, and reconciliation with Provider orders.
 43
 AdminPanel
 AdminDashboardScreen
@@ -628,8 +628,8 @@ SchoolApprovalScreen
 Allows admin to review and approve school account registration requests.
 45
 AdminPanel
-SupplierApprovalScreen
-Allows admin to review and approve supplier account registration requests.
+ProviderApprovalScreen
+Allows admin to review and approve Provider account registration requests.
 46
 AdminPanel
 UserManagementScreen
@@ -671,29 +671,29 @@ AdminPanel
 SystemReportScreen
 Allows admin to generate system usage, payment, and feedback reports.
 56
-SupplierPanel
+ProviderPanel
 ProductionBatchListScreen
-Displays new production batches sent by schools awaiting supplier approval.
+Displays new production batches sent by schools awaiting Provider approval.
 57
-SupplierPanel
+ProviderPanel
 ProductionBatchDetailScreen
 Displays detailed information of a production batch with approve or reject options.
 58
-SupplierPanel
+ProviderPanel
 BatchStatusUpdateScreen
-Allows suppliers to update the processing status of an approved batch.
+Allows Providers to update the processing status of an approved batch.
 59
-SupplierPanel
+ProviderPanel
 BatchHistoryScreen
 Displays the history of completed, delivered, or rejected production batches.
 60
-SupplierPanel
-SupplierProfileScreen
-Displays supplier business information and contact details.
+ProviderPanel
+ProviderProfileScreen
+Displays Provider business information and contact details.
 61
-SupplierPanel
-SupplierProfileEditScreen
-Allows suppliers to update business profile, address, and production capacity.
+ProviderPanel
+ProviderProfileEditScreen
+Allows Providers to update business profile, address, and production capacity.
 
 
 3.1.3 Screen Authorization
@@ -702,7 +702,7 @@ Screen
 Guest
 Parent
 School
-Supplier
+Provider
 Admin
 LoginScreen
 X
@@ -1056,7 +1056,7 @@ X
 
 
 
-ChooseSupplierScreen
+ChooseProviderScreen
 
 
 
@@ -1066,7 +1066,7 @@ X
 
 
 
-SendSupplierScreen
+SendProviderScreen
 
 
 
@@ -1126,7 +1126,7 @@ BatchHistoryScreen
 X
 
 
-SupplierProfileScreen
+ProviderProfileScreen
 
 
 
@@ -1136,7 +1136,7 @@ SupplierProfileScreen
 X
 
 
-SupplierProfileEditScreen
+ProviderProfileEditScreen
 
 
 
@@ -1156,7 +1156,7 @@ SchoolApprovalScreen
 
 
 X
-SupplierApprovalScreen
+ProviderApprovalScreen
 
 
 
@@ -1303,7 +1303,7 @@ Communicates with external payment gateways to process payments and return trans
 10
 Inventory Management
 Stock Synchronization Service
-Automatically updates stock quantities after purchases, production updates, or supplier adjustments.
+Automatically updates stock quantities after purchases, production updates, or Provider adjustments.
 11
 Feedback Management
 Feedback Moderation Service
@@ -1311,7 +1311,7 @@ Applies moderation rules to user feedback and updates moderation status without 
 12
 Reporting
 Report Generation Service
-Aggregates system data to generate analytical reports for Admin, School Manager, and Supplier roles.
+Aggregates system data to generate analytical reports for Admin, School Manager, and Provider roles.
 13
 Student Data Management
 Student Data Matching Service
@@ -1319,7 +1319,7 @@ Automatically matches imported student data from schools with existing child pro
 14
 Production Management
 Production Batch Workflow Service
-Manages production batch status transitions based on supplier actions (approve, reject, update).
+Manages production batch status transitions based on Provider actions (approve, reject, update).
 15
 Notification (Future-ready)
 System Notification Service
@@ -2517,12 +2517,12 @@ Exception:
 If the system cannot update the account status, the system displays MSG11 – “Fail to update information”.
 
 
-3.3.2 Approve Supplier Account
+3.3.2 Approve Provider Account
 
 Use Case ID
 UC-30
 USE CASE NAME
-Approve Supplier Account
+Approve Provider Account
 Created By: 
 ThanhNLD
 Date Created:
@@ -2530,30 +2530,30 @@ Date Created:
 Primary Actor:
 Admin
 Secondary Actor:
-Supplier
+Provider
 Description:
-This use case allows the Admin to approve supplier accounts based on supplier email information submitted by schools.
+This use case allows the Admin to approve Provider accounts based on Provider email information submitted by schools.
 Priority:
 High
 Trigger:
-A supplier account request is submitted via a school.
+A Provider account request is submitted via a school.
 Preconditions:
 PRE-1: Admin is logged into the system.
-PRE-2: Supplier email information exists.
+PRE-2: Provider email information exists.
 Post-Conditions:
-POST-1: Supplier account is set to Approved.
-POST-2: Supplier can access supplier features.
+POST-1: Provider account is set to Approved.
+POST-2: Provider can access Provider features.
 Basic Flow:
-29.1. Approve Supplier Account
+29.1. Approve Provider Account
 Admin opens Account Registration Management.
-System displays pending supplier requests.
-Admin selects a supplier.
-System shows supplier email and linked school.
+System displays pending Provider requests.
+Admin selects a Provider.
+System shows Provider email and linked school.
 Admin verifies email.
 Admin clicks Approve.
 System updates account status and displays confirmation.
 Alternative Flow:
-29.2A – Reject Supplier
+29.2A – Reject Provider
 Admin clicks Reject, the system marks the request as rejected.
 Exception:
 29.E1 – System Update Error
@@ -2573,7 +2573,7 @@ Date Created:
 Primary Actor:
 Admin
 Secondary Actor:
-Parent, School, Supplier
+Parent, School, Provider
 Description:
 This use case allows the Admin to suspend user accounts that violate system policies or display abnormal behavior.
 Priority:
@@ -2722,7 +2722,7 @@ Date Created:
 Primary Actor:
 Admin
 Secondary Actor:
-School, Supplier
+School, Provider
 Description:
 This use case allows the Admin to publish official school uniform catalogs after review.
 Priority:
@@ -2796,7 +2796,7 @@ Basic Flow:
 The Admin opens the Uniform Review page.
 The system displays a list of all uniforms with Pending Review status.
 The Admin selects a uniform.
-The system displays the uniform image, description, size, and supplier information.
+The system displays the uniform image, description, size, and Provider information.
 The Admin checks the content for quality, correctness, and compliance.
 The Admin clicks Approve.
 The system marks the uniform as Approved.
@@ -2827,13 +2827,13 @@ Date Created:
 Primary Actor:
 Admin
 Secondary Actor:
-School, Supplier
+School, Provider
 Description:
 This use case allows the Admin to update uniform availability based on stock or school information.
 Priority:
 Medium
 Trigger:
-Stock or availability information is changed by a school or supplier.
+Stock or availability information is changed by a school or Provider.
 Preconditions:
 PRE-1: Admin is logged into the system.
 PRE-2: The uniform item exists in the system.
@@ -3052,7 +3052,7 @@ Date Created:
 Primary Actor:
 Admin
 Secondary Actor:
-Parent, School Manager, Supplier
+Parent, School Manager, Provider
 Description:
 This use case allows the Admin to generate system reports for monitoring and analysis.
 Priority:
@@ -3082,34 +3082,34 @@ Exception:
 If the report cannot be created, the system displays MSG11 – Fail to update information.
 
 
-3.4 Supplier Feature
-3.4.1 Provide Supplier Information
+3.4 Provider Feature
+3.4.1 Provide Provider Information
 
 Use Case ID
 UC-51
 USE CASE NAME
-Provide Supplier Information
+Provide Provider Information
 Created By: 
 TruyenVNG
 Date Created:
 11/01/2026
 Primary Actor:
-Supplier
+Provider
 Secondary Actor:
 None
 Description:
-This use case allows a Supplier to provide and maintain official business information so that schools can identify, evaluate, and select the supplier for uniform production and delivery.
+This use case allows a Provider to provide and maintain official business information so that schools can identify, evaluate, and select the Provider for uniform production and delivery.
 Priority:
 High
 Trigger:
-The Supplier clicks the “Profile” button or is redirected to the initial supplier information setup screen after first login.
+The Provider clicks the “Profile” button or is redirected to the initial Provider information setup screen after first login.
 Preconditions:
-PRE-1: Supplier has successfully logged in to the system.
-PRE-2: Supplier account status is Approve.
+PRE-1: Provider has successfully logged in to the system.
+PRE-2: Provider account status is Approve.
 Post-Conditions:
-POST-1: The Supplier’s business information is stored and associated with the supplier account.
-POST-2: The information becomes visible to schools during the supplier selection process.
-POST-3: A success confirmation message is displayed to the Supplier.
+POST-1: The Provider’s business information is stored and associated with the Provider account.
+POST-2: The information becomes visible to schools during the Provider selection process.
+POST-3: A success confirmation message is displayed to the Provider.
 Basic Flow:
 51.1.  Submit Rating
 The Parent navigates to the "Complete" tab in Order History.
@@ -3147,26 +3147,26 @@ TruyenVNG
 Date Created:
 11/01/2026
 Primary Actor:
-Supplier
+Provider
 Secondary Actor:
 School
 Description:
-Allows the Supplier to receive and view production orders (production batches) sent by Schools after the uniform pre-order phase is completed.
+Allows the Provider to receive and view production orders (production batches) sent by Schools after the uniform pre-order phase is completed.
 Priority:
 High
 Trigger:
 School confirms uniform order and sends production request.
 Preconditions:
-PRE-1: Supplier is logged in.
+PRE-1: Provider is logged in.
 PRE-2: A production batch has been created by a School.
 Post-Conditions:
-POST-1: Production batch appears in Supplier’s batch list.
+POST-1: Production batch appears in Provider’s batch list.
 POST-2: Batch status is set to Waiting for Approval.
 Basic Flow:
 52.1. View Incoming Production Batches
-Supplier opens ProductionBatch Screen
+Provider opens ProductionBatch Screen
 The System displays all production batches with status Waiting for Approval.
-Supplier selects a batch.
+Provider selects a batch.
 The system displays batch details including:
 School information
 Uniform items
@@ -3191,32 +3191,32 @@ TruyenVNG
 Date Created:
 11/01/2026
 Primary Actor:
-Supplier
+Provider
 Secondary Actor:
 School
 Description:
-Allows the Supplier to review a received production order and confirm or reject it based on production capacity and feasibility.
+Allows the Provider to review a received production order and confirm or reject it based on production capacity and feasibility.
 Priority:
 High
 Trigger:
-Supplier clicks Approve or Reject on a production batch.
+Provider clicks Approve or Reject on a production batch.
 Preconditions:
-PRE-1: Supplier is logged in.
+PRE-1: Provider is logged in.
 PRE-2: Production batch status is Waiting for Approval.
 Post-Conditions:
 POST-1: Batch status is updated to Approved or Rejected.
 POST-2: School is notified of the decision.
 Basic Flow:
 53.1. Approve Production Order
-Supplier opens ProductionBatchDetail Screen.
-Supplier reviews batch details.
-Supplier clicks Approve.
+Provider opens ProductionBatchDetail Screen.
+Provider reviews batch details.
+Provider clicks Approve.
 The system updates batch status to Approved.
 The system displays a confirmation message.
 Alternative Flow:
 53.2. Reject Production Order
-Supplier clicks Reject.
-Supplier enters a rejection reason (optional).
+Provider clicks Reject.
+Provider enters a rejection reason (optional).
 The system updates batch status to Rejected.
 Exception:
 53.E1. Update Failed
@@ -3234,26 +3234,26 @@ TruyenVNG
 Date Created:
 11/01/2026
 Primary Actor:
-Supplier
+Provider
 Secondary Actor:
 School
 Description:
-Allows the Supplier to manufacture uniforms according to a confirmed production order and update production progress for tracking.
+Allows the Provider to manufacture uniforms according to a confirmed production order and update production progress for tracking.
 Priority:
 High
 Trigger:
 Production order is approved.
 Preconditions:
 PRE-1: Production batch status is Approved.
-PRE-2: Supplier is logged in.
+PRE-2: Provider is logged in.
 Post-Conditions:
 POST-1: Batch status is updated to reflect production progress.
 POST-2: Schools can monitor production status.
 Basic Flow:
 54.1. Update Production Status
-Supplier opens BatchStatusUpdate Screen.
-Supplier selects a confirmed batch.
-Supplier updates status:
+Provider opens BatchStatusUpdate Screen.
+Provider selects a confirmed batch.
+Provider updates status:
 In production
 Completed
 The system saves the status and displays a success message
@@ -3261,7 +3261,7 @@ The system saves the status and displays a success message
 
 Alternative Flow:
 54.2. View Production History
-Supplier navigates to BatchHistoryScreen to review completed batches.
+Provider navigates to BatchHistoryScreen to review completed batches.
 Exception:
 54.E1. Status Update Failed
 If update fails, display MSG11
@@ -3278,25 +3278,25 @@ TruyenVNG
 Date Created:
 11/01/2026
 Primary Actor:
-Supplier
+Provider
 Secondary Actor:
 School
 Description:
-Allows the Supplier to deliver completed uniforms to the School and confirm handover after production is finished.
+Allows the Provider to deliver completed uniforms to the School and confirm handover after production is finished.
 Priority:
 High
 Trigger:
-Supplier marks production as completed.
+Provider marks production as completed.
 Preconditions:
 PRE-1: Batch status is Completed.
-PRE-2: Supplier is logged in.
+PRE-2: Provider is logged in.
 Post-Conditions:
 POST-1: Batch status is updated to Delivered.
 POST-2: School can confirm goods received.
 Basic Flow:
 55.1. Confirm Delivery
-Supplier opens ProductionBatchDetail Screen.
-Supplier clicks Mark as Delivered.
+Provider opens ProductionBatchDetail Screen.
+Provider clicks Mark as Delivered.
 The system updates batch status to Delivered.
 The system displays a confirmation message.
 
@@ -3509,7 +3509,7 @@ Date Created:
 Primary Actor:
 School Manager
 Secondary Actor:
-Supplier
+Provider
 Description:
 School monitors the progress of pre-orders including confirmation status, production stages, delivery timelines, and overall campaign progress.
 Priority:
@@ -3527,7 +3527,7 @@ School opens DashboardScreen.
 System shows campaign metrics.
 System displays production/delivery timeline (e.g., Requested → Approved → In Production → Delivered → Distributed).
 School selects a specific batch/order group to view detailed status.
-System displays latest supplier updates.
+System displays latest Provider updates.
 Alternative Flow:
 46.2 Filter by Class/Grade
 At Step 2, the School filters progress by class/grade to plan distribution.
@@ -3549,16 +3549,16 @@ Date Created:
 Primary Actor:
 School Manager
 Secondary Actor:
-Supplier
+Provider
 Description:
-School confirms receipt of uniforms delivered by suppliers, records discrepancies if any, and updates inventory status
+School confirms receipt of uniforms delivered by Providers, records discrepancies if any, and updates inventory status
 Priority:
 High
 Trigger:
 School clicks Confirm Received on a delivered batch.
 Preconditions:
 PRE-1: School is logged in.
-PRE-2: Supplier marked a batch as Delivered/Handed over.
+PRE-2: Provider marked a batch as Delivered/Handed over.
 Post-Conditions:
 POST-1: Batch status is updated to Received (or Received with Issues).
 POST-2: Inventory is updated accordingly.
@@ -3593,35 +3593,35 @@ Date Created:
 Primary Actor:
 School Manager
 Secondary Actor:
-Supplier
+Provider
 Description:
-After the pre-order phase ends, School confirms aggregated order quantities and submits official production requests (production batches) to the selected supplier.
+After the pre-order phase ends, School confirms aggregated order quantities and submits official production requests (production batches) to the selected Provider.
 Priority:
 High
 Trigger:
-Campaign reaches deadline and School clicks Confirm Order / Send to Supplier.
+Campaign reaches deadline and School clicks Confirm Order / Send to Provider.
 Preconditions:
 PRE-1: School is logged in.
 PRE-2: Campaign is ended/locked for ordering.
-PRE-3: A supplier is selected for production.
+PRE-3: A Provider is selected for production.
 Post-Conditions:
-POST-1: A Production Batch request is created and sent to Supplier.
+POST-1: A Production Batch request is created and sent to Provider.
 POST-2: Batch status becomes Waiting for Approval.
 Basic Flow:
 48.1. Confirm and Send Production Request
 School opens campaign management and views aggregated quantities by uniform variant.
 School reviews totals and verifies readiness for production.
 School clicks Confirm Uniform Order.
-System asks for confirmation and shows selected supplier.
+System asks for confirmation and shows selected Provider.
 School clicks Confirm.
-System creates a production batch and sends it to Supplier.
+System creates a production batch and sends it to Provider.
 System displays a confirmation message.
 Alternative Flow:
 48.2 Adjust Quantities Before Sending
 At Step 2, the School adjusts quantities (if allowed by business rules) before confirmation, then proceeds.
 Exception:
-48.E1 Cannot Confirm (Missing Supplier / Invalid State)
-If no supplier is selected or campaign is still open, the system blocks the action and shows an error.
+48.E1 Cannot Confirm (Missing Provider / Invalid State)
+If no Provider is selected or campaign is still open, the system blocks the action and shows an error.
 48.E2 Save Failed
 Display MSG11.
 
