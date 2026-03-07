@@ -38,6 +38,9 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
         builder.Property(pt => pt.TransactionLog)
             .HasMaxLength(2000);
 
+        builder.Property(pt => pt.PaymentLinkId)
+        .HasMaxLength(2000);
+
         // Relationships
         builder.HasOne(pt => pt.Order)
             .WithMany(o => o.PaymentTransactions)

@@ -7,6 +7,8 @@ public class PaymentTransaction : AuditableEntity
 {
     public Guid OrderID { get; set; }
     public Guid? WalletID { get; set; }
+    public string PaymentLinkId { get; set; }
+
     public PaymentGatewayType GatewayType { get; set; }
     public PaymentStatus TransactionStatus { get; set; }
     public decimal Amount { get; set; }
