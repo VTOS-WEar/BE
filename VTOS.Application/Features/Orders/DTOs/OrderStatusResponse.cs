@@ -24,4 +24,6 @@ public class OrderItemDetail
     public string Size { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? SchoolName { get; set; }
 }
