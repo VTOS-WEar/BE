@@ -17,6 +17,7 @@ public class OrdersController : ControllerBase
     private readonly ICheckoutCommandHandler _checkoutCommandHandler;
     private readonly ICancelOrderCommandHandler _cancelOrderCommandHandler;
     private readonly IGetOrderStatusQueryHandler _getOrderStatusQueryHandler;
+    private readonly IGetOrderHistoryQueryHandler _getOrderHistoryQueryHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
@@ -24,12 +25,14 @@ public class OrdersController : ControllerBase
         ICheckoutCommandHandler checkoutCommandHandler,
         ICancelOrderCommandHandler cancelOrderCommandHandler,
         IGetOrderStatusQueryHandler getOrderStatusQueryHandler,
+        IGetOrderHistoryQueryHandler getOrderHistoryQueryHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
         _checkoutCommandHandler = checkoutCommandHandler;
         _cancelOrderCommandHandler = cancelOrderCommandHandler;
         _getOrderStatusQueryHandler = getOrderStatusQueryHandler;
+        _getOrderHistoryQueryHandler = getOrderHistoryQueryHandler;
         _logger = logger;
     }
 
@@ -200,6 +203,60 @@ public class OrdersController : ControllerBase
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 Result<OrderStatusResponse>.Failure(
+                    "An unexpected error occurred",
+                    "INTERNAL_SERVER_ERROR"));
+        }
+    }
+
+    /// <summary>
+    /// View order history with filtering, pagination, and sorting
+    /// </summary>
+    /// <remarks>
+    /// Query parameters:
+    /// - page (default: 1)
+    /// - pageSize (default: 10, max: 50)
+    /// - status: filter by OrderStatus enum (1=Pending, 2=Paid, 3=Confirmed, ...)
+    /// - fromDate / toDate: filter by order date range
+    /// - sortBy: "orderDate" (default), "totalAmount", "status"
+    /// - sortOrder: "asc" or "desc" (default: "desc")
+    /// - search: search by shipping address
+    /// </remarks>
+    /// <returns>Paginated list of orders</returns>
+    [HttpGet("history")]
+    [ProducesResponseType(typeof(Result<OrderHistoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrderHistory(
+        [FromQuery] OrderHistoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = new GetOrderHistoryQuery(
+                _currentUserService.UserId,
+                request.Page,
+                request.PageSize,
+                request.Status,
+                request.FromDate,
+                request.ToDate,
+                request.SortBy,
+                request.SortOrder,
+                request.Search
+            );
+
+            var result = await _getOrderHistoryQueryHandler.HandleAsync(query, cancellationToken);
+
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting order history");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                Result<OrderHistoryResponse>.Failure(
                     "An unexpected error occurred",
                     "INTERNAL_SERVER_ERROR"));
         }
