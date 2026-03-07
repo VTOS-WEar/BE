@@ -108,7 +108,7 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
                 : "Payment completed";
 
             // Step 2: Update order status
-            order.OrderStatus = OrderStatus.Confirmed;
+            order.OrderStatus = OrderStatus.Paid;
 
             // Step 3: Update school wallet if exists
             if (wallet != null)
