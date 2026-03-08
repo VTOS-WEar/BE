@@ -2,6 +2,22 @@
 
 All notable changes to the VTOS Backend project.
 
+## [2026-03-07] - UML Diagrams & Brain Setup
+
+### Added
+- **PlantUML Sequence Diagram** for Login feature (code-accurate, numbered steps, colored alt blocks)
+- **PlantUML Class Diagram** for Login feature (stereotyped classes, layer-grouped, relationship labels)
+- **PlantUML Sequence Diagram Skill** (`~/.gemini/antigravity/skills/plantuml-sequence-diagram/`)
+- **PlantUML Class Diagram Skill** (`~/.gemini/antigravity/skills/plantuml-class-diagram/`)
+- **Brain files** (`.brain/brain.json`, `.brain/session.json`) for persistent project knowledge
+
+### Technical Notes
+- Diagrams render on https://editor.plantuml.com/
+- `skinparam style strictuml` hides footbox — use `show footbox` instead
+- Skills are persistent across all AI conversations
+
+---
+
 ## [2026-03-03] - UC-44 Publish Pre-order Campaign
 
 ### Added
