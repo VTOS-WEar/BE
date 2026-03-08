@@ -40,8 +40,8 @@
 | GET | `/api/public/schools` | List schools (search + pagination) | ✅ Done |
 | GET | `/api/public/categories` | List uniform categories | ✅ Done |
 | GET | `/api/public/outfits/{id}` | Get uniform detail | ✅ Done |
-| GET | `/api/public/schools/{id}` | Get school detail | 🔲 TODO |
-| GET | `/api/public/outfits` | List uniforms (filtered) | 🔲 TODO |
+| GET | `/api/public/schools/{id}` | Get school detail | ✅ Done |
+| GET | `/api/public/schools/{schoolId}/uniforms` | List uniforms (paginated) | ✅ Done |
 
 ## Schools (School Role) ✅
 | Method | Endpoint | Description | Status |
@@ -121,7 +121,7 @@
 | Controller | File | Endpoints |
 |------------|------|-----------|
 | AuthController | `AuthController.cs` | 9 |
-| PublicController | `PublicController.cs` | 3 |
+| PublicController | `PublicController.cs` | 5 |
 | UserController | `UserController.cs` | 4 |
 | ChildrenController | `ChildrenController.cs` | 3 |
 | SchoolsController | `SchoolsController.cs` | 13 |
@@ -129,4 +129,4 @@
 | AdminController | `AdminController.cs` | 5 |
 | OrdersController | `OrdersController.cs` | 4 |
 | PayOSController | `PayOSController.cs` | 5 |
-| **Total implemented** | | **47** |
+| **Total implemented** | | **49** |

@@ -71,8 +71,8 @@
 | Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Packages |
 |----------|-------------|--------|-------|------------------------|--------|-------|----------|
 | `/api/schools` | Lấy danh sách trường | `GET` | Query: `?search=keyword&page=1&pageSize=10` | `{ "items": [{ "schoolId": "guid", "schoolName": "string", "logoURL": "string", "contactInfo": "string", "outfitCount": 15 }], "totalCount": 50, "page": 1, "pageSize": 10 }` | - | Public API | - |
-| `/api/schools/{id}` | Lấy chi tiết trường | `GET` | Path: `id` (GUID) | `{ "schoolId": "guid", "schoolName": "string", "logoURL": "string", "contactInfo": "string", "catalogId": "guid", "activeCampaigns": [{ "campaignId": "guid", "campaignName": "string" }] }` | `404` Not found | Bao gồm campaigns | - |
-| `/api/schools/{id}/outfits` | Lấy đồng phục của trường | `GET` | Query: `?type=Uniform&available=true` | `{ "items": [{ "outfitId": "guid", "outfitName": "string", "price": 250000, "outfitType": "Uniform", "mainImageURL": "string", "isAvailable": true }], "totalCount": 15 }` | `404` School không tồn tại | Filter by type | - |
+| `/api/schools/{id}` | Lấy chi tiết trường (Public) | `GET` | Path: `id` (GUID) | `{ "schoolId": "guid", "schoolName": "string", "logoURL": "string", "contactInfo": "string", "activeCampaigns": [{ "campaignId": "guid", "campaignName": "string" }] }` | `404` Not found | IMemoryCache cached | - |
+| `/api/public/schools/{schoolId}/uniforms` | Lấy đồng phục của trường (Public) | `GET` | Query: `?page=1&pageSize=10` | `{ "items": [{ "outfitId": "guid", "outfitName": "string", "price": 250000, "outfitType": "Uniform", "mainImageURL": "string", "isAvailable": true, "categories": ["..."] }], "totalCount": 15 }` | `404` School không tồn tại | IMemoryCache cached | - |
 | `/api/schools/{id}/campaigns` | Lấy campaigns của trường | `GET` | Query: `?status=Active` | `{ "items": [{ "campaignId": "guid", "campaignName": "string", "startDate": "datetime", "endDate": "datetime", "status": "Active" }], "totalCount": 3 }` | `404` Not found | Filter by status | - |
 
 ---
@@ -200,7 +200,7 @@
 | Authentication | 11 | Mixed | ✅ Done |
 | User Management | 6 | Yes | ✅ Partial |
 | Children | 6 | Yes | ✅ Partial |
-| Schools | 4 | No | ✅ Done |
+| Schools | 5 | No | ✅ Done |
 | Outfits | 8 | Mixed | ✅ Partial |
 | Try-On | 6 | Mixed | ✅ Guest only |
 | Orders | 6 | Yes | ✅ 4/6 Done |
@@ -209,7 +209,7 @@
 | Categories | 5 | Mixed | ✅ Read only |
 | Providers | 5 | Admin Only | 🔲 TODO |
 | Campaigns | 5 | Mixed | ✅ Partial |
-| **TOTAL** | **71** | - | - |
+| **TOTAL** | **72** | - | - |
 
 ---
 

@@ -30,6 +30,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Add In-Memory Cache (reduces DB load for public endpoints)
+        services.AddMemoryCache();
+
         // Add DbContext
         services.AddDbContext<VTOSDbContext>(options =>
             options.UseSqlServer(
@@ -108,10 +111,12 @@ public static class DependencyInjection
         services.AddScoped<IGetChildProfileQueryHandler, GetChildProfileQueryHandler>();
         services.AddScoped<IUpdateChildProfileCommandHandler, UpdateChildProfileCommandHandler>();
 
-        // Public Module Handlers (UC-57, UC-58, UC-59)
+        // Public Module Handlers (UC 3.3.2, 3.3.3, 3.3.4, 3.3.5)
         services.AddScoped<GetSchoolsQueryHandler>();
         services.AddScoped<GetCategoriesQueryHandler>();
         services.AddScoped<GetOutfitDetailQueryHandler>();
+        services.AddScoped<GetSchoolDetailQueryHandler>();
+        services.AddScoped<GetUniformListQueryHandler>();
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
