@@ -24,6 +24,8 @@ public interface IApplicationDbContext
     DbSet<TryOnHistory> TryOnHistories { get; }
     DbSet<Order> Orders { get; }
     DbSet<OrderItem> OrderItems { get; }
+    DbSet<PaymentTransaction> PaymentTransactions { get; }
+    DbSet<Refund> Refunds { get; }
     DbSet<Campaign> Campaigns { get; }
     DbSet<CampaignOutfit> CampaignOutfits { get; }
     DbSet<Provider> Providers { get; }

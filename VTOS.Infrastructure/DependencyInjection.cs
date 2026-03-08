@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using VTOS.Application.Abstractions;
-using VTOS.Application.Features.Admin.Queries;
-using VTOS.Application.Features.Auth.Commands;
-using VTOS.Application.Features.Auth.Queries;
+using VTOS.Application.Common.Settings;
 using VTOS.Application.Features.Admin.Queries;
 using VTOS.Application.Features.Admin.Commands;
+using VTOS.Application.Features.Auth.Commands;
+using VTOS.Application.Features.Auth.Queries;
 using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Application.Features.Users.Commands;
@@ -21,6 +21,9 @@ using AutoMapper;
 using VTOS.Application.Features.Children.Commands;
 using VTOS.Application.Features.Children.Mappings;
 using VTOS.Application.Features.Children.Queries;
+using VTOS.Infrastructure.ExternalServices.PayOS;
+using VTOS.Application.Features.Orders.Commands;
+using VTOS.Application.Features.Orders.Queries;
 namespace VTOS.Infrastructure;
 
 public static class DependencyInjection
@@ -47,6 +50,13 @@ public static class DependencyInjection
         services.Configure<TryOnSettings>(configuration.GetSection(TryOnSettings.SectionName));
         services.Configure<ImgBBSettings>(configuration.GetSection(ImgBBSettings.SectionName));
 
+
+        // Register PayOS Settings
+        services.Configure<PayOSSettings>(configuration.GetSection(PayOSSettings.SectionName));
+
+        // Register Payment Settings
+        services.Configure<PaymentSettings>(configuration.GetSection(PaymentSettings.SectionName));
+
         // Register Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -57,6 +67,9 @@ public static class DependencyInjection
         // Register TryOn Services with HttpClient (UC-60)
         services.AddHttpClient<IVirtualTryOnService, VirtualTryOnService>();
         services.AddHttpClient<IImageUploadService, ImgBBImageService>();
+
+        //Register PayOS Service
+        services.AddHttpClient<IPayOSService, PayOSService>();
 
         // Register Handlers
         services.AddScoped<IRegisterCommandHandler, RegisterCommandHandler>();
@@ -102,6 +115,13 @@ public static class DependencyInjection
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
+
+        // Orders Module Handlers (Checkout, Cancel, Track Status, History)
+        services.AddScoped<ICheckoutCommandHandler, CheckoutCommandHandler>();
+        services.AddScoped<ICancelOrderCommandHandler, CancelOrderCommandHandler>();
+        services.AddScoped<IPaymentWebhookHandler, PaymentWebhookHandler>();
+        services.AddScoped<IGetOrderStatusQueryHandler, GetOrderStatusQueryHandler>();
+        services.AddScoped<IGetOrderHistoryQueryHandler, GetOrderHistoryQueryHandler>();
 
         // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,

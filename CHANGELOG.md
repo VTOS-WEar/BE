@@ -2,6 +2,73 @@
 
 All notable changes to the VTOS Backend project.
 
+## [2026-03-08] - Payment Integration, Checkout, Cancel Order, Track Order & Order History
+
+### Added
+- **PayOS Payment Module (PayOSController)**
+  - `POST /api/payos/create-payment-link` — Create a PayOS payment link (amount, description, returnUrl, cancelUrl)
+  - `GET /api/payos/payment-link/{paymentLinkId}` — Get payment link information (status, amounts, transactions)
+  - `POST /api/payos/payment-link/{paymentLinkId}/cancel` — Cancel a payment link on PayOS
+  - `GET /api/payos/payment-link/{paymentLinkId}/invoices` — Get payment invoices from PayOS
+  - `POST /api/payos/webhook` — Webhook endpoint (AllowAnonymous) for PayOS payment notifications
+
+- **Order Module: Checkout (UC)**
+  - `POST /api/orders/checkout` — Create Order + PaymentTransaction + generate PayOS payment link
+  - Flow: Validate cart items → Calculate total → Create Order (Pending) → Create PaymentTransaction (Pending) → Generate PayOS link
+  - Supports `campaignId`, `shippingAddress`, `deliveryMethod`, custom order with measurements
+
+- **Order Module: Cancel Order (UC)**
+  - `PUT /api/orders/{orderId}/cancel` — Cancel order with two flows:
+    - **Pending** (not yet paid): Cancel PayOS payment link + update Order & PaymentTransaction to Cancelled
+    - **Paid** (already paid): Create Refund request + update Order & PaymentTransaction to Cancelled
+  - Validates ownership (order must belong to current parent)
+
+- **Order Module: Track Order Status (UC)**
+  - `GET /api/orders/{orderId}/status` — Get order status with item details, payment status, image URL, school name
+  - Validates ownership (order must belong to current parent)
+
+- **Order Module: View Order History (UC)**
+  - `GET /api/orders/history` — Paginated order history with filtering & sorting
+  - Query params: `page`, `pageSize`, `status`, `fromDate`, `toDate`, `sortBy`, `sortOrder`, `search`
+  - Sorting by: `orderDate`, `totalAmount`, `status`
+  - Search by shipping address
+
+- **Application Layer** (`VTOS.Application/Features/Orders/`)
+  - **Commands**
+    - `CheckoutCommand` + `CheckoutCommandHandler` — Checkout flow logic
+    - `CancelOrderCommand` + `CancelOrderCommandHandler` — Cancel order with Pending/Paid routing
+    - `PaymentWebhookHandler` (`IPaymentWebhookHandler`) — Process PayOS webhook: update PaymentTransaction, Order status, SchoolWallet balance, inventory
+  - **Queries**
+    - `GetOrderStatusQuery` + `GetOrderStatusQueryHandler` — Load order with items, payment, campaign, school
+    - `GetOrderHistoryQuery` + `GetOrderHistoryQueryHandler` — Paginated + filtered order list
+  - **DTOs**
+    - `CheckoutRequest`, `CheckoutItemRequest`, `CheckoutResponse`
+    - `OrderStatusResponse`, `OrderItemDetail` (with `ImageUrl`, `SchoolName`)
+    - `OrderHistoryRequest`, `OrderHistoryResponse`, `OrderHistoryItem`
+    - `PaymentWebhookResponse`, `PaymentWebhookData`, `PaymentWebhookProcessResponse`
+
+- **API Layer**
+  - `PayOSController.cs` — 5 endpoints for PayOS payment management
+  - `OrdersController.cs` — 4 endpoints: checkout, cancel, status, history
+
+### Changed
+- **OrderStatus enum** — Added `Paid = 2` status, renumbered: Pending=1, Paid=2, Confirmed=3, Processed=4, Shipped=5, Delivered=6, Cancelled=7, Refunded=8
+- **PaymentTransaction entity** — Added `PaymentLinkId` field (`string`, max 2000 chars) to store PayOS payment link reference
+- **PaymentTransactionConfiguration** — Added `PaymentLinkId` property mapping
+- **IApplicationDbContext** — Added `DbSet<Refund> Refunds` for refund management
+- **PaymentWebhookHandler** — Order status updated to `Paid` (was `Confirmed`) after successful payment
+
+### Technical Notes
+- **Authorization**: `PayOSController` requires `Parent` or `Admin` role; webhook endpoint is `[AllowAnonymous]`
+- **Authorization**: `OrdersController` requires `Parent` role
+- **Pattern**: Custom `IHandler` + `Result<T>` (consistent with project)
+- **Cancel Order**: Routes by `OrderStatus` — `Pending` → cancel PayOS link, `Paid` → create Refund
+- **Webhook**: Only processes if `Success = true` and transaction not in final state (Completed/Cancelled)
+- **Order History**: Max page size = 50, default sort = `orderDate desc`
+- ⚠️ **DB Migration needed**: `PaymentTransaction.PaymentLinkId` → new column, `Refunds` table
+
+---
+
 ## [2026-03-03] - UC-44 Publish Pre-order Campaign
 
 ### Added

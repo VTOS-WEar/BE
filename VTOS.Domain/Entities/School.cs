@@ -14,5 +14,6 @@ public class School : AuditableEntity
     public ICollection<Outfit> Outfits { get; set; } = new List<Outfit>();
     public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
     public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();
+    public SchoolWallet? Wallet { get; set; }
 }
 
