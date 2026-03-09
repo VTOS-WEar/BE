@@ -141,24 +141,24 @@
 | UC ID | Use Case | API Endpoint | Status |
 |-------|----------|--------------|--------|
 | 3.9.1 | Create Uniform Pre-Order | `POST /api/schools/me/campaigns` | ✅ Done |
-| 3.9.2 | View Pre-Order List | `GET /api/schools/me/campaigns` | 🔲 TODO |
-| 3.9.3 | View Pre-Order Detail | `GET /api/schools/me/campaigns/{id}` | 🔲 TODO |
-| 3.9.4 | View Ordered Items | `GET /api/schools/me/campaigns/{id}/items` | 🔲 TODO |
-| 3.9.5a | View Selected Size | `GET /api/schools/me/campaigns/{id}/sizes` | 🔲 TODO |
-| 3.9.5b | Lock Pre-Order Campaign | `POST /api/schools/me/campaigns/{id}/lock` | 🔲 TODO |
-| 3.9.6 | View Pre-Order Summary | `GET /api/schools/me/campaigns/{id}/summary` | 🔲 TODO |
-| 3.9.7 | Calculate Total Quantity | `GET /api/schools/me/campaigns/{id}/quantity` | 🔲 TODO |
-| 3.9.8 | Generate Production Order | `POST /api/schools/me/campaigns/{id}/production-order` | 🔲 TODO |
-| 3.9.9 | Send Production Request | `POST /api/schools/me/batches` | 🔲 TODO |
-| 3.9.10 | Confirm Production Order | `POST /api/schools/me/campaigns/{id}/confirm` | 🔲 TODO |
-| 3.9.11 | View Production Complaint | `GET /api/schools/me/complaints` | 🔲 TODO |
-| 3.9.12 | View Production Order List | `GET /api/schools/me/production-orders` | 🔲 TODO |
-| 3.9.13 | View Production Order Detail | `GET /api/schools/me/production-orders/{id}` | 🔲 TODO |
-| 3.9.14 | View Order Uniform Items | `GET /api/schools/me/production-orders/{id}/items` | 🔲 TODO |
-| 3.9.15 | View Required Quantity | `GET /api/schools/me/production-orders/{id}/quantity` | 🔲 TODO |
-| 3.9.16 | View Delivery Deadline | `GET /api/schools/me/production-orders/{id}/deadline` | 🔲 TODO |
-| 3.9.17 | Process Uniform Production Order | `POST /api/schools/me/production-orders/{id}/process` | 🔲 TODO |
-| 3.9.18 | Reject Production Order | `POST /api/schools/me/production-orders/{id}/reject` | 🔲 TODO |
+| 3.9.2 | View Pre-Order List | `GET /api/schools/me/campaigns` | ✅ Done |
+| 3.9.3 | View Pre-Order Detail | `GET /api/schools/me/campaigns/{id}` | ✅ Done |
+| 3.9.4 | View Ordered Items | `GET /api/schools/me/campaigns/{id}/ordered-items` | ✅ Done |
+| 3.9.5a | View Selected Size | `GET /api/schools/me/campaigns/{id}/selected-sizes` | ✅ Done |
+| 3.9.5b | Lock Pre-Order Campaign | `PUT /api/schools/me/campaigns/{id}/lock` | ✅ Done |
+| 3.9.6 | View Pre-Order Summary | `GET /api/schools/me/campaigns/{id}/summary` | ✅ Done |
+| 3.9.7 | Calculate Total Quantity | `GET /api/schools/me/campaigns/{id}/total-quantity` | ✅ Done |
+| 3.9.8 | Generate Production Order | `POST /api/schools/me/production-orders/generate` | ✅ Done |
+| 3.9.9 | Send Production Request | `POST /api/schools/me/production-orders/{id}/send` | ✅ Done |
+| 3.9.10 | Confirm Production Order | `PUT /api/schools/me/production-orders/{id}/confirm` | ✅ Done |
+| 3.9.11 | View Production Complaint | `GET /api/schools/me/production-complaints` | ✅ Done |
+| 3.9.12 | View Production Order List | `GET /api/schools/me/production-orders` | ✅ Done |
+| 3.9.13 | View Production Order Detail | `GET /api/schools/me/production-orders/{id}` | ✅ Done |
+| 3.9.14 | View Order Uniform Items | `GET /api/schools/me/production-orders/{id}/items` | ✅ Done |
+| 3.9.15 | View Required Quantity | `GET /api/schools/me/production-orders/{id}/quantity` | ✅ Done |
+| 3.9.16 | View Delivery Deadline | `GET /api/schools/me/production-orders/{id}/deadline` | ✅ Done |
+| 3.9.17 | Process Uniform Production Order | `PUT /api/schools/me/production-orders/{id}/process` | ✅ Done |
+| 3.9.18 | Reject Production Order | `PUT /api/schools/me/production-orders/{id}/reject` | ✅ Done |
 
 > **Note:** UC 3.9.5 appears twice in the original list. Assigned as 3.9.5a (View Selected Size) and 3.9.5b (Lock Pre-Order Campaign).
 
@@ -277,14 +277,14 @@
 | 3.6 Virtual Try-On | 11 | 1 | 10 | 9% |
 | 3.7 Shopping Cart | 3 | 0 | 3 | 0% |
 | 3.8 Order Management | 7 | 0 | 7 | 0% |
-| 3.9 Pre-Order & Production | 18 | 1 | 17 | 6% |
+| 3.9 Pre-Order & Production | 18 | 18 | 0 | 100% |
 | 3.10 Provider Delivery | 6 | 0 | 6 | 0% |
 | 3.11 Contract Management | 5 | 0 | 5 | 0% |
 | 3.12 Complaint & Communication | 6 | 0 | 6 | 0% |
 | 3.13 Reporting & Analytics | 11 | 0 | 11 | 0% |
 | 3.14 Category & Config | 8 | 1 | 7 | 13% |
 | 3.15 Refund & Payment | 2 | 0 | 2 | 0% |
-| **TOTAL** | **105** | **22** | **83** | **21%** |
+| **TOTAL** | **105** | **39** | **66** | **37%** |
 
 ---
 
@@ -357,8 +357,14 @@ Features/Public/
 Features/Schools/
 ├── Commands/UpdateSchoolProfile, ImportStudentData, PublishCampaign
 ├── Commands/CreateOutfit, UpdateOutfit, DeleteOutfit
+├── Commands/LockCampaign, GenerateProductionOrder, SendProductionRequest
+├── Commands/ConfirmProductionOrder, ProcessProductionOrder, RejectProductionOrder
 ├── Queries/GetSchoolProfile, GetSchoolOrders, GetSchoolOutfits
 ├── Queries/GetCampaignProgress, GetSalesReport, GetFeedbackReport
+├── Queries/GetCampaignList, GetCampaignDetail, GetCampaignOrderedItems
+├── Queries/GetCampaignSelectedSizes, GetCampaignSummary, GetCampaignTotalQuantity
+├── Queries/GetProductionOrderList, GetProductionOrderDetail, GetProductionOrderItems
+├── Queries/GetProductionOrderQuantity, GetDeliveryDeadline, GetProductionComplaints
 ├── DTOs/SchoolProfileDto, SchoolOrderDto, OutfitDto, etc.
 └── Validators/UpdateSchoolProfileCommandValidator, etc.
 

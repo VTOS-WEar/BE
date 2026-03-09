@@ -1,6 +1,6 @@
 # VTOS Backend API Endpoints
 
-> **Last Updated**: 2026-03-08
+> **Last Updated**: 2026-03-09
 > **Status**: Partially Implemented (9 controllers active)
 
 ## Authentication ✅
@@ -59,6 +59,24 @@
 | POST | `/api/schools/me/outfits` | Create outfit | ✅ Done |
 | PUT | `/api/schools/me/outfits/{id}` | Update outfit | ✅ Done |
 | DELETE | `/api/schools/me/outfits/{id}` | Delete outfit | ✅ Done |
+| GET | `/api/schools/me/campaigns` | List campaigns (UC 3.9.2) | ✅ Done |
+| GET | `/api/schools/me/campaigns/{id}` | Campaign detail (UC 3.9.3) | ✅ Done |
+| GET | `/api/schools/me/campaigns/{id}/ordered-items` | Ordered items per outfit (UC 3.9.4) | ✅ Done |
+| GET | `/api/schools/me/campaigns/{id}/selected-sizes` | Size distribution (UC 3.9.5a) | ✅ Done |
+| PUT | `/api/schools/me/campaigns/{id}/lock` | Lock campaign (UC 3.9.5b) | ✅ Done |
+| GET | `/api/schools/me/campaigns/{id}/summary` | Campaign summary (UC 3.9.6) | ✅ Done |
+| GET | `/api/schools/me/campaigns/{id}/total-quantity` | Total quantity per size (UC 3.9.7) | ✅ Done |
+| POST | `/api/schools/me/production-orders/generate` | Generate production order (UC 3.9.8) | ✅ Done |
+| POST | `/api/schools/me/production-orders/{id}/send` | Send to provider (UC 3.9.9) | ✅ Done |
+| PUT | `/api/schools/me/production-orders/{id}/confirm` | Confirm production order (UC 3.9.10) | ✅ Done |
+| GET | `/api/schools/me/production-complaints` | Production complaints (UC 3.9.11) | ✅ Done |
+| GET | `/api/schools/me/production-orders` | List production orders (UC 3.9.12) | ✅ Done |
+| GET | `/api/schools/me/production-orders/{id}` | Production order detail (UC 3.9.13) | ✅ Done |
+| GET | `/api/schools/me/production-orders/{id}/items` | Items in production order (UC 3.9.14) | ✅ Done |
+| GET | `/api/schools/me/production-orders/{id}/quantity` | Required quantity (UC 3.9.15) | ✅ Done |
+| GET | `/api/schools/me/production-orders/{id}/deadline` | Delivery deadline (UC 3.9.16) | ✅ Done |
+| PUT | `/api/schools/me/production-orders/{id}/process` | Process order (UC 3.9.17) | ✅ Done |
+| PUT | `/api/schools/me/production-orders/{id}/reject` | Reject order (UC 3.9.18) | ✅ Done |
 
 ## Try-On ✅ Guest Only
 | Method | Endpoint | Description | Status |
@@ -124,9 +142,9 @@
 | PublicController | `PublicController.cs` | 5 |
 | UserController | `UserController.cs` | 4 |
 | ChildrenController | `ChildrenController.cs` | 3 |
-| SchoolsController | `SchoolsController.cs` | 13 |
+| SchoolsController | `SchoolsController.cs` | 30 |
 | TryOnController | `TryOnController.cs` | 1 |
 | AdminController | `AdminController.cs` | 5 |
 | OrdersController | `OrdersController.cs` | 4 |
 | PayOSController | `PayOSController.cs` | 5 |
-| **Total implemented** | | **49** |
+| **Total implemented** | | **66** |

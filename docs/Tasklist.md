@@ -158,20 +158,24 @@ This document tracks all tasks for the VTOS (Virtual Try-On System) backend impl
 ### 3.9 Pre-Order & Production Management (School/Admin)
 - ✅ Create Uniform Pre-Order / Publish Campaign (Command, Handler, Validator)
 - ✅ Track Pre-order Progress (Query, Handler)
-- 🔲 View Pre-Order List
-- 🔲 View Pre-Order Detail
-- 🔲 View Ordered Items
-- 🔲 View Selected Size
-- 🔲 View Pre-Order Summary
-- 🔲 Lock Pre-Order Campaign
-- 🔲 Calculate Total Quantity
-- 🔲 Generate Production Order
-- 🔲 Send Production Request
-- 🔲 Confirm Production Order
-- 🔲 View Production Complaint
-- 🔲 View Production Order List / Detail
-- 🔲 View Order Uniform Items / Required Quantity / Delivery Deadline
-- 🔲 Process / Reject Production Order
+- ✅ View Pre-Order List (GetCampaignListQuery — UC 3.9.2)
+- ✅ View Pre-Order Detail (GetCampaignDetailQuery — UC 3.9.3)
+- ✅ View Ordered Items (GetCampaignOrderedItemsQuery — UC 3.9.4)
+- ✅ View Selected Size (GetCampaignSelectedSizesQuery — UC 3.9.5a)
+- ✅ Lock Pre-Order Campaign (LockCampaignCommand — UC 3.9.5b)
+- ✅ View Pre-Order Summary (GetCampaignSummaryQuery — UC 3.9.6)
+- ✅ Calculate Total Quantity (GetCampaignTotalQuantityQuery — UC 3.9.7)
+- ✅ Generate Production Order (GenerateProductionOrderCommand — UC 3.9.8)
+- ✅ Send Production Request (SendProductionRequestCommand — UC 3.9.9)
+- ✅ Confirm Production Order (ConfirmProductionOrderCommand — UC 3.9.10)
+- ✅ View Production Complaint (GetProductionComplaintsQuery — UC 3.9.11)
+- ✅ View Production Order List (GetProductionOrderListQuery — UC 3.9.12)
+- ✅ View Production Order Detail (GetProductionOrderDetailQuery — UC 3.9.13)
+- ✅ View Order Uniform Items (GetProductionOrderItemsQuery — UC 3.9.14)
+- ✅ View Required Quantity (GetProductionOrderQuantityQuery — UC 3.9.15)
+- ✅ View Delivery Deadline (GetDeliveryDeadlineQuery — UC 3.9.16)
+- ✅ Process Production Order (ProcessProductionOrderCommand — UC 3.9.17)
+- ✅ Reject Production Order (RejectProductionOrderCommand — UC 3.9.18)
 
 ### 3.10 Production & Delivery Management (Provider)
 - 🔲 Provider Profile (GET/PUT)
@@ -242,7 +246,7 @@ This document tracks all tasks for the VTOS (Virtual Try-On System) backend impl
 - ✅ PublicController (GetSchools, GetCategories, GetOutfitDetail)
 - ✅ UserController (GetProfile, UpdateProfile, UpdateAvatar, SubmitVerification)
 - ✅ ChildrenController (GetMyChildren, GetChild, UpdateChild)
-- ✅ SchoolsController (Profile, ImportStudents, PublishCampaign, Orders, CampaignProgress, Reports, Outfits CRUD)
+- ✅ SchoolsController (Profile, ImportStudents, PublishCampaign, Orders, CampaignProgress, Reports, Outfits CRUD, UC 3.9 Pre-Order & Production — 17 endpoints)
 - ✅ TryOnController (GuestTryOn)
 - ✅ AdminController (GetUsers, GetFeedbacks, ApproveUser, SuspendUser, RemoveFeedback)
 - ✅ OrdersController (Checkout, CancelOrder, TrackOrderStatus, OrderHistory)
@@ -286,9 +290,9 @@ This document tracks all tasks for the VTOS (Virtual Try-On System) backend impl
 
 ## Notes
 
-- **Last Updated**: 2026-03-08
+- **Last Updated**: 2026-03-09
 - **Current Phase**: Phase 3 — Use Case Features (active development)
-- **Latest Addition**: Order Checkout, Cancel, Track, History + PayOS Payment Integration
+- **Latest Addition**: UC 3.9 Pre-Order & Production Management (17 handlers) + DbInitializer seeding
 
 ---
 
@@ -298,8 +302,8 @@ This document tracks all tasks for the VTOS (Virtual Try-On System) backend impl
 |-------|-----------|-------|---|
 | Phase 1: Foundation & Domain | 15 | 17 | 88% |
 | Phase 2: Infrastructure | 15 | 20 | 75% |
-| Phase 3: Use Case Features | 35 | 105 | 33% |
+| Phase 3: Use Case Features | 51 | 105 | 49% |
 | Phase 4: API Layer | 12 | 15 | 80% |
 | Phase 5: Testing | 0 | 5 | 0% |
 | Phase 6: Deployment | 2 | 8 | 25% |
-| **Total** | **~79** | **~170** | **~46%** |
+| **Total** | **~95** | **~170** | **~56%** |
