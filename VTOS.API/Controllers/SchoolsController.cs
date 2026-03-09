@@ -36,6 +36,25 @@ public class SchoolsController : ControllerBase
     private readonly IPublishCampaignCommandHandler _publishCampaignHandler;
     private readonly IValidator<UpdateSchoolProfileCommand> _updateProfileValidator;
     private readonly IValidator<PublishCampaignCommand> _publishCampaignValidator;
+    // UC 3.9.x handlers
+    private readonly IGetCampaignListQueryHandler _getCampaignListHandler;
+    private readonly IGetCampaignDetailQueryHandler _getCampaignDetailHandler;
+    private readonly IGetCampaignOrderedItemsQueryHandler _getCampaignOrderedItemsHandler;
+    private readonly IGetCampaignSelectedSizesQueryHandler _getCampaignSelectedSizesHandler;
+    private readonly ILockCampaignCommandHandler _lockCampaignHandler;
+    private readonly IGetCampaignSummaryQueryHandler _getCampaignSummaryHandler;
+    private readonly IGetCampaignTotalQuantityQueryHandler _getCampaignTotalQuantityHandler;
+    private readonly IGenerateProductionOrderCommandHandler _generateProductionOrderHandler;
+    private readonly ISendProductionRequestCommandHandler _sendProductionRequestHandler;
+    private readonly IConfirmProductionOrderCommandHandler _confirmProductionOrderHandler;
+    private readonly IGetProductionComplaintsQueryHandler _getProductionComplaintsHandler;
+    private readonly IGetProductionOrderListQueryHandler _getProductionOrderListHandler;
+    private readonly IGetProductionOrderDetailQueryHandler _getProductionOrderDetailHandler;
+    private readonly IGetProductionOrderItemsQueryHandler _getProductionOrderItemsHandler;
+    private readonly IGetProductionOrderQuantityQueryHandler _getProductionOrderQuantityHandler;
+    private readonly IGetDeliveryDeadlineQueryHandler _getDeliveryDeadlineHandler;
+    private readonly IProcessProductionOrderCommandHandler _processProductionOrderHandler;
+    private readonly IRejectProductionOrderCommandHandler _rejectProductionOrderHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -48,7 +67,26 @@ public class SchoolsController : ControllerBase
         IImportStudentDataCommandHandler importStudentHandler,
         IPublishCampaignCommandHandler publishCampaignHandler,
         IValidator<UpdateSchoolProfileCommand> updateProfileValidator,
-        IValidator<PublishCampaignCommand> publishCampaignValidator)
+        IValidator<PublishCampaignCommand> publishCampaignValidator,
+        // UC 3.9.x
+        IGetCampaignListQueryHandler getCampaignListHandler,
+        IGetCampaignDetailQueryHandler getCampaignDetailHandler,
+        IGetCampaignOrderedItemsQueryHandler getCampaignOrderedItemsHandler,
+        IGetCampaignSelectedSizesQueryHandler getCampaignSelectedSizesHandler,
+        ILockCampaignCommandHandler lockCampaignHandler,
+        IGetCampaignSummaryQueryHandler getCampaignSummaryHandler,
+        IGetCampaignTotalQuantityQueryHandler getCampaignTotalQuantityHandler,
+        IGenerateProductionOrderCommandHandler generateProductionOrderHandler,
+        ISendProductionRequestCommandHandler sendProductionRequestHandler,
+        IConfirmProductionOrderCommandHandler confirmProductionOrderHandler,
+        IGetProductionComplaintsQueryHandler getProductionComplaintsHandler,
+        IGetProductionOrderListQueryHandler getProductionOrderListHandler,
+        IGetProductionOrderDetailQueryHandler getProductionOrderDetailHandler,
+        IGetProductionOrderItemsQueryHandler getProductionOrderItemsHandler,
+        IGetProductionOrderQuantityQueryHandler getProductionOrderQuantityHandler,
+        IGetDeliveryDeadlineQueryHandler getDeliveryDeadlineHandler,
+        IProcessProductionOrderCommandHandler processProductionOrderHandler,
+        IRejectProductionOrderCommandHandler rejectProductionOrderHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -61,7 +99,26 @@ public class SchoolsController : ControllerBase
         _publishCampaignHandler = publishCampaignHandler;
         _updateProfileValidator = updateProfileValidator;
         _publishCampaignValidator = publishCampaignValidator;
+        _getCampaignListHandler = getCampaignListHandler;
+        _getCampaignDetailHandler = getCampaignDetailHandler;
+        _getCampaignOrderedItemsHandler = getCampaignOrderedItemsHandler;
+        _getCampaignSelectedSizesHandler = getCampaignSelectedSizesHandler;
+        _lockCampaignHandler = lockCampaignHandler;
+        _getCampaignSummaryHandler = getCampaignSummaryHandler;
+        _getCampaignTotalQuantityHandler = getCampaignTotalQuantityHandler;
+        _generateProductionOrderHandler = generateProductionOrderHandler;
+        _sendProductionRequestHandler = sendProductionRequestHandler;
+        _confirmProductionOrderHandler = confirmProductionOrderHandler;
+        _getProductionComplaintsHandler = getProductionComplaintsHandler;
+        _getProductionOrderListHandler = getProductionOrderListHandler;
+        _getProductionOrderDetailHandler = getProductionOrderDetailHandler;
+        _getProductionOrderItemsHandler = getProductionOrderItemsHandler;
+        _getProductionOrderQuantityHandler = getProductionOrderQuantityHandler;
+        _getDeliveryDeadlineHandler = getDeliveryDeadlineHandler;
+        _processProductionOrderHandler = processProductionOrderHandler;
+        _rejectProductionOrderHandler = rejectProductionOrderHandler;
     }
+
 
     /// <summary>
     /// UC-42: Get current school's profile.
@@ -387,4 +444,219 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // UC 3.9.x — Pre-Order & Production Management
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>UC 3.9.2 — View campaign list for the school.</summary>
+    [HttpGet("me/campaigns")]
+    [ProducesResponseType(typeof(GetCampaignListResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCampaignList(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getCampaignListHandler.HandleAsync(
+            new GetCampaignListQuery(_currentUser.UserId, page, pageSize, status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.3 — View campaign detail.</summary>
+    [HttpGet("me/campaigns/{id:guid}")]
+    [ProducesResponseType(typeof(CampaignDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCampaignDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getCampaignDetailHandler.HandleAsync(new GetCampaignDetailQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.4 — View ordered items for a campaign.</summary>
+    [HttpGet("me/campaigns/{id:guid}/items")]
+    [ProducesResponseType(typeof(IReadOnlyList<CampaignOrderedItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCampaignOrderedItems(Guid id, CancellationToken ct)
+    {
+        var result = await _getCampaignOrderedItemsHandler.HandleAsync(new GetCampaignOrderedItemsQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.5a — View selected sizes for a campaign.</summary>
+    [HttpGet("me/campaigns/{id:guid}/sizes")]
+    [ProducesResponseType(typeof(IReadOnlyList<CampaignOutfitSizesDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCampaignSelectedSizes(Guid id, CancellationToken ct)
+    {
+        var result = await _getCampaignSelectedSizesHandler.HandleAsync(new GetCampaignSelectedSizesQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.5b — Lock a pre-order campaign (no more orders accepted).</summary>
+    [HttpPost("me/campaigns/{id:guid}/lock")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> LockCampaign(Guid id, CancellationToken ct)
+    {
+        var result = await _lockCampaignHandler.HandleAsync(new LockCampaignCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    /// <summary>UC 3.9.6 — View pre-order summary for a campaign.</summary>
+    [HttpGet("me/campaigns/{id:guid}/summary")]
+    [ProducesResponseType(typeof(CampaignSummaryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCampaignSummary(Guid id, CancellationToken ct)
+    {
+        var result = await _getCampaignSummaryHandler.HandleAsync(new GetCampaignSummaryQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.7 — Calculate total quantity for a campaign.</summary>
+    [HttpGet("me/campaigns/{id:guid}/quantity")]
+    [ProducesResponseType(typeof(CampaignTotalQuantityDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCampaignTotalQuantity(Guid id, CancellationToken ct)
+    {
+        var result = await _getCampaignTotalQuantityHandler.HandleAsync(new GetCampaignTotalQuantityQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.8 — Generate a production order from a locked campaign.</summary>
+    [HttpPost("me/campaigns/{id:guid}/production-order")]
+    [ProducesResponseType(typeof(GenerateProductionOrderResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GenerateProductionOrder(Guid id, [FromBody] GenerateProductionOrderRequest request, CancellationToken ct)
+    {
+        var result = await _generateProductionOrderHandler.HandleAsync(
+            new GenerateProductionOrderCommand(_currentUser.UserId, id, request), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    /// <summary>UC 3.9.9 — Send production request to provider.</summary>
+    [HttpPost("me/batches/{id:guid}/send")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SendProductionRequest(Guid id, CancellationToken ct)
+    {
+        var result = await _sendProductionRequestHandler.HandleAsync(new SendProductionRequestCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    /// <summary>UC 3.9.10 — Confirm a production order.</summary>
+    [HttpPost("me/campaigns/{id:guid}/confirm")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmProductionOrder(Guid id, CancellationToken ct)
+    {
+        var result = await _confirmProductionOrderHandler.HandleAsync(new ConfirmProductionOrderCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    /// <summary>UC 3.9.11 — View production complaints for the school.</summary>
+    [HttpGet("me/complaints")]
+    [ProducesResponseType(typeof(GetProductionComplaintsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProductionComplaints(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var result = await _getProductionComplaintsHandler.HandleAsync(
+            new GetProductionComplaintsQuery(_currentUser.UserId, page, pageSize), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.12 — View production order list.</summary>
+    [HttpGet("me/production-orders")]
+    [ProducesResponseType(typeof(GetProductionOrderListResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProductionOrderList(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getProductionOrderListHandler.HandleAsync(
+            new GetProductionOrderListQuery(_currentUser.UserId, page, pageSize, status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.13 — View production order detail.</summary>
+    [HttpGet("me/production-orders/{id:guid}")]
+    [ProducesResponseType(typeof(ProductionOrderDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProductionOrderDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getProductionOrderDetailHandler.HandleAsync(new GetProductionOrderDetailQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.14 — View items in a production order.</summary>
+    [HttpGet("me/production-orders/{id:guid}/items")]
+    [ProducesResponseType(typeof(IReadOnlyList<ProductionBatchItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProductionOrderItems(Guid id, CancellationToken ct)
+    {
+        var result = await _getProductionOrderItemsHandler.HandleAsync(new GetProductionOrderItemsQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.15 — View required quantity for a production order.</summary>
+    [HttpGet("me/production-orders/{id:guid}/quantity")]
+    [ProducesResponseType(typeof(ProductionOrderQuantityDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProductionOrderQuantity(Guid id, CancellationToken ct)
+    {
+        var result = await _getProductionOrderQuantityHandler.HandleAsync(new GetProductionOrderQuantityQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.16 — View delivery deadline for a production order.</summary>
+    [HttpGet("me/production-orders/{id:guid}/deadline")]
+    [ProducesResponseType(typeof(DeliveryDeadlineDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDeliveryDeadline(Guid id, CancellationToken ct)
+    {
+        var result = await _getDeliveryDeadlineHandler.HandleAsync(new GetDeliveryDeadlineQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.17 — Process (mark InProduction) a confirmed production order.</summary>
+    [HttpPost("me/production-orders/{id:guid}/process")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ProcessProductionOrder(Guid id, CancellationToken ct)
+    {
+        var result = await _processProductionOrderHandler.HandleAsync(new ProcessProductionOrderCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    /// <summary>UC 3.9.18 — Reject a production order with a reason.</summary>
+    [HttpPost("me/production-orders/{id:guid}/reject")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RejectProductionOrder(
+        Guid id,
+        [FromBody] RejectProductionOrderRequest request,
+        CancellationToken ct)
+    {
+        var result = await _rejectProductionOrderHandler.HandleAsync(
+            new RejectProductionOrderCommand(_currentUser.UserId, id, request.Reason), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
 }
+
+/// <summary>Request body for UC 3.9.18 Reject Production Order.</summary>
+public record RejectProductionOrderRequest(string Reason);
+
