@@ -149,6 +149,20 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IImportStudentDataCommandHandler,
             VTOS.Application.Features.Schools.Commands.ImportStudentDataCommandHandler>();
 
+        // School Module - Get School Students
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolStudentsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolStudentsQueryHandler>();
+
+        // School Module - Student CRUD
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateStudentCommandHandler,
+            VTOS.Application.Features.Schools.Commands.CreateStudentCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetStudentByIdQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetStudentByIdQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateStudentCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateStudentCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteStudentCommandHandler,
+            VTOS.Application.Features.Schools.Commands.DeleteStudentCommandHandler>();
+
         // School Module - UC-44: Publish Campaign
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
             VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();

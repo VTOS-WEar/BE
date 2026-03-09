@@ -1,0 +1,31 @@
+using Microsoft.EntityFrameworkCore;
+using VTOS.Application.Abstractions;
+using VTOS.Application.Common;
+
+namespace VTOS.Application.Features.Schools.Commands;
+
+public class DeleteStudentCommandHandler : IDeleteStudentCommandHandler
+{
+    private readonly IApplicationDbContext _db;
+    public DeleteStudentCommandHandler(IApplicationDbContext db) => _db = db;
+
+    public async Task<Result<string>> HandleAsync(DeleteStudentCommand cmd, CancellationToken ct = default)
+    {
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cmd.UserId, ct);
+        if (user == null || user.SchoolID == null)
+            return Result<string>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
+
+        var schoolId = user.SchoolID.Value;
+
+        var child = await _db.ChildProfiles
+            .FirstOrDefaultAsync(c => c.Id == cmd.StudentId && c.SchoolID == schoolId && !c.IsDeleted, ct);
+
+        if (child == null)
+            return Result<string>.Failure("Student not found.", "STUDENT_NOT_FOUND");
+
+        child.IsDeleted = true;
+        await _db.SaveChangesAsync(ct);
+
+        return Result<string>.Success("Student deleted successfully.");
+    }
+}
