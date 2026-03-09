@@ -15,7 +15,7 @@ public class VirtualTryOnSettings
     /// <summary>
     /// API endpoint URL
     /// </summary>
-    public string ApiUrl { get; set; } = "https://api.302.ai/302/submit/virtual-tryon-v2";
+    public string ApiUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Maximum number of try-on attempts per guest session per day

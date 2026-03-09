@@ -14,7 +14,7 @@ public class TryOnSettings
 {
     public const string SectionName = "TryOnSettings";
     public string ApiKey { get; set; } = string.Empty;
-    public string ApiUrl { get; set; } = "https://api.302.ai/302/submit/virtual-tryon-v2";
+    public string ApiUrl { get; set; } = string.Empty;
     public int MaxGuestTriesPerSession { get; set; } = 5;
 }
 

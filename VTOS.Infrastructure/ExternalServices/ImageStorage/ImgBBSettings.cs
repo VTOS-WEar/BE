@@ -15,7 +15,7 @@ public class ImgBBSettings
     /// <summary>
     /// API endpoint URL
     /// </summary>
-    public string ApiUrl { get; set; } = "https://api.imgbb.com/1/upload";
+    public string ApiUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Image expiration in seconds (0 = never expire)
