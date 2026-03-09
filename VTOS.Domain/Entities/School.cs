@@ -7,6 +7,7 @@ public class School : AuditableEntity
     public string SchoolName { get; set; } = string.Empty;
     public string? LogoURL { get; set; }
     public string? ContactInfo { get; set; }
+    public string? Level { get; set; }
     public Guid? CatalogID { get; set; }
 
     // Navigation properties

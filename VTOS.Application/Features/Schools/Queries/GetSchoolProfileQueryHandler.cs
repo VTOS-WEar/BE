@@ -40,6 +40,7 @@ public class GetSchoolProfileQueryHandler : IGetSchoolProfileQueryHandler
             SchoolName = school.SchoolName,
             LogoURL = school.LogoURL,
             ContactInfo = school.ContactInfo,
+            Level = school.Level,
             CatalogID = school.CatalogID,
             CreatedAt = school.CreatedAt,
             UpdatedAt = school.UpdatedAt

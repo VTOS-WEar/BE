@@ -21,7 +21,10 @@ public class SchoolConfiguration : IEntityTypeConfiguration<School>
             .HasMaxLength(500);
 
         builder.Property(s => s.ContactInfo)
-            .HasMaxLength(500);
+            .HasMaxLength(2000);
+
+        builder.Property(s => s.Level)
+            .HasMaxLength(50);
 
         builder.Property(s => s.CatalogID);
 

@@ -9,6 +9,7 @@ public class SchoolProfileDto
     public string SchoolName { get; set; } = string.Empty;
     public string? LogoURL { get; set; }
     public string? ContactInfo { get; set; }
+    public string? Level { get; set; }
     public Guid? CatalogID { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -20,5 +21,6 @@ public class SchoolProfileDto
 public record UpdateSchoolProfileRequest(
     string? SchoolName,
     string? LogoURL,
-    string? ContactInfo
+    string? ContactInfo,
+    string? Level
 );
