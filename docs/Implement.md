@@ -265,3 +265,60 @@ All table names changed from plural to singular to match DB.txt:
 **Build Status**: ✅ Passed (0 errors, 0 warnings)
 **Next Steps**: Create initial EF migration to verify schema matches DB.txt
 
+---
+
+### ✅ Task 6: UC 3.9 Pre-Order & Production Management (3.9.2–3.9.18)
+**Date**: 2026-03-09
+**Description**: Implemented 17 remaining UCs in the 3.9 feature group — Pre-Order & Production Management for the School actor. Follows Clean Architecture + CQRS pattern.
+
+**Phase 1 — Domain Layer:**
+- Added `VTOS.Domain/Enums/ProductionBatchStatus.cs` — Pending, Approved, InProduction, Completed, Rejected, Delivered
+- Added `VTOS.Domain/Enums/ComplaintStatus.cs` — Open, InProgress, Resolved, Closed
+- Updated `VTOS.Domain/Enums/CampaignStatus.cs` — Added `Locked = 6` (UC 3.9.5b)
+- Updated `VTOS.Domain/Entities/ProductionBatch.cs` — Status `string → ProductionBatchStatus` enum; added `DeliveryDeadline`, `RejectionReason`, `ProcessedAt`; added nav to `Items` and `Complaints`
+- Created `VTOS.Domain/Entities/ProductionBatchItem.cs` — BatchID, OutfitID, Size, Quantity, UnitPrice
+- Created `VTOS.Domain/Entities/Complaint.cs` — CampaignID, BatchID, SchoolID, ProviderID, Title, Description, Status
+
+**Phase 2 — Infrastructure:**
+- Updated `VTOS.Application/Abstractions/IApplicationDbContext.cs` — Added `DbSet<ProductionBatchItem>`, `DbSet<Complaint>`
+- Updated `VTOS.Infrastructure/Persistence/VTOSDbContext.cs` — Added `ProductionBatchItems`, `Complaints`
+
+**Phase 3 — Application Features (17 CQRS handlers):**
+- Queries: `GetCampaignListQuery` (3.9.2), `GetCampaignDetailQuery` (3.9.3), `GetCampaignOrderedItemsQuery` (3.9.4), `GetCampaignSelectedSizesQuery` (3.9.5a), `GetCampaignSummaryQuery` (3.9.6), `GetCampaignTotalQuantityQuery` (3.9.7), `GetProductionComplaintsQuery` (3.9.11), `GetProductionOrderListQuery` (3.9.12), `GetProductionOrderDetailQuery` (3.9.13), `GetProductionOrderItemsQuery` (3.9.14), `GetProductionOrderQuantityQuery` (3.9.15), `GetDeliveryDeadlineQuery` (3.9.16)
+- Commands: `LockCampaignCommand` (3.9.5b), `GenerateProductionOrderCommand` (3.9.8), `SendProductionRequestCommand` (3.9.9), `ConfirmProductionOrderCommand` (3.9.10), `ProcessProductionOrderCommand` (3.9.17), `RejectProductionOrderCommand` (3.9.18)
+
+**Phase 4 — API Layer (17 new endpoints in `SchoolsController`):**
+- GET `me/campaigns` — Campaign list (paged, filterable)
+- GET `me/campaigns/{id}` — Campaign detail
+- GET `me/campaigns/{id}/items` — Ordered items
+- GET `me/campaigns/{id}/sizes` — Size distribution
+- POST `me/campaigns/{id}/lock` — Lock campaign
+- GET `me/campaigns/{id}/summary` — Summary
+- GET `me/campaigns/{id}/quantity` — Total quantity
+- POST `me/campaigns/{id}/production-order` — Generate production order
+- POST `me/batches/{id}/send` — Send to provider
+- POST `me/campaigns/{id}/confirm` — Confirm production order
+- GET `me/complaints` — Production complaints
+- GET `me/production-orders` — Production order list
+- GET `me/production-orders/{id}` — Production order detail
+- GET `me/production-orders/{id}/items` — Production order items
+- GET `me/production-orders/{id}/quantity` — Production order quantity
+- GET `me/production-orders/{id}/deadline` — Delivery deadline
+- POST `me/production-orders/{id}/process` — Mark InProduction
+- POST `me/production-orders/{id}/reject` — Reject with reason
+
+**Phase 5 — DI Registration:**
+- Added 17 new service registrations to `VTOS.Infrastructure/DependencyInjection.cs`
+
+**Build Status**: ✅ Passed (0 errors, 8 pre-existing warnings)
+
+**Design Decisions:**
+- `ProductionBatch` used as "Production Order" (no separate table in DB.txt)
+- `CampaignStatus.Locked = 6` added to prevent new parent orders
+- `ProductionBatch.Status` converted from `string` → `ProductionBatchStatus` enum
+- `Complaint` entity prepared for both UC 3.9.11 and future UC 3.12.x
+
+**Pending (EF Migration):**
+- Need `dotnet ef migrations add Add_UC39_Entities` for new `ProductionBatchItem` and `Complaint` tables + `ProductionBatch` column changes
+
+---
