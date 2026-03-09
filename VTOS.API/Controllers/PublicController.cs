@@ -5,9 +5,10 @@ namespace VTOS.API.Controllers;
 
 /// <summary>
 /// Public APIs for guest users (no authentication required).
-/// UC-57: View School List
-/// UC-58: View Uniform Categories
-/// UC-59: View Uniform Details
+/// UC 3.3.2: View School List
+/// UC 3.3.3: View School Information
+/// UC 3.3.4: View Uniform List
+/// UC 3.3.5: View Uniform Detail
 /// </summary>
 [ApiController]
 [Route("api/public")]
@@ -16,19 +17,25 @@ public class PublicController : ControllerBase
     private readonly GetSchoolsQueryHandler _getSchoolsHandler;
     private readonly GetCategoriesQueryHandler _getCategoriesHandler;
     private readonly GetOutfitDetailQueryHandler _getOutfitDetailHandler;
+    private readonly GetSchoolDetailQueryHandler _getSchoolDetailHandler;
+    private readonly GetUniformListQueryHandler _getUniformListHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
         GetCategoriesQueryHandler getCategoriesHandler,
-        GetOutfitDetailQueryHandler getOutfitDetailHandler)
+        GetOutfitDetailQueryHandler getOutfitDetailHandler,
+        GetSchoolDetailQueryHandler getSchoolDetailHandler,
+        GetUniformListQueryHandler getUniformListHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
         _getOutfitDetailHandler = getOutfitDetailHandler;
+        _getSchoolDetailHandler = getSchoolDetailHandler;
+        _getUniformListHandler = getUniformListHandler;
     }
 
     /// <summary>
-    /// UC-57: Get list of schools with search and pagination.
+    /// UC 3.3.2: Get list of schools with search and pagination.
     /// </summary>
     /// <param name="search">Optional search keyword for school name</param>
     /// <param name="page">Page number (default: 1)</param>
@@ -47,7 +54,53 @@ public class PublicController : ControllerBase
     }
 
     /// <summary>
-    /// UC-58: Get all uniform categories with outfit counts.
+    /// UC 3.3.3: Get detailed information about a specific school.
+    /// Includes active campaigns, outfit count, and contact info.
+    /// Response is cached for 5 minutes to reduce DB load.
+    /// </summary>
+    /// <param name="id">School ID</param>
+    [HttpGet("schools/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSchoolDetail(Guid id, CancellationToken ct = default)
+    {
+        var query = new GetSchoolDetailQuery(id);
+        var result = await _getSchoolDetailHandler.HandleAsync(query, ct);
+
+        if (result == null)
+            return NotFound(new { message = "School not found" });
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// UC 3.3.4: Get paginated list of uniforms for a specific school.
+    /// Only returns available, non-deleted outfits. Includes categories and ratings.
+    /// Response is cached for 5 minutes to reduce DB load.
+    /// </summary>
+    /// <param name="schoolId">School ID</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per page (default: 10)</param>
+    [HttpGet("schools/{schoolId:guid}/uniforms")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUniformList(
+        Guid schoolId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var query = new GetUniformListQuery(schoolId, page, pageSize);
+        var result = await _getUniformListHandler.HandleAsync(query, ct);
+
+        if (result == null)
+            return NotFound(new { message = "School not found" });
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get all uniform categories with outfit counts.
     /// </summary>
     [HttpGet("categories")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -59,7 +112,7 @@ public class PublicController : ControllerBase
     }
 
     /// <summary>
-    /// UC-59: Get detailed information about a specific outfit.
+    /// UC 3.3.5: Get detailed information about a specific outfit.
     /// </summary>
     /// <param name="id">Outfit ID</param>
     [HttpGet("outfits/{id:guid}")]

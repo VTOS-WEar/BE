@@ -30,6 +30,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Add In-Memory Cache (reduces DB load for public endpoints)
+        services.AddMemoryCache();
+
         // Add DbContext
         services.AddDbContext<VTOSDbContext>(options =>
             options.UseSqlServer(
@@ -108,10 +111,12 @@ public static class DependencyInjection
         services.AddScoped<IGetChildProfileQueryHandler, GetChildProfileQueryHandler>();
         services.AddScoped<IUpdateChildProfileCommandHandler, UpdateChildProfileCommandHandler>();
 
-        // Public Module Handlers (UC-57, UC-58, UC-59)
+        // Public Module Handlers (UC 3.3.2, 3.3.3, 3.3.4, 3.3.5)
         services.AddScoped<GetSchoolsQueryHandler>();
         services.AddScoped<GetCategoriesQueryHandler>();
         services.AddScoped<GetOutfitDetailQueryHandler>();
+        services.AddScoped<GetSchoolDetailQueryHandler>();
+        services.AddScoped<GetUniformListQueryHandler>();
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
@@ -145,7 +150,46 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
             VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();
 
+        // School Module - UC 3.9.x: Pre-Order & Production Management
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignListQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignListQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignDetailQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignOrderedItemsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignOrderedItemsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignSelectedSizesQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignSelectedSizesQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ILockCampaignCommandHandler,
+            VTOS.Application.Features.Schools.Commands.LockCampaignCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignSummaryQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignSummaryQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignTotalQuantityQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetCampaignTotalQuantityQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IGenerateProductionOrderCommandHandler,
+            VTOS.Application.Features.Schools.Commands.GenerateProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ISendProductionRequestCommandHandler,
+            VTOS.Application.Features.Schools.Commands.SendProductionRequestCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IConfirmProductionOrderCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ConfirmProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionComplaintsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetProductionComplaintsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderListQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetProductionOrderListQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderDetailQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetProductionOrderDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderItemsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetProductionOrderItemsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderQuantityQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetProductionOrderQuantityQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetDeliveryDeadlineQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetDeliveryDeadlineQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IProcessProductionOrderCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ProcessProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IRejectProductionOrderCommandHandler,
+            VTOS.Application.Features.Schools.Commands.RejectProductionOrderCommandHandler>();
+
         return services;
     }
 }
+
 

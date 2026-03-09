@@ -3,8 +3,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using VTOS.Infrastructure;
+using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
 //For using Data Seeders for testing - Delete if neccessary
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,14 +92,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-//Use SeedData for testing - Delete when have actual Data in Database
-//using (var scope = app.Services.CreateScope())
-//{
-//    var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
-//    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+// Seed test data on startup (only runs when DB is empty)
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
+    await DbInitializer.SeedAsync(context);
+}
 
-//    await DataSeeder.SeedAsync(context, hasher);
-//}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

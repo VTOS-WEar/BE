@@ -55,8 +55,8 @@
 |-------|----------|--------------|--------|
 | 3.3.1 | View Homepage | Frontend composes from public endpoints | ✅ Done (FE) |
 | 3.3.2 | View School List | `GET /api/public/schools` | ✅ Done |
-| 3.3.3 | View School Information | `GET /api/public/schools/{id}` | 🔲 TODO |
-| 3.3.4 | View Uniform List | `GET /api/public/outfits` | 🔲 TODO |
+| 3.3.3 | View School Information | `GET /api/public/schools/{id}` | ✅ Done |
+| 3.3.4 | View Uniform List | `GET /api/public/schools/{schoolId}/uniforms` | ✅ Done |
 | 3.3.5 | View Uniform Detail | `GET /api/public/outfits/{id}` | ✅ Done |
 
 ---
@@ -87,8 +87,8 @@
 
 | UC ID | Use Case | API Endpoint | Status |
 |-------|----------|--------------|--------|
-| 3.5.1 | View Parent List | `GET /api/admin/parents` or `GET /api/schools/me/parents` | 🔲 TODO |
-| 3.5.2 | View Parent Detail | `GET /api/admin/parents/{id}` or `GET /api/schools/me/parents/{id}` | 🔲 TODO |
+| 3.5.1 | View Parent List | `GET /api/admin/parents` | 🔲 TODO |
+| 3.5.2 | View Parent Detail | `GET /api/admin/parents/{id}` | 🔲 TODO |
 
 ---
 
@@ -271,7 +271,7 @@
 | Section | Total UCs | Done | TODO | % Complete |
 |---------|-----------|------|------|------------|
 | 3.2 Auth & Account Mgmt | 13 | 6 | 7 | 46% |
-| 3.3 School Browsing | 5 | 3 | 2 | 60% |
+| 3.3 School Browsing | 5 | 5 | 0 | 100% |
 | 3.4 Student & Children | 8 | 8 | 0 | 100% |
 | 3.5 Parent Management | 2 | 0 | 2 | 0% |
 | 3.6 Virtual Try-On | 11 | 1 | 10 | 9% |
@@ -284,7 +284,7 @@
 | 3.13 Reporting & Analytics | 11 | 0 | 11 | 0% |
 | 3.14 Category & Config | 8 | 1 | 7 | 13% |
 | 3.15 Refund & Payment | 2 | 0 | 2 | 0% |
-| **TOTAL** | **105** | **20** | **85** | **19%** |
+| **TOTAL** | **105** | **22** | **83** | **21%** |
 
 ---
 

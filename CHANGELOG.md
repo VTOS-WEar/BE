@@ -2,6 +2,26 @@
 
 All notable changes to the VTOS Backend project.
 
+## [2026-03-08] - Public Endpoints & Caching (UC 3.3.3, 3.3.4)
+
+### Added
+- **Public Module (PublicController)**
+  - `GET /api/public/schools/{id}` — Get school detail including active campaigns and outfit count
+  - `GET /api/public/schools/{schoolId}/uniforms` — Get paginated uniform list for a school with categories and ratings
+- **Caching Mechanism**
+  - Added `IMemoryCache` to reduce database load for read-heavy public endpoints
+  - Cache policy: 5-minute sliding expiration, 30-minute absolute expiration
+  - Applied to both new endpoints
+- **Application Layer**
+  - DTOs: `SchoolDetailResponse`, `SchoolCampaignDto`, `UniformListResponse`, `UniformDto`
+  - Queries: `GetSchoolDetailQuery`, `GetUniformListQuery`
+  - Handlers: `GetSchoolDetailQueryHandler`, `GetUniformListQueryHandler`
+
+### Changed
+- **DependencyInjection.cs** — Registered `AddMemoryCache()` and new query handlers.
+
+---
+
 ## [2026-03-08] - Payment Integration, Checkout, Cancel Order, Track Order & Order History
 
 ### Added

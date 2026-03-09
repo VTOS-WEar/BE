@@ -46,6 +46,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<CampaignOutfit> CampaignOutfits { get; set; }
     public DbSet<StudentDataImport> StudentDataImports { get; set; }
     public DbSet<ProductionBatch> ProductionBatches { get; set; }
+    public DbSet<ProductionBatchItem> ProductionBatchItems { get; set; }
+    public DbSet<Complaint> Complaints { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

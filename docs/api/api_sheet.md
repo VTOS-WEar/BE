@@ -1,8 +1,8 @@
 # VTOS Backend - API Documentation Sheet
 
-> **Version**: 1.1  
-> **Last Updated**: 2026-01-21  
-> **Status**: Draft - Awaiting Implementation
+> **Version**: 1.2  
+> **Last Updated**: 2026-03-08  
+> **Status**: Partially Implemented
 
 ---
 
@@ -71,8 +71,8 @@
 | Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Packages |
 |----------|-------------|--------|-------|------------------------|--------|-------|----------|
 | `/api/schools` | Lấy danh sách trường | `GET` | Query: `?search=keyword&page=1&pageSize=10` | `{ "items": [{ "schoolId": "guid", "schoolName": "string", "logoURL": "string", "contactInfo": "string", "outfitCount": 15 }], "totalCount": 50, "page": 1, "pageSize": 10 }` | - | Public API | - |
-| `/api/schools/{id}` | Lấy chi tiết trường | `GET` | Path: `id` (GUID) | `{ "schoolId": "guid", "schoolName": "string", "logoURL": "string", "contactInfo": "string", "catalogId": "guid", "activeCampaigns": [{ "campaignId": "guid", "campaignName": "string" }] }` | `404` Not found | Bao gồm campaigns | - |
-| `/api/schools/{id}/outfits` | Lấy đồng phục của trường | `GET` | Query: `?type=Uniform&available=true` | `{ "items": [{ "outfitId": "guid", "outfitName": "string", "price": 250000, "outfitType": "Uniform", "mainImageURL": "string", "isAvailable": true }], "totalCount": 15 }` | `404` School không tồn tại | Filter by type | - |
+| `/api/schools/{id}` | Lấy chi tiết trường (Public) | `GET` | Path: `id` (GUID) | `{ "schoolId": "guid", "schoolName": "string", "logoURL": "string", "contactInfo": "string", "activeCampaigns": [{ "campaignId": "guid", "campaignName": "string" }] }` | `404` Not found | IMemoryCache cached | - |
+| `/api/public/schools/{schoolId}/uniforms` | Lấy đồng phục của trường (Public) | `GET` | Query: `?page=1&pageSize=10` | `{ "items": [{ "outfitId": "guid", "outfitName": "string", "price": 250000, "outfitType": "Uniform", "mainImageURL": "string", "isAvailable": true, "categories": ["..."] }], "totalCount": 15 }` | `404` School không tồn tại | IMemoryCache cached | - |
 | `/api/schools/{id}/campaigns` | Lấy campaigns của trường | `GET` | Query: `?status=Active` | `{ "items": [{ "campaignId": "guid", "campaignName": "string", "startDate": "datetime", "endDate": "datetime", "status": "Active" }], "totalCount": 3 }` | `404` Not found | Filter by status | - |
 
 ---
@@ -105,28 +105,28 @@
 
 ---
 
-## 🛒 7. Orders Module
+## 🛒 7. Orders Module ✅ Partially Implemented
 
-| Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Packages |
-|----------|-------------|--------|-------|------------------------|--------|-------|----------|
-| `/api/orders` | Lấy danh sách đơn hàng | `GET` | Query: `?status=Pending&page=1&pageSize=10` | `{ "items": [{ "orderId": "guid", "orderDate": "datetime", "orderStatus": "Pending", "totalAmount": 750000, "itemCount": 3, "child": { "childId": "guid", "fullName": "string" } }], "totalCount": 15, "page": 1 }` | `401` Unauthorized | Filter by status | - |
-| `/api/orders/{id}` | Lấy chi tiết đơn hàng | `GET` | Path: `id` | `{ "orderId": "guid", "orderDate": "datetime", "orderStatus": "Pending", "totalAmount": 750000, "shippingAddress": "string", "deliveryMethod": "Delivery", "child": {...}, "campaign": {...}, "items": [{ "orderItemId": "guid", "productVariant": {...}, "quantity": 2, "unitPrice": 250000, "sizeOrdered": "M" }], "payment": { "paymentId": "guid", "status": "Pending" } }` | `401`, `404` | Full details | - |
-| `/api/orders` | Tạo đơn hàng mới | `POST` | `{ "childId": "guid", "campaignId": "guid?", "shippingAddress": "string", "deliveryMethod": "Pickup/Delivery", "items": [{ "productVariantId": "guid", "quantity": int, "sizeOrdered": "M" }] }` | `{ "orderId": "guid", "orderDate": "datetime", "orderStatus": "Pending", "totalAmount": 750000, "items": [...], "message": "Order created successfully" }` | `401`, `400` Validation/Stock, `404` | Auto-calc total | `FluentValidation` |
-| `/api/orders/{id}/cancel` | Hủy đơn hàng | `POST` | `{ "reason": "string" }` | `{ "orderId": "guid", "orderStatus": "Cancelled", "message": "Order cancelled" }` | `401`, `400` Đơn đã ship, `404` | Pending/Confirmed only | - |
-| `/api/orders/{id}/status` | Cập nhật status | `PATCH` | `{ "status": "Confirmed/Processing/Shipped/Delivered" }` | `{ "orderId": "guid", "orderStatus": "Confirmed", "message": "Status updated" }` | `401`, `403`, `404`, `400` Invalid transition | Admin/School | - |
+| Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Status |
+|----------|-------------|--------|-------|------------------------|--------|-------|--------|
+| `/api/orders/checkout` | Checkout: tạo Order + Payment + PayOS link | `POST` | `{ "campaignId": "guid?", "shippingAddress": "string", "deliveryMethod": "string", "items": [{ "productVariantId": "guid", "quantity": int, "sizeOrdered": "M" }] }` | `{ "orderId": "guid", "totalAmount": decimal, "paymentLinkId": "string", "checkoutUrl": "string" }` | `400` Validation/Stock, `401`, `404` | Creates Order(Pending) + PaymentTransaction(Pending) + PayOS link | ✅ Done |
+| `/api/orders/{orderId}/cancel` | Hủy đơn hàng (2 flows) | `PUT` | Path: `orderId` | `{ "message": "Order cancelled" }` | `400` Invalid status, `401`, `403` Not owner, `404` | Pending→cancel PayOS link; Paid→create Refund | ✅ Done |
+| `/api/orders/{orderId}/status` | Track order status | `GET` | Path: `orderId` | `{ "orderId": "guid", "status": "string", "items": [...], "paymentStatus": "string", "imageUrl": "string", "schoolName": "string" }` | `401`, `403` Not owner, `404` | Validates ownership | ✅ Done |
+| `/api/orders/history` | Lịch sử đơn hàng (phân trang) | `GET` | Query: `?page=1&pageSize=10&status=&fromDate=&toDate=&sortBy=orderDate&sortOrder=desc&search=` | `{ "items": [...], "totalCount": int, "page": int, "pageSize": int, "totalPages": int }` | `401` Unauthorized | sortBy: orderDate/totalAmount/status; max pageSize=50 | ✅ Done |
+| `/api/orders/{id}/shipping` | Nhập thông tin giao hàng | `PUT` | `{ "shippingAddress": "string", "receiverName": "string", "receiverPhone": "string" }` | `{ "message": "Shipping info updated" }` | `401`, `404` | - | 🔲 TODO |
+| `/api/orders/{id}/refund` | Yêu cầu hoàn tiền | `POST` | `{ "reason": "string" }` | `{ "refundId": "guid", "status": "Pending" }` | `401`, `400`, `404` | Standalone refund request | 🔲 TODO |
 
 ---
 
-## 💳 8. Payments Module
+## 💳 8. Payments Module (PayOS) ✅ Implemented
 
-| Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Packages |
-|----------|-------------|--------|-------|------------------------|--------|-------|----------|
-| `/api/payments` | Tạo payment | `POST` | `{ "orderId": "guid", "gatewayType": "VNPay/MoMo", "returnUrl": "string" }` | `{ "paymentId": "guid", "orderId": "guid", "amount": 750000, "paymentUrl": "https://vnpay.vn/...", "expireAt": "datetime" }` | `401`, `400` Đã thanh toán, `404` | Redirect to gateway | - |
-| `/api/payments/vnpay/callback` | VNPay IPN | `GET` | Query params từ VNPay | `{ "paymentId": "guid", "transactionStatus": "Success", "amount": 750000, "message": "Payment confirmed" }` | `400` Invalid signature | Webhook | - |
-| `/api/payments/momo/callback` | MoMo IPN | `POST` | Body từ MoMo | `{ "paymentId": "guid", "transactionStatus": "Success", "amount": 750000, "message": "Payment confirmed" }` | `400` Invalid signature | Webhook | - |
-| `/api/payments/{id}` | Lấy chi tiết payment | `GET` | Path: `id` | `{ "paymentId": "guid", "orderId": "guid", "gatewayType": "VNPay", "transactionStatus": "Success", "amount": 750000, "transactionTimestamp": "datetime", "transactionLog": "string" }` | `401`, `404` | - | - |
-| `/api/payments/{id}/refund` | Yêu cầu hoàn tiền | `POST` | `{ "reason": "string", "amount": decimal? }` | `{ "refundId": "guid", "paymentId": "guid", "refundAmount": 750000, "refundStatus": "Pending", "message": "Refund requested" }` | `401`, `400` Cannot refund, `404` | null = full refund | - |
-| `/api/payments/orders/{orderId}` | Lấy payments của order | `GET` | Path: `orderId` | `{ "items": [{ "paymentId": "guid", "gatewayType": "VNPay", "transactionStatus": "Success", "amount": 750000, "transactionTimestamp": "datetime" }] }` | `401`, `404` | - | - |
+| Endpoint | Description | Method | Input | Output (Response Body) | Errors | Notes | Status |
+|----------|-------------|--------|-------|------------------------|--------|-------|--------|
+| `/api/payos/create-payment-link` | Tạo PayOS payment link | `POST` | `{ "amount": int, "description": "string", "returnUrl": "string", "cancelUrl": "string", "orderCode": long? }` | `{ "orderCode": long, "checkoutUrl": "string", "paymentLinkId": "string", "status": "string" }` | `400` Invalid amount/missing fields, `401`, `500` | Auth: Parent/Admin | ✅ Done |
+| `/api/payos/payment-link/{paymentLinkId}` | Lấy thông tin payment link | `GET` | Path: `paymentLinkId` (string) | `{ "id": "string", "orderCode": long, "amount": int, "amountPaid": int, "amountRemaining": int, "status": "string", "transactions": [...] }` | `400`, `401`, `404` Not found, `500` | Returns status + transactions | ✅ Done |
+| `/api/payos/payment-link/{paymentLinkId}/cancel` | Hủy payment link | `POST` | Path: `paymentLinkId` (string) | `{ "id": "string", "orderCode": long, "status": "CANCELLED", "cancelledAt": "datetime" }` | `400`, `401`, `404`, `500` | - | ✅ Done |
+| `/api/payos/payment-link/{paymentLinkId}/invoices` | Lấy invoices | `GET` | Path: `paymentLinkId` (string) | `{ "invoices": [{ "invoiceId": "string", "amount": int, ... }] }` | `400`, `401`, `404`, `500` | - | ✅ Done |
+| `/api/payos/webhook` | PayOS webhook (payment notification) | `POST` | PayOS webhook body: `{ "success": bool, "data": { "paymentLinkId": "string", "amount": int, ... } }` | `{ "message": "Webhook processed" }` | `400` Invalid data, `500` | AllowAnonymous; updates PaymentTransaction, Order, SchoolWallet, inventory | ✅ Done |
 
 ---
 
@@ -187,29 +187,29 @@
 | `Microsoft.AspNetCore.Authentication.JwtBearer` | 8.0.0 | JWT authentication middleware |
 | `MailKit` | 4.3.0 | Email sending |
 | `SixLabors.ImageSharp` | 3.1.0 | Image processing |
-| `AutoMapper.Extensions.Microsoft.DependencyInjection` | 12.0.1 | Object mapping |
-| `Serilog.AspNetCore` | 8.0.0 | Structured logging |
 | `Swashbuckle.AspNetCore` | 6.5.0 | Swagger/OpenAPI documentation |
+| `ClosedXML` | - | Excel file (.xlsx) parsing for student import |
+| `Net.payOS` | - | PayOS payment gateway integration |
 
 ---
 
 ## 📊 Summary
 
-| Module | Endpoints | Auth Required |
-|--------|-----------|---------------|
-| Authentication | 6 | Mixed |
-| User Management | 6 | Yes |
-| Children | 6 | Yes |
-| Schools | 4 | No |
-| Outfits | 8 | Mixed |
-| Try-On | 6 | Mixed |
-| Orders | 5 | Yes |
-| Payments | 6 | Mixed |
-| Feedback | 4 | Mixed |
-| Categories | 5 | Mixed |
-| Providers | 5 | Admin Only |
-| Campaigns | 5 | Mixed |
-| **TOTAL** | **66** | - |
+| Module | Endpoints | Auth Required | Implementation |
+|--------|-----------|---------------|----------------|
+| Authentication | 11 | Mixed | ✅ Done |
+| User Management | 6 | Yes | ✅ Partial |
+| Children | 6 | Yes | ✅ Partial |
+| Schools | 5 | No | ✅ Done |
+| Outfits | 8 | Mixed | ✅ Partial |
+| Try-On | 6 | Mixed | ✅ Guest only |
+| Orders | 6 | Yes | ✅ 4/6 Done |
+| Payments (PayOS) | 5 | Mixed | ✅ Done |
+| Feedback | 4 | Mixed | ✅ Partial |
+| Categories | 5 | Mixed | ✅ Read only |
+| Providers | 5 | Admin Only | 🔲 TODO |
+| Campaigns | 5 | Mixed | ✅ Partial |
+| **TOTAL** | **72** | - | - |
 
 ---
 
