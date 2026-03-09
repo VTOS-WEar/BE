@@ -60,6 +60,9 @@ public static class DependencyInjection
         // Register Payment Settings
         services.Configure<PaymentSettings>(configuration.GetSection(PaymentSettings.SectionName));
 
+        // Register Frontend Settings
+        services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
+
         // Register Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

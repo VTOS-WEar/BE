@@ -40,5 +40,5 @@ public class PayOSSettings
     /// <summary>
     /// API endpoint URL
     /// </summary>
-    public string ApiUrl { get; set; } = "https://api-merchant.payos.vn";
+    public string ApiUrl { get; set; } = string.Empty;
 }
