@@ -30,7 +30,9 @@ public interface IApplicationDbContext
     DbSet<CampaignOutfit> CampaignOutfits { get; }
     DbSet<Provider> Providers { get; }
     DbSet<ProductionBatch> ProductionBatches { get; }
+    DbSet<ProductionBatchItem> ProductionBatchItems { get; }
     DbSet<StudentDataImport> StudentDataImports { get; }
+    DbSet<Complaint> Complaints { get; }
 
     DbSet<T> Set<T>() where T : class;
     
