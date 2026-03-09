@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Common.Settings;
 using VTOS.Application.Features.Auth.DTOs;
 
 namespace VTOS.Application.Features.Auth.Commands;
@@ -19,11 +21,11 @@ public class ForgotPasswordCommandHandler
     public ForgotPasswordCommandHandler(
         IApplicationDbContext context,
         IEmailService emailService,
-        string frontendBaseUrl = "https://vtos.com")
+        IOptions<FrontendSettings> frontendSettings)
     {
         _context = context;
         _emailService = emailService;
-        _frontendBaseUrl = frontendBaseUrl;
+        _frontendBaseUrl = frontendSettings.Value.BaseUrl;
     }
 
     public async Task<Result<ForgotPasswordResponse>> HandleAsync(
