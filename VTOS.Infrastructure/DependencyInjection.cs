@@ -94,14 +94,19 @@ public static class DependencyInjection
         // Register Mappers
         services.AddAutoMapper(typeof(ChildProfileMappingProfile).Assembly);
 
-        //View User List & Feedbacks
+        //View User List, User Detail & Feedbacks
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
         services.AddScoped<IGetAllFeedbacksQueryHandler, GetAllFeedbacksQueryHandler>();
+        services.AddScoped<IGetUserDetailQueryHandler, GetUserDetailQueryHandler>();
 
         //Approve-Suspend User & Remove Feedback
         services.AddScoped<IApproveUserCommandHandler, ApproveUserCommandHandler>();
         services.AddScoped<ISuspendUserCommandHandler, SuspendUserCommandHandler>();
         services.AddScoped<IRemoveFeedbackCommandHandler, RemoveFeedbackCommandHandler>();
+
+        //Ban-Unban User
+        services.AddScoped<IBanUserCommandHandler, BanUserCommandHandler>();
+        services.AddScoped<IUnbanUserCommandHandler, UnbanUserCommandHandler>();
 
         //Parent Personal Infor
         services.AddScoped<IGetProfileQueryHandler, GetProfileQueryHandler>();

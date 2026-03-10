@@ -15,19 +15,28 @@ public class AdminController : ControllerBase
     private readonly IApproveUserCommandHandler _approveHandler;
     private readonly ISuspendUserCommandHandler _suspendHandler;
     private readonly IRemoveFeedbackCommandHandler _removeFeedbackHandler;
+    private readonly IGetUserDetailQueryHandler _getUserDetailHandler;
+    private readonly IBanUserCommandHandler _banHandler;
+    private readonly IUnbanUserCommandHandler _unbanHandler;
 
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
         IGetAllFeedbacksQueryHandler feedbacksHandler,
         IApproveUserCommandHandler approveHandler,
         ISuspendUserCommandHandler suspendHandler,
-        IRemoveFeedbackCommandHandler removeFeedbackHandler)
+        IRemoveFeedbackCommandHandler removeFeedbackHandler,
+        IGetUserDetailQueryHandler getUserDetailHandler,
+        IBanUserCommandHandler banHandler,
+        IUnbanUserCommandHandler unbanHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
         _approveHandler = approveHandler;
         _suspendHandler = suspendHandler;
         _removeFeedbackHandler = removeFeedbackHandler;
+        _getUserDetailHandler = getUserDetailHandler;
+        _banHandler = banHandler;
+        _unbanHandler = unbanHandler;
     }
 
     [HttpGet("users")]
@@ -37,6 +46,42 @@ public class AdminController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("users/{id}")]
+    public async Task<IActionResult> GetUserDetail(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _getUserDetailHandler.HandleAsync(
+            new GetUserDetailQuery(id), cancellationToken);
+
+        if (result == null)
+            return NotFound();
+
+        return Ok(result);
+    }
+
+    [HttpPost("users/{id}/ban")]
+    public async Task<IActionResult> BanUser(Guid id, CancellationToken ct)
+    {
+        var success = await _banHandler.HandleAsync(
+            new BanUserCommand(id), ct);
+
+        if (!success) return NotFound();
+
+        return Ok();
+    }
+
+    [HttpPost("users/{id}/unban")]
+    public async Task<IActionResult> UnbanUser(Guid id, CancellationToken ct)
+    {
+        var success = await _unbanHandler.HandleAsync(
+            new UnbanUserCommand(id), ct);
+
+        if (!success) return NotFound();
+
+        return Ok();
+    }
+
     [HttpGet("feedbacks")]
     public async Task<IActionResult> GetFeedbacks(CancellationToken ct)
     {
@@ -44,7 +89,6 @@ public class AdminController : ControllerBase
         return Ok(result);
     }
 
-    // ✅ Approve User
     [HttpPost("users/{id}/approve")]
     public async Task<IActionResult> ApproveUser(Guid id, CancellationToken ct)
     {
@@ -56,7 +100,6 @@ public class AdminController : ControllerBase
         return Ok();
     }
 
-    // ✅ Suspend User
     [HttpPost("users/{id}/suspend")]
     public async Task<IActionResult> SuspendUser(Guid id, CancellationToken ct)
     {
@@ -68,7 +111,6 @@ public class AdminController : ControllerBase
         return Ok();
     }
 
-    // ✅ Remove Feedback
     [HttpDelete("feedback/{id}")]
     public async Task<IActionResult> RemoveFeedback(Guid id, CancellationToken ct)
     {
