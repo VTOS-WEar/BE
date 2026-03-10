@@ -73,7 +73,9 @@ public class UserController : ControllerBase
            _currentUser.UserId,
            request.FullName,
            request.DOB,
-           request.Gender
+           request.Gender,
+           request.Phone,
+           request.Email
        );
         var validationResult = await _updateProfileValidator.ValidateAsync(command, cancellationToken);
         if (!validationResult.IsValid)

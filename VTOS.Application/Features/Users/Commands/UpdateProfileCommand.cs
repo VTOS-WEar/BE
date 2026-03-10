@@ -9,7 +9,9 @@ public record UpdateProfileCommand(
     Guid Id,
     string? FullName,
     DateTime? DOB,
-    Gender? Gender
+    Gender? Gender,
+    string? Phone,
+    string? Email
 );
 public interface IUpdateProfileCommandHandler
 {

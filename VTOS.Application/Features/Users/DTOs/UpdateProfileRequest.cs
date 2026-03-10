@@ -6,6 +6,8 @@ namespace VTOS.Application.Features.Users.DTOs
     (
         string? FullName,
         DateTime? DOB,
-        Gender? Gender
+        Gender? Gender,
+        string? Phone,
+        string? Email
     );
 }
