@@ -68,6 +68,7 @@ public class SchoolsController : ControllerBase
     private readonly ICreateOutfitCommandHandler _createOutfitHandler;
     private readonly IUpdateOutfitCommandHandler _updateOutfitHandler;
     private readonly IDeleteOutfitCommandHandler _deleteOutfitHandler;
+    private readonly IGetProvidersQueryHandler _getProvidersHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -111,7 +112,8 @@ public class SchoolsController : ControllerBase
         IGetSchoolOutfitsQueryHandler getOutfitsHandler,
         ICreateOutfitCommandHandler createOutfitHandler,
         IUpdateOutfitCommandHandler updateOutfitHandler,
-        IDeleteOutfitCommandHandler deleteOutfitHandler)
+        IDeleteOutfitCommandHandler deleteOutfitHandler,
+        IGetProvidersQueryHandler getProvidersHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -154,6 +156,7 @@ public class SchoolsController : ControllerBase
         _createOutfitHandler = createOutfitHandler;
         _updateOutfitHandler = updateOutfitHandler;
         _deleteOutfitHandler = deleteOutfitHandler;
+        _getProvidersHandler = getProvidersHandler;
     }
 
 
@@ -605,6 +608,21 @@ public class SchoolsController : ControllerBase
         }
         fields.Add(current.ToString());
         return fields.ToArray();
+    }
+    // ── Provider listing endpoint ──
+
+    /// <summary>
+    /// Get list of available providers (for campaign outfit assignment).
+    /// </summary>
+    [HttpGet("me/providers")]
+    [ProducesResponseType(typeof(IReadOnlyList<ProviderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetProviders(CancellationToken ct)
+    {
+        var result = await _getProvidersHandler.HandleAsync(new GetProvidersQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
     }
 
     /// <summary>

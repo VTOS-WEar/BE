@@ -220,6 +220,10 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IRejectProductionOrderCommandHandler,
             VTOS.Application.Features.Schools.Commands.RejectProductionOrderCommandHandler>();
 
+        // School Module - Provider Listing
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProvidersQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetProvidersQueryHandler>();
+
         return services;
     }
 }
