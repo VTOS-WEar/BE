@@ -163,7 +163,22 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteStudentCommandHandler,
             VTOS.Application.Features.Schools.Commands.DeleteStudentCommandHandler>();
 
-        // School Module - UC-44: Publish Campaign
+        // School Module - Grades + Import History
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolGradesQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolGradesQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetImportHistoryQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetImportHistoryQueryHandler>();
+
+        // School Module - Outfit CRUD
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolOutfitsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolOutfitsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateOutfitCommandHandler,
+            VTOS.Application.Features.Schools.Commands.CreateOutfitCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateOutfitCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateOutfitCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteOutfitCommandHandler,
+            VTOS.Application.Features.Schools.Commands.DeleteOutfitCommandHandler>();
+
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
             VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();
 

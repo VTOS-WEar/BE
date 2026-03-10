@@ -184,8 +184,23 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
         {
             _db.ChildProfiles.AddRange(newChildren);
             _db.StudentDataImports.AddRange(newImports);
-            await _db.SaveChangesAsync(ct);
         }
+
+        // 5. Create ImportBatch record to track this import session
+        var batch = new ImportBatch
+        {
+            Id = Guid.NewGuid(),
+            SchoolID = schoolId,
+            FileName = command.FileName,
+            TotalRows = result.TotalRows,
+            SuccessCount = result.SuccessCount,
+            SkippedCount = result.SkippedCount,
+            ErrorCount = result.ErrorCount,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _db.ImportBatches.Add(batch);
+
+        await _db.SaveChangesAsync(ct);
 
         result.Errors = errors;
         return Result<ImportStudentResultDto>.Success(result);

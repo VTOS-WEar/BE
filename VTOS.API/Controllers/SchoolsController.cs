@@ -7,6 +7,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Schools.Commands;
 using VTOS.Application.Features.Schools.DTOs;
 using VTOS.Application.Features.Schools.Queries;
+using VTOS.Domain.Enums;
 
 namespace VTOS.API.Controllers;
 
@@ -61,6 +62,12 @@ public class SchoolsController : ControllerBase
     private readonly IProcessProductionOrderCommandHandler _processProductionOrderHandler;
     private readonly IRejectProductionOrderCommandHandler _rejectProductionOrderHandler;
     private readonly IImageUploadService _imageUploadService;
+    private readonly IGetSchoolGradesQueryHandler _getGradesHandler;
+    private readonly IGetImportHistoryQueryHandler _getImportHistoryHandler;
+    private readonly IGetSchoolOutfitsQueryHandler _getOutfitsHandler;
+    private readonly ICreateOutfitCommandHandler _createOutfitHandler;
+    private readonly IUpdateOutfitCommandHandler _updateOutfitHandler;
+    private readonly IDeleteOutfitCommandHandler _deleteOutfitHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -98,7 +105,13 @@ public class SchoolsController : ControllerBase
         IGetDeliveryDeadlineQueryHandler getDeliveryDeadlineHandler,
         IProcessProductionOrderCommandHandler processProductionOrderHandler,
         IRejectProductionOrderCommandHandler rejectProductionOrderHandler,
-        IImageUploadService imageUploadService)
+        IImageUploadService imageUploadService,
+        IGetSchoolGradesQueryHandler getGradesHandler,
+        IGetImportHistoryQueryHandler getImportHistoryHandler,
+        IGetSchoolOutfitsQueryHandler getOutfitsHandler,
+        ICreateOutfitCommandHandler createOutfitHandler,
+        IUpdateOutfitCommandHandler updateOutfitHandler,
+        IDeleteOutfitCommandHandler deleteOutfitHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -135,6 +148,12 @@ public class SchoolsController : ControllerBase
         _processProductionOrderHandler = processProductionOrderHandler;
         _rejectProductionOrderHandler = rejectProductionOrderHandler;
         _imageUploadService = imageUploadService;
+        _getGradesHandler = getGradesHandler;
+        _getImportHistoryHandler = getImportHistoryHandler;
+        _getOutfitsHandler = getOutfitsHandler;
+        _createOutfitHandler = createOutfitHandler;
+        _updateOutfitHandler = updateOutfitHandler;
+        _deleteOutfitHandler = deleteOutfitHandler;
     }
 
 
@@ -387,13 +406,141 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = $"Could not read file: {ex.Message}", code = "FILE_READ_ERROR" });
         }
 
-        var command = new ImportStudentDataCommand(_currentUser.UserId, rows);
+        var command = new ImportStudentDataCommand(_currentUser.UserId, rows, file.FileName);
         var result = await _importStudentHandler.HandleAsync(command, ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
         return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get distinct grades for the current school's students.
+    /// Used to populate a grade combobox on the frontend.
+    /// </summary>
+    [HttpGet("me/students/grades")]
+    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStudentGrades(CancellationToken ct)
+    {
+        var result = await _getGradesHandler.HandleAsync(new GetSchoolGradesQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get import history (recent batches) for the current school.
+    /// </summary>
+    [HttpGet("me/students/import/history")]
+    [ProducesResponseType(typeof(IReadOnlyList<ImportBatchDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetImportHistory([FromQuery] int limit = 10, CancellationToken ct = default)
+    {
+        var result = await _getImportHistoryHandler.HandleAsync(new GetImportHistoryQuery(_currentUser.UserId, limit), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    // ── Outfit CRUD endpoints ──
+
+    /// <summary>
+    /// Get all outfits for the current school.
+    /// </summary>
+    [HttpGet("me/outfits")]
+    [ProducesResponseType(typeof(OutfitListResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOutfits([FromQuery] bool? isAvailable, CancellationToken ct)
+    {
+        var userId = _currentUser.UserId;
+        var result = await _getOutfitsHandler.HandleAsync(
+            new GetSchoolOutfitsQuery(userId, isAvailable), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Create a new outfit for the current school.
+    /// </summary>
+    [HttpPost("me/outfits")]
+    [ProducesResponseType(typeof(OutfitDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateOutfit([FromBody] CreateOutfitRequest request, CancellationToken ct)
+    {
+        var userId = _currentUser.UserId;
+        var result = await _createOutfitHandler.HandleAsync(
+            new CreateOutfitCommand(
+                userId,
+                request.OutfitName,
+                request.Description,
+                request.Price,
+                request.OutfitType,
+                request.MainImageURL,
+                request.SizeChartID,
+                request.IsCustomizable
+            ), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    /// <summary>
+    /// Delete an outfit by ID.
+    /// </summary>
+    [HttpDelete("me/outfits/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteOutfit(Guid id, CancellationToken ct)
+    {
+        var userId = _currentUser.UserId;
+        var result = await _deleteOutfitHandler.HandleAsync(
+            new DeleteOutfitCommand(userId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Update an existing outfit (partial update).
+    /// </summary>
+    [HttpPut("me/outfits/{id:guid}")]
+    [ProducesResponseType(typeof(OutfitDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateOutfit(Guid id, [FromBody] UpdateOutfitRequest request, CancellationToken ct)
+    {
+        var userId = _currentUser.UserId;
+        var result = await _updateOutfitHandler.HandleAsync(
+            new UpdateOutfitCommand(
+                userId, id,
+                request.OutfitName,
+                request.Description,
+                request.Price,
+                request.OutfitType,
+                request.MainImageURL,
+                request.SizeChartID,
+                request.IsAvailable,
+                request.IsCustomizable
+            ), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Upload an image for an outfit (returns the hosted URL).
+    /// </summary>
+    [HttpPost("me/outfits/upload-image")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadOutfitImage(IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
+
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { error = "File too large. Max 5 MB.", code = "FILE_TOO_LARGE" });
+
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType))
+            return BadRequest(new { error = "Invalid image type. Use JPEG, PNG, or WebP.", code = "INVALID_TYPE" });
+
+        using var stream = file.OpenReadStream();
+        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, ct);
+
+        return Ok(new { imageUrl });
     }
 
     /// <summary>Parse all data rows (skip header) from an XLSX stream using ClosedXML.</summary>
@@ -803,4 +950,27 @@ public class SchoolsController : ControllerBase
 
 /// <summary>Request body for UC 3.9.18 Reject Production Order.</summary>
 public record RejectProductionOrderRequest(string Reason);
+
+/// <summary>Request body for creating an outfit.</summary>
+public record CreateOutfitRequest(
+    string OutfitName,
+    string? Description,
+    decimal Price,
+    OutfitType OutfitType,
+    string? MainImageURL,
+    Guid? SizeChartID,
+    bool IsCustomizable
+);
+
+/// <summary>Request body for updating an outfit (all fields optional).</summary>
+public record UpdateOutfitRequest(
+    string? OutfitName = null,
+    string? Description = null,
+    decimal? Price = null,
+    OutfitType? OutfitType = null,
+    string? MainImageURL = null,
+    Guid? SizeChartID = null,
+    bool? IsAvailable = null,
+    bool? IsCustomizable = null
+);
 

@@ -18,10 +18,14 @@ public class ImportStudentDataCommand
     /// </summary>
     public IReadOnlyList<string[]> Rows { get; }
 
-    public ImportStudentDataCommand(Guid userId, IReadOnlyList<string[]> rows)
+    /// <summary>Original file name uploaded by the user.</summary>
+    public string FileName { get; }
+
+    public ImportStudentDataCommand(Guid userId, IReadOnlyList<string[]> rows, string fileName = "")
     {
         UserId = userId;
         Rows = rows;
+        FileName = fileName;
     }
 }
 
