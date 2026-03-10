@@ -10,7 +10,8 @@ public record UpdateSchoolProfileCommand(
     Guid UserId,
     string? SchoolName,
     string? LogoURL,
-    string? ContactInfo
+    string? ContactInfo,
+    string? Level
 );
 
 public interface IUpdateSchoolProfileCommandHandler

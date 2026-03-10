@@ -18,3 +18,15 @@ public class ImportErrorDto
     public string? StudentName { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
 }
+
+public class ImportBatchDto
+{
+    public Guid Id { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public int TotalRows { get; set; }
+    public int SuccessCount { get; set; }
+    public int SkippedCount { get; set; }
+    public int ErrorCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = "success"; // "success" | "error"
+}

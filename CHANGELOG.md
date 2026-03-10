@@ -2,6 +2,45 @@
 
 All notable changes to the VTOS Backend project.
 
+## [2026-03-09] - School Profile Enhancements (UC-42)
+
+### Added
+- **School Entity: Level field**
+  - Added `Level` property (nvarchar 50) to `School` entity
+  - Full stack: Entity → DTO → Command → Handler → Validator → Controller → FE types
+  - Values: Tiểu học, THCS, THPT (dropdown on FE)
+  - Level is a separate DB column, NOT inside ContactInfo JSON
+
+- **Logo Upload via ImgBB**
+  - `POST /api/schools/me/logo` — Upload school logo (IFormFile, max 2MB, JPEG/PNG/WebP/GIF)
+  - Flow: FE select file → local preview → on Save → BE upload to ImgBB → save short URL to LogoURL
+  - Injected `IImageUploadService` into `SchoolsController`
+  - ImgBB Expiration set to 0 (permanent storage)
+
+- **Two-State Profile View**
+  - `ApprovedProfileView.tsx` — Figma-matching design for approved schools
+  - Draft Form — For schools not yet approved
+  - Logic: GET `/api/schools/me` success → Approved view, error → Draft form
+
+- **FE Improvements**
+  - Dynamic sidebar school name (from API, not hardcoded)
+  - `uploadSchoolLogo()` FE API function
+  - `schools.logo` endpoint config
+  - Logo preview-before-upload with "⏳ Chưa lưu" indicator
+
+### Changed
+- `SchoolConfiguration.cs` — ContactInfo: nvarchar(500) → nvarchar(2000), added Level nvarchar(50)
+- `appsettings.Development.json` — ImgBB Expiration: 600 → 0
+- Removed `level` from ContactInfo JSON (now separate DB column)
+- LogoURL validator: 500 chars → 2MB (supports both URL and fallback)
+
+### Technical Notes
+- ⚠️ **DB Migration needed**: `Level` column + `ContactInfo` column size change
+- Logo upload reuses existing `IImageUploadService` / `ImgBBImageService` from UC-60
+- ContactInfo JSON stores: email, phone, address, academicYear, foundedYear, website, description
+
+---
+
 ## [2026-03-08] - Public Endpoints & Caching (UC 3.3.3, 3.3.4)
 
 ### Added

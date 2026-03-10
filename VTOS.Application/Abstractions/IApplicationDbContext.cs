@@ -32,6 +32,7 @@ public interface IApplicationDbContext
     DbSet<ProductionBatch> ProductionBatches { get; }
     DbSet<ProductionBatchItem> ProductionBatchItems { get; }
     DbSet<StudentDataImport> StudentDataImports { get; }
+    DbSet<ImportBatch> ImportBatches { get; }
     DbSet<Complaint> Complaints { get; }
 
     DbSet<T> Set<T>() where T : class;

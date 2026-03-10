@@ -45,6 +45,7 @@ public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHand
                 SchoolName = command.SchoolName,
                 LogoURL = command.LogoURL,
                 ContactInfo = command.ContactInfo,
+                Level = command.Level,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -68,6 +69,8 @@ public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHand
                 school.LogoURL = command.LogoURL;
             if (command.ContactInfo != null)
                 school.ContactInfo = command.ContactInfo;
+            if (command.Level != null)
+                school.Level = command.Level;
 
             school.UpdatedAt = DateTime.UtcNow;
         }
@@ -80,6 +83,7 @@ public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHand
             SchoolName = school.SchoolName,
             LogoURL = school.LogoURL,
             ContactInfo = school.ContactInfo,
+            Level = school.Level,
             CatalogID = school.CatalogID,
             CreatedAt = school.CreatedAt,
             UpdatedAt = school.UpdatedAt
