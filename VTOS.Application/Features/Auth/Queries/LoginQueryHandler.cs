@@ -80,7 +80,8 @@ public class LoginQueryHandler : ILoginQueryHandler
                 user.Id,
                 user.Email,
                 user.FullName,
-                user.Role.RoleName
+                user.Role.RoleName,
+                user.Phone
             )
         ));
     }

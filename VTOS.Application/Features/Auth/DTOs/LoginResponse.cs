@@ -16,5 +16,6 @@ public record UserDto(
     Guid UserId,
     string Email,
     string FullName,
-    string Role
+    string Role,
+    string? Phone = null
 );

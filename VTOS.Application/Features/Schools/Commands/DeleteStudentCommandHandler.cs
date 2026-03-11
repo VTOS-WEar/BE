@@ -23,7 +23,7 @@ public class DeleteStudentCommandHandler : IDeleteStudentCommandHandler
         if (child == null)
             return Result<string>.Failure("Student not found.", "STUDENT_NOT_FOUND");
 
-        child.IsDeleted = true;
+        _db.ChildProfiles.Remove(child);
         await _db.SaveChangesAsync(ct);
 
         return Result<string>.Success("Student deleted successfully.");

@@ -48,6 +48,20 @@ namespace VTOS.Application.Features.Users.Commands
                 user.Gender = command.Gender.Value;
                 isUpdated = true;
             }
+
+            if (!string.IsNullOrWhiteSpace(command.Phone)
+                && command.Phone != user.Phone)
+            {
+                user.Phone = command.Phone;
+                isUpdated = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(command.Email)
+                && command.Email != user.Email)
+            {
+                user.Email = command.Email;
+                isUpdated = true;
+            }
             if (!isUpdated)
                 return Result<UpdateProfileResponse>.Success(new UpdateProfileResponse(
                     user.Id,

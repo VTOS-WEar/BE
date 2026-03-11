@@ -43,6 +43,17 @@ public class VerifyPhoneCommandHandler
                 "USER_NOT_FOUND");
         }
 
+        // Check if phone is already used by another parent
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Phone == command.Phone && u.Id != command.UserId, cancellationToken);
+
+        if (existingUser != null)
+        {
+            return Result<VerifyPhoneResponse>.Failure(
+                "Số điện thoại này đã được sử dụng bởi tài khoản khác.",
+                "PHONE_ALREADY_USED");
+        }
+
         // Update user phone
         user.Phone = command.Phone;
 
