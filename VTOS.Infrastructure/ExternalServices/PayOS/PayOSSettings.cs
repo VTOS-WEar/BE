@@ -26,6 +26,10 @@ public class PayOSSettings
     /// Payout Client ID for PayOS service
     /// </summary>
     public string PayoutClientId { get; set; } = string.Empty;
+    /// <summary>
+    /// Payment API Prefix for PayOS service (e.g. "v2/payment-requests")
+    /// </summary>
+    public string PaymentApiPrefix { get; set; } = string.Empty;
 
     /// <summary>
     /// Payout API Key for PayOS service
@@ -36,6 +40,10 @@ public class PayOSSettings
     /// Payout Checksum Key for PayOS service
     /// </summary>
     public string PayoutChecksumKey { get; set; } = string.Empty;
+    /// <summary>
+    /// Payout API Prefix for PayOS service (e.g. "https://api-payout.payos.vn")
+    /// </summary>
+    public string PayoutApiPrefix { get; set; } = string.Empty;
 
     /// <summary>
     /// API endpoint URL

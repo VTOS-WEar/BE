@@ -67,4 +67,101 @@ public class GetPaymentInvoicesResponse
     public List<PayOSInvoice>? Invoices { get; set; }
 }
 
+#region Payout Models
 
+/// <summary>
+/// Response for payout account balance inquiry
+/// GET /v1/payouts-account/balance
+/// </summary>
+public class PayoutAccountDetailResponse
+{
+    public string? AccountNumber { get; set; }
+    public string? AccountName { get; set; }
+    public string? Currency { get; set; }
+    public string? Balance { get; set; }
+}
+
+/// <summary>
+/// Query parameters for listing payouts
+/// GET /v1/payouts
+/// </summary>
+public class PayoutListQuery
+{
+    public int Limit { get; set; } = 10;
+    public int Offset { get; set; } = 0;
+    public string? ReferenceId { get; set; }
+    public string? ApprovalState { get; set; }
+    public string? Category { get; set; }
+    public string? FromDate { get; set; }
+    public string? ToDate { get; set; }
+}
+
+/// <summary>
+/// Response for listing payouts
+/// </summary>
+public class PayoutListResponse
+{
+    public List<PayoutDetailResponse>? Data { get; set; }
+    public int? Total { get; set; }
+    public int? Limit { get; set; }
+    public int? Offset { get; set; }
+}
+
+/// <summary>
+/// Individual transaction within a payout
+/// </summary>
+public class PayoutTransaction
+{
+    public string? Id { get; set; }
+    public string? ReferenceId { get; set; }
+    public long Amount { get; set; }
+    public string? Description { get; set; }
+    public string? ToBin { get; set; }
+    public string? ToAccountNumber { get; set; }
+    public string? ToAccountName { get; set; }
+    public string? State { get; set; }
+}
+
+/// <summary>
+/// Response for payout detail
+/// GET /v1/payouts/{payoutId}
+/// </summary>
+public class PayoutDetailResponse
+{
+    public string? Id { get; set; }
+    public string? ReferenceId { get; set; }
+    public List<PayoutTransaction>? Transactions { get; set; }
+    public List<string>? Category { get; set; }
+    public string? ApprovalState { get; set; }
+    public string? CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Request body for creating a payout
+/// POST /v1/payouts
+/// </summary>
+public class CreatePayoutRequest
+{
+    public string ReferenceId { get; set; } = string.Empty;
+    public long Amount { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string ToBin { get; set; } = string.Empty;
+    public string ToAccountNumber { get; set; } = string.Empty;
+    public List<string>? Category { get; set; }
+}
+
+/// <summary>
+/// Response for creating a payout (same structure as payout detail)
+/// POST /v1/payouts
+/// </summary>
+public class CreatePayoutResponse
+{
+    public string? Id { get; set; }
+    public string? ReferenceId { get; set; }
+    public List<PayoutTransaction>? Transactions { get; set; }
+    public List<string>? Category { get; set; }
+    public string? ApprovalState { get; set; }
+    public string? CreatedAt { get; set; }
+}
+
+#endregion

@@ -355,4 +355,235 @@ public class PayOSController : ControllerBase
                     "INTERNAL_SERVER_ERROR"));
         }
     }
+
+    #region Payout Endpoints
+
+    /// <summary>
+    /// Get payout account balance from PayOS
+    /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     GET /api/payos/payout/account-detail
+    /// 
+    /// Returns the current payout account balance and currency
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Payout account balance detail</returns>
+    [HttpGet("payout/account-detail")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(Result<PayoutAccountDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetPayoutAccountDetail(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching payout account detail");
+
+            var result = await _payOSService.GetPayoutAccountDetailAsync(cancellationToken);
+
+            return Ok(Result<PayoutAccountDetailResponse>.Success(result));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation when fetching payout account detail");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<PayoutAccountDetailResponse>.Failure(ex.Message, "PAYOUT_ACCOUNT_DETAIL_ERROR"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error fetching payout account detail");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<PayoutAccountDetailResponse>.Failure("An unexpected error occurred while fetching payout account detail", InternalServerError));
+        }
+    }
+
+    /// <summary>
+    /// Get list of payouts from PayOS with optional filters
+    /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     GET /api/payos/payout/list?limit=10&amp;offset=0&amp;approvalState=PROCESSING
+    /// 
+    /// Supports filtering by referenceId, approvalState, category, fromDate, toDate
+    /// </remarks>
+    /// <param name="query">Query parameters for filtering and pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated payout list</returns>
+    [HttpGet("payout/list")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(Result<PayoutListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetPayoutList(
+        [FromQuery] PayoutListQuery query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching payout list with Limit={Limit}, Offset={Offset}", query?.Limit, query?.Offset);
+
+            var result = await _payOSService.GetPayoutListAsync(query, cancellationToken);
+
+            return Ok(Result<PayoutListResponse>.Success(result));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation when fetching payout list");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<PayoutListResponse>.Failure(ex.Message, "PAYOUT_LIST_ERROR"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error fetching payout list");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<PayoutListResponse>.Failure("An unexpected error occurred while fetching payout list", InternalServerError));
+        }
+    }
+
+    /// <summary>
+    /// Get payout detail by payout ID from PayOS
+    /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     GET /api/payos/payout/payout_123456789
+    /// 
+    /// Returns payout detail including transactions, category, and approval state
+    /// </remarks>
+    /// <param name="payoutId">Payout ID from PayOS</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Payout detail including transactions</returns>
+    [HttpGet("payout/{payoutId}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(Result<PayoutDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetPayoutDetail(
+        [FromRoute] string payoutId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(payoutId))
+            {
+                return BadRequest(Result<PayoutDetailResponse>.Failure("Payout ID is required", "MISSING_PAYOUT_ID"));
+            }
+
+            _logger.LogInformation("Fetching payout detail for ID: {PayoutId}", payoutId);
+
+            var result = await _payOSService.GetPayoutDetailAsync(payoutId, cancellationToken);
+
+            return Ok(Result<PayoutDetailResponse>.Success(result));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when fetching payout detail");
+            return BadRequest(Result<PayoutDetailResponse>.Failure(ex.Message, "INVALID_ARGUMENT"));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation when fetching payout detail");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<PayoutDetailResponse>.Failure(ex.Message, "PAYOUT_DETAIL_ERROR"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error fetching payout detail");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<PayoutDetailResponse>.Failure("An unexpected error occurred while fetching payout detail", InternalServerError));
+        }
+    }
+
+    /// <summary>
+    /// Create a new payout (disbursement) on PayOS
+    /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     POST /api/payos/payout/create
+    ///     {
+    ///         "referenceId": "payout_123",
+    ///         "amount": 100000,
+    ///         "description": "Thanh toán lương",
+    ///         "toBin": "970415",
+    ///         "toAccountNumber": "123456789",
+    ///         "category": ["salary"]
+    ///     }
+    /// 
+    /// Returns the created payout with transactions and approval state
+    /// </remarks>
+    /// <param name="request">Payout creation request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created payout response</returns>
+    [HttpPost("payout/create")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(Result<CreatePayoutResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CreatePayout(
+        [FromBody] CreatePayoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (request == null)
+            {
+                return BadRequest(Result<CreatePayoutResponse>.Failure("Request cannot be empty", "INVALID_REQUEST"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ReferenceId))
+            {
+                return BadRequest(Result<CreatePayoutResponse>.Failure("ReferenceId is required", "MISSING_REFERENCE_ID"));
+            }
+
+            if (request.Amount <= 0)
+            {
+                return BadRequest(Result<CreatePayoutResponse>.Failure("Amount must be greater than 0", "INVALID_AMOUNT"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ToBin))
+            {
+                return BadRequest(Result<CreatePayoutResponse>.Failure("ToBin (bank code) is required", "MISSING_TO_BIN"));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ToAccountNumber))
+            {
+                return BadRequest(Result<CreatePayoutResponse>.Failure("ToAccountNumber is required", "MISSING_TO_ACCOUNT_NUMBER"));
+            }
+
+            _logger.LogInformation("Creating payout. ReferenceId: {ReferenceId}, Amount: {Amount}, ToBin: {ToBin}",
+                request.ReferenceId, request.Amount, request.ToBin);
+
+            var result = await _payOSService.CreatePayoutAsync(request, cancellationToken);
+
+            _logger.LogInformation("Payout created successfully. Id: {Id}, State: {State}",
+                result.Id, result.ApprovalState);
+
+            return Ok(Result<CreatePayoutResponse>.Success(result));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when creating payout");
+            return BadRequest(Result<CreatePayoutResponse>.Failure(ex.Message, "INVALID_ARGUMENT"));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation when creating payout");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<CreatePayoutResponse>.Failure(ex.Message, "CREATE_PAYOUT_ERROR"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error creating payout");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                Result<CreatePayoutResponse>.Failure("An unexpected error occurred while creating payout", InternalServerError));
+        }
+    }
+
+    #endregion
 }
