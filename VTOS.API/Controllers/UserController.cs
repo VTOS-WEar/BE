@@ -28,6 +28,7 @@ public class UserController : ControllerBase
     private readonly IValidator<SubmitVerificationCommand> _submitVerificationValidator;
     private readonly GetMyChildrenQueryHandler _getMyChildrenHandler;
     private readonly FindChildrenCommandHandler _findChildrenHandler;
+    private readonly IAddParentBankAccountCommandHandler _addBankAccountHandler;
 
     public UserController(
         ICurrentUserService currentUser,
@@ -39,7 +40,8 @@ public class UserController : ControllerBase
         ISubmitVerificationCommandHandler submitVerificationHandler,
         IValidator<SubmitVerificationCommand> submitVerificationValidator,
         GetMyChildrenQueryHandler getMyChildrenHandler,
-        FindChildrenCommandHandler findChildrenHandler)
+        FindChildrenCommandHandler findChildrenHandler,
+        IAddParentBankAccountCommandHandler addBankAccountHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -51,6 +53,7 @@ public class UserController : ControllerBase
         _submitVerificationValidator = submitVerificationValidator;
         _getMyChildrenHandler = getMyChildrenHandler;
         _findChildrenHandler = findChildrenHandler;
+        _addBankAccountHandler = addBankAccountHandler;
     }
 
      /// <summary>
@@ -186,4 +189,32 @@ public class UserController : ControllerBase
 
         return Ok(result.Value);
     }
+
+
+    /// <summary>
+    /// Add a bank account for the current parent user.
+    /// </summary>
+    [HttpPost("me/bank-accounts")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddBankAccount(
+        [FromBody] AddParentBankAccountRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _addBankAccountHandler.HandleAsync(
+            new AddParentBankAccountCommand(
+                _currentUser.UserId,
+                request.BankName,
+                request.BankCode,
+                request.AccountNumber,
+                request.AccountHolderName,
+                request.IsDefault), cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
 }
+
+

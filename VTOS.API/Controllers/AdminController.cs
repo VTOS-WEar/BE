@@ -15,19 +15,25 @@ public class AdminController : ControllerBase
     private readonly IApproveUserCommandHandler _approveHandler;
     private readonly ISuspendUserCommandHandler _suspendHandler;
     private readonly IRemoveFeedbackCommandHandler _removeFeedbackHandler;
+    private readonly IApproveWithdrawalCommandHandler _approveWithdrawalHandler;
+    private readonly IGetWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
 
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
         IGetAllFeedbacksQueryHandler feedbacksHandler,
         IApproveUserCommandHandler approveHandler,
         ISuspendUserCommandHandler suspendHandler,
-        IRemoveFeedbackCommandHandler removeFeedbackHandler)
+        IRemoveFeedbackCommandHandler removeFeedbackHandler,
+        IApproveWithdrawalCommandHandler approveWithdrawalHandler,
+        IGetWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
         _approveHandler = approveHandler;
         _suspendHandler = suspendHandler;
         _removeFeedbackHandler = removeFeedbackHandler;
+        _approveWithdrawalHandler = approveWithdrawalHandler;
+        _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
     }
 
     [HttpGet("users")]
@@ -79,4 +85,40 @@ public class AdminController : ControllerBase
 
         return Ok();
     }
+
+    // ✅ Get Withdrawal Requests
+    [HttpGet("withdrawals")]
+    public async Task<IActionResult> GetWithdrawalRequests(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getWithdrawalRequestsHandler.HandleAsync(
+            new GetWithdrawalRequestsQuery(page, pageSize, status), ct);
+
+        return Ok(result);
+    }
+
+    // ✅ Approve Withdrawal Request
+    [HttpPost("withdrawals/{id}/approve")]
+    public async Task<IActionResult> ApproveWithdrawal(
+        Guid id,
+        [FromBody] ApproveWithdrawalRequest request,
+        CancellationToken ct)
+    {
+        var result = await _approveWithdrawalHandler.HandleAsync(
+            new ApproveWithdrawalCommand(id, request.AdminNote), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode is "WITHDRAWAL_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
+    }
 }
+
+public record ApproveWithdrawalRequest(string? AdminNote);

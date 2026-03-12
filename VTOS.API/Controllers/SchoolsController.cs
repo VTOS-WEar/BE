@@ -70,6 +70,9 @@ public class SchoolsController : ControllerBase
     private readonly IDeleteOutfitCommandHandler _deleteOutfitHandler;
     private readonly IGetProvidersQueryHandler _getProvidersHandler;
     private readonly IApproveRefundCommandHandler _approveRefundHandler;
+    private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
+    private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
+    private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -115,7 +118,10 @@ public class SchoolsController : ControllerBase
         IUpdateOutfitCommandHandler updateOutfitHandler,
         IDeleteOutfitCommandHandler deleteOutfitHandler,
         IGetProvidersQueryHandler getProvidersHandler,
-        IApproveRefundCommandHandler approveRefundHandler)
+        IApproveRefundCommandHandler approveRefundHandler,
+        ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
+        IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler,
+        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -160,6 +166,9 @@ public class SchoolsController : ControllerBase
         _deleteOutfitHandler = deleteOutfitHandler;
         _getProvidersHandler = getProvidersHandler;
         _approveRefundHandler = approveRefundHandler;
+        _createWithdrawalHandler = createWithdrawalHandler;
+        _updateBankAccountHandler = updateBankAccountHandler;
+        _getSchoolRefundsHandler = getSchoolRefundsHandler;
     }
 
 
@@ -992,7 +1001,81 @@ public class SchoolsController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    /// <summary>
+    /// Get refund requests for the current school.
+    /// </summary>
+    [HttpGet("me/refunds")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetRefunds(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getSchoolRefundsHandler.HandleAsync(
+            new GetSchoolRefundsQuery(_currentUser.UserId, page, pageSize, status), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Create a withdrawal request from school wallet.
+    /// </summary>
+    [HttpPost("me/wallet/withdrawals")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateWithdrawalRequest(
+        [FromBody] CreateWithdrawalRequest request,
+        CancellationToken ct)
+    {
+        var result = await _createWithdrawalHandler.HandleAsync(
+            new CreateWithdrawalRequestCommand(_currentUser.UserId, request.Amount), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Update school bank account information on the wallet.
+    /// </summary>
+    [HttpPut("me/wallet/bank-account")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateBankAccount(
+        [FromBody] UpdateSchoolBankAccountRequest request,
+        CancellationToken ct)
+    {
+        var result = await _updateBankAccountHandler.HandleAsync(
+            new UpdateSchoolBankAccountCommand(
+                _currentUser.UserId,
+                request.BankCode,
+                request.BankName,
+                request.BankAccountNumber,
+                request.BankAccountName), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
 }
+
+/// <summary>Request body for creating a withdrawal request.</summary>
+public record CreateWithdrawalRequest(decimal Amount);
+
+/// <summary>Request body for updating school bank account (partial update).</summary>
+public record UpdateSchoolBankAccountRequest(
+    string? BankCode = null,
+    string? BankName = null,
+    string? BankAccountNumber = null,
+    string? BankAccountName = null);
 
 /// <summary>Request body for UC 3.9.18 Reject Production Order.</summary>
 public record RejectProductionOrderRequest(string Reason);
