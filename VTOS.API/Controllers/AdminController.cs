@@ -16,6 +16,7 @@ public class AdminController : ControllerBase
     private readonly ISuspendUserCommandHandler _suspendHandler;
     private readonly IRemoveFeedbackCommandHandler _removeFeedbackHandler;
     private readonly IApproveWithdrawalCommandHandler _approveWithdrawalHandler;
+    private readonly IGetWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
 
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
@@ -23,7 +24,8 @@ public class AdminController : ControllerBase
         IApproveUserCommandHandler approveHandler,
         ISuspendUserCommandHandler suspendHandler,
         IRemoveFeedbackCommandHandler removeFeedbackHandler,
-        IApproveWithdrawalCommandHandler approveWithdrawalHandler)
+        IApproveWithdrawalCommandHandler approveWithdrawalHandler,
+        IGetWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
@@ -31,6 +33,7 @@ public class AdminController : ControllerBase
         _suspendHandler = suspendHandler;
         _removeFeedbackHandler = removeFeedbackHandler;
         _approveWithdrawalHandler = approveWithdrawalHandler;
+        _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
     }
 
     [HttpGet("users")]
@@ -81,6 +84,20 @@ public class AdminController : ControllerBase
         if (!success) return NotFound();
 
         return Ok();
+    }
+
+    // ✅ Get Withdrawal Requests
+    [HttpGet("withdrawals")]
+    public async Task<IActionResult> GetWithdrawalRequests(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getWithdrawalRequestsHandler.HandleAsync(
+            new GetWithdrawalRequestsQuery(page, pageSize, status), ct);
+
+        return Ok(result);
     }
 
     // ✅ Approve Withdrawal Request
