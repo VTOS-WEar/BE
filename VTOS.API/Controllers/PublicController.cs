@@ -19,19 +19,22 @@ public class PublicController : ControllerBase
     private readonly GetOutfitDetailQueryHandler _getOutfitDetailHandler;
     private readonly GetSchoolDetailQueryHandler _getSchoolDetailHandler;
     private readonly GetUniformListQueryHandler _getUniformListHandler;
+    private readonly GetPublicCampaignDetailQueryHandler _getPublicCampaignDetailHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
         GetCategoriesQueryHandler getCategoriesHandler,
         GetOutfitDetailQueryHandler getOutfitDetailHandler,
         GetSchoolDetailQueryHandler getSchoolDetailHandler,
-        GetUniformListQueryHandler getUniformListHandler)
+        GetUniformListQueryHandler getUniformListHandler,
+        GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
         _getOutfitDetailHandler = getOutfitDetailHandler;
         _getSchoolDetailHandler = getSchoolDetailHandler;
         _getUniformListHandler = getUniformListHandler;
+        _getPublicCampaignDetailHandler = getPublicCampaignDetailHandler;
     }
 
     /// <summary>
@@ -112,7 +115,7 @@ public class PublicController : ControllerBase
     }
 
     /// <summary>
-    /// UC 3.3.5: Get detailed information about a specific outfit.
+    /// Get detailed information about a specific outfit.
     /// </summary>
     /// <param name="id">Outfit ID</param>
     [HttpGet("outfits/{id:guid}")]
@@ -125,6 +128,26 @@ public class PublicController : ControllerBase
 
         if (result == null)
             return NotFound(new { message = "Outfit not found" });
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get campaign detail with outfits (for Parent role).
+    /// GET /api/public/campaigns/{campaignId}
+    /// </summary>
+    [HttpGet("campaigns/{campaignId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPublicCampaignDetail(
+        Guid campaignId,
+        CancellationToken ct = default)
+    {
+        var query = new GetPublicCampaignDetailQuery(campaignId);
+        var result = await _getPublicCampaignDetailHandler.HandleAsync(query, ct);
+
+        if (result == null)
+            return NotFound(new { message = "Campaign not found" });
 
         return Ok(result);
     }

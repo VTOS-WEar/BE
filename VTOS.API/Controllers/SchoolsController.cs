@@ -305,7 +305,8 @@ public class SchoolsController : ControllerBase
     {
         var command = new UpdateStudentCommand(
             _currentUser.UserId, id, request.FullName, request.DateOfBirth,
-            request.Grade, request.Gender, request.HeightCm, request.WeightKg);
+            request.Grade, request.Gender, request.HeightCm, request.WeightKg,
+            request.ParentPhone);
         var result = await _updateStudentHandler.HandleAsync(command, ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });

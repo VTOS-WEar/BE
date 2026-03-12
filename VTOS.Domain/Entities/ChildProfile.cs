@@ -10,6 +10,7 @@ namespace VTOS.Domain.Entities;
 public class ChildProfile : BaseEntity
 {
     public Guid? ParentUserID { get; set; }  // null = student imported, not yet linked to a parent
+    public string? ParentPhone { get; set; } // phone set by school, used for parent matching
     public string FullName { get; set; } = string.Empty;
     public int Age { get; set; }
     public string Grade { get; set; } = string.Empty;

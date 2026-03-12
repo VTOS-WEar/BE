@@ -56,6 +56,7 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
             HeightCm = cmd.HeightCm ?? 0,
             WeightKg = cmd.WeightKg ?? 0,
             IsDeleted = false,
+            ParentPhone = string.IsNullOrWhiteSpace(cmd.ParentPhone) ? null : cmd.ParentPhone.Trim(),
         };
         _db.ChildProfiles.Add(child);
 

@@ -150,7 +150,8 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                     Grade        = string.IsNullOrWhiteSpace(grade) ? string.Empty : grade,
                     Gender       = genderEnum,
                     Avatar       = string.Empty,
-                    IsDeleted    = false
+                    IsDeleted    = false,
+                    ParentPhone  = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
                 };
                 newChildren.Add(child);
 
