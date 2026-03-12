@@ -189,6 +189,16 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteOutfitCommandHandler,
             VTOS.Application.Features.Schools.Commands.DeleteOutfitCommandHandler>();
 
+        // School Module - Variant (Size) CRUD
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetOutfitVariantsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetOutfitVariantsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateVariantCommandHandler,
+            VTOS.Application.Features.Schools.Commands.CreateVariantCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateVariantCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateVariantCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteVariantCommandHandler,
+            VTOS.Application.Features.Schools.Commands.DeleteVariantCommandHandler>();
+
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
             VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();
 
