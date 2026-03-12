@@ -11,12 +11,11 @@ namespace VTOS.Infrastructure.ExternalServices.PayOS;
 /// <summary>
 /// Implementation of PayOS payment service
 /// </summary>
-public class PayOSService : IPayOSService
+public partial class PayOSService : IPayOSService
 {
     private readonly HttpClient _httpClient;
     private readonly PayOSSettings _settings;
     private readonly ILogger<PayOSService> _logger;
-    private const string ApiVersion = "v2";
     private const string ApiErrorMessage = "PayOS API returned error. Status: {Status}, Response: {Response}";
 
     public PayOSService(
@@ -28,7 +27,7 @@ public class PayOSService : IPayOSService
         _settings = settings.Value;
         _logger = logger;
     }
-
+#region     Payment Methods
     /// <summary>
     /// Generate a random 6-digit order code for PayOS payment
     /// </summary>
@@ -70,7 +69,7 @@ public class PayOSService : IPayOSService
                 signature = signature
             };
 
-            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{ApiVersion}/payment-requests";
+            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{_settings.PaymentApiPrefix.TrimStart('/')}";
             var jsonContent = SerializeToJsonContent(payload);
 
             var response = await SendAuthorizedPostRequestAsync(endpoint, jsonContent, cancellationToken);
@@ -123,7 +122,7 @@ public class PayOSService : IPayOSService
 
             _logger.LogInformation("Fetching payment link info for ID: {PaymentLinkId}", paymentLinkId);
 
-            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{ApiVersion}/payment-requests/{paymentLinkId}";
+            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{_settings.PaymentApiPrefix.TrimStart('/')}/{paymentLinkId}";
             var response = await SendAuthorizedGetRequestAsync(endpoint, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -172,7 +171,7 @@ public class PayOSService : IPayOSService
 
             _logger.LogInformation("Cancelling payment link for ID: {PaymentLinkId}", paymentLinkId);
 
-            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{ApiVersion}/payment-requests/{paymentLinkId}/cancel";
+            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{_settings.PaymentApiPrefix.TrimStart('/')}/{paymentLinkId}/cancel";
             var response = await SendAuthorizedPostRequestAsync(endpoint, new StringContent(string.Empty, Encoding.UTF8, "application/json"), cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -221,7 +220,7 @@ public class PayOSService : IPayOSService
 
             _logger.LogInformation("Fetching payment invoices for ID: {PaymentLinkId}", paymentLinkId);
 
-            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{ApiVersion}/payment-requests/{paymentLinkId}/invoices";
+            var endpoint = $"{_settings.ApiUrl.TrimEnd('/')}/{_settings.PaymentApiPrefix.TrimStart('/')}/{paymentLinkId}/invoices";
             var response = await SendAuthorizedGetRequestAsync(endpoint, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -252,125 +251,259 @@ public class PayOSService : IPayOSService
             throw new InvalidOperationException($"Get payment invoices failed: {ex.Message}", ex);
         }
     }
+#endregion 
+
+#region Payout Methods
 
     /// <summary>
-    /// Validate PayOS credentials are configured
+    /// Get payout account balance from PayOS
     /// </summary>
-    private void ValidatePayOSCredentials()
+    public async Task<PayoutAccountDetailResponse> GetPayoutAccountDetailAsync(
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(_settings.ClientId) || 
-            string.IsNullOrEmpty(_settings.ApiKey) || 
-            string.IsNullOrEmpty(_settings.ChecksumKey))
+        try
         {
-            throw new InvalidOperationException("Missing PayOS credentials (ClientId/ApiKey/ChecksumKey)");
+            ValidatePayoutCredentials();
+
+            _logger.LogInformation("Fetching payout account balance");
+
+            var endpoint = $"{_settings.ApiUrl}/v1/payouts-account/balance";
+            var response = await SendPayoutGetRequestAsync(endpoint, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            _logger.LogDebug("PayOS payout account detail response: {Response}", responseContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(ApiErrorMessage, response.StatusCode, responseContent);
+                throw new InvalidOperationException($"Get payout account detail failed: {response.StatusCode} - {responseContent}");
+            }
+
+            var result = DeserializeResponse<PayoutAccountDetailResponse>(responseContent);
+
+            if (result?.Data == null)
+            {
+                throw new InvalidOperationException("Invalid response from PayOS Payout API - no data returned");
+            }
+
+            _logger.LogInformation("Payout account balance retrieved successfully. Balance: {Balance}", result.Data.Balance);
+
+            return result.Data;
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            _logger.LogError(ex, "Error fetching payout account balance");
+            throw new InvalidOperationException($"Get payout account detail failed: {ex.Message}", ex);
         }
     }
 
     /// <summary>
-    /// Set authorization headers for PayOS API requests
+    /// Get list of payouts from PayOS with optional filters
     /// </summary>
-    private void SetPaymentAuthorizedHeaders()
-    {
-        _httpClient.DefaultRequestHeaders.Clear();
-        _httpClient.DefaultRequestHeaders.Add("x-client-id", _settings.ClientId);
-        _httpClient.DefaultRequestHeaders.Add("x-api-key", _settings.ApiKey);
-    }
-
-    /// <summary>
-    /// Send authorized POST request to PayOS API
-    /// </summary>
-    private async Task<HttpResponseMessage> SendAuthorizedPostRequestAsync(
-        string endpoint, 
-        StringContent content,
+    public async Task<PayoutListResponse> GetPayoutListAsync(
+        PayoutListQuery? query = null,
         CancellationToken cancellationToken = default)
     {
-        SetPaymentAuthorizedHeaders();
-        return await _httpClient.PostAsync(endpoint, content, cancellationToken);
+        try
+        {
+            ValidatePayoutCredentials();
+
+            query ??= new PayoutListQuery();
+
+            _logger.LogInformation("Fetching payout list with Limit={Limit}, Offset={Offset}", query.Limit, query.Offset);
+
+            // Build query string parameters
+            var queryParams = new List<string>
+            {
+                $"limit={query.Limit}",
+                $"offset={query.Offset}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(query.ReferenceId))
+                queryParams.Add($"referenceId={Uri.EscapeDataString(query.ReferenceId)}");
+            if (!string.IsNullOrWhiteSpace(query.ApprovalState))
+                queryParams.Add($"approvalState={Uri.EscapeDataString(query.ApprovalState)}");
+            if (!string.IsNullOrWhiteSpace(query.Category))
+                queryParams.Add($"category={Uri.EscapeDataString(query.Category)}");
+            if (!string.IsNullOrWhiteSpace(query.FromDate))
+                queryParams.Add($"fromDate={Uri.EscapeDataString(query.FromDate)}");
+            if (!string.IsNullOrWhiteSpace(query.ToDate))
+                queryParams.Add($"toDate={Uri.EscapeDataString(query.ToDate)}");
+
+            var queryString = string.Join("&", queryParams);
+            var endpoint = $"{_settings.ApiUrl}/{_settings.PayoutApiPrefix}?{queryString}";
+
+            var response = await SendPayoutGetRequestAsync(endpoint, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            _logger.LogDebug("PayOS payout list response: {Response}", responseContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(ApiErrorMessage, response.StatusCode, responseContent);
+                throw new InvalidOperationException($"Get payout list failed: {response.StatusCode} - {responseContent}");
+            }
+
+            var result = DeserializeResponse<PayoutListResponse>(responseContent);
+
+            if (result?.Data == null)
+            {
+                throw new InvalidOperationException("Invalid response from PayOS Payout API - no data returned");
+            }
+
+            _logger.LogInformation("Payout list retrieved successfully. Count: {Count}", result.Data.Data?.Count ?? 0);
+
+            return result.Data;
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            _logger.LogError(ex, "Error fetching payout list");
+            throw new InvalidOperationException($"Get payout list failed: {ex.Message}", ex);
+        }
     }
 
     /// <summary>
-    /// Send authorized GET request to PayOS API
+    /// Get payout detail by payout ID from PayOS
     /// </summary>
-    private async Task<HttpResponseMessage> SendAuthorizedGetRequestAsync(
-        string endpoint,
+    public async Task<PayoutDetailResponse> GetPayoutDetailAsync(
+        string payoutId,
         CancellationToken cancellationToken = default)
     {
-        SetPaymentAuthorizedHeaders();
-        return await _httpClient.GetAsync(endpoint, cancellationToken);
+        try
+        {
+            ValidatePayoutCredentials();
+
+            if (string.IsNullOrWhiteSpace(payoutId))
+            {
+                throw new ArgumentException("Payout ID cannot be empty", nameof(payoutId));
+            }
+
+            _logger.LogInformation("Fetching payout detail for ID: {PayoutId}", payoutId);
+
+            var endpoint = $"{_settings.ApiUrl}/{_settings.PayoutApiPrefix}/{Uri.EscapeDataString(payoutId)}";
+            var response = await SendPayoutGetRequestAsync(endpoint, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            _logger.LogDebug("PayOS payout detail response: {Response}", responseContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(ApiErrorMessage, response.StatusCode, responseContent);
+                throw new InvalidOperationException($"Get payout detail failed: {response.StatusCode} - {responseContent}");
+            }
+
+            var result = DeserializeResponse<PayoutDetailResponse>(responseContent);
+
+            if (result?.Data == null)
+            {
+                throw new InvalidOperationException("Invalid response from PayOS Payout API - no data returned");
+            }
+
+            _logger.LogInformation("Payout detail retrieved successfully. Payout ID: {PayoutId}, State: {State}",
+                payoutId, result.Data.ApprovalState);
+
+            return result.Data;
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException and not ArgumentException)
+        {
+            _logger.LogError(ex, "Error fetching payout detail for ID: {PayoutId}", payoutId);
+            throw new InvalidOperationException($"Get payout detail failed: {ex.Message}", ex);
+        }
     }
 
     /// <summary>
-    /// Serialize object to JSON StringContent
+    /// Create a new payout (disbursement) on PayOS
+    /// POST /v1/payouts
     /// </summary>
-    private static StringContent SerializeToJsonContent(object obj)
+    public async Task<CreatePayoutResponse> CreatePayoutAsync(
+        CreatePayoutRequest request,
+        CancellationToken cancellationToken = default)
     {
-        return new StringContent(
-            JsonSerializer.Serialize(obj),
-            Encoding.UTF8,
-            "application/json"
-        );
+        try
+        {
+            ValidatePayoutCredentials();
+
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ReferenceId))
+            {
+                throw new ArgumentException("ReferenceId is required", nameof(request));
+            }
+
+            if (request.Amount <= 0)
+            {
+                throw new ArgumentException("Amount must be greater than zero", nameof(request));
+            }
+
+            _logger.LogInformation("Creating payout. ReferenceId: {ReferenceId}, Amount: {Amount}, ToBin: {ToBin}, ToAccount: {ToAccount}",
+                request.ReferenceId, request.Amount, request.ToBin, request.ToAccountNumber);
+
+            // Build payload dictionary for signature computation
+            var payloadDict = new Dictionary<string, object?>
+            {
+                { "amount", request.Amount },
+                { "description", request.Description },
+                { "referenceId", request.ReferenceId },
+                { "toBin", request.ToBin },
+                { "toAccountNumber", request.ToAccountNumber }
+            };
+
+            if (request.Category != null && request.Category.Count > 0)
+            {
+                payloadDict["category"] = request.Category;
+            }
+
+            // Compute signature from payload
+            var signature = CreatePayoutSignature(payloadDict);
+
+            // Use referenceId as idempotency key to prevent duplicate payouts
+            var idempotencyKey = request.ReferenceId;
+
+            var payload = new
+            {
+                referenceId = request.ReferenceId,
+                amount = request.Amount,
+                description = request.Description,
+                toBin = request.ToBin,
+                toAccountNumber = request.ToAccountNumber,
+                category = request.Category
+            };
+
+            var endpoint = $"{_settings.ApiUrl}/{_settings.PayoutApiPrefix}";
+            var jsonContent = SerializeToJsonContent(payload);
+
+            var response = await SendPayoutPostRequestAsync(endpoint, jsonContent, idempotencyKey, signature, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            _logger.LogDebug("PayOS create payout response: {Response}", responseContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(ApiErrorMessage, response.StatusCode, responseContent);
+                throw new InvalidOperationException($"Create payout failed: {response.StatusCode} - {responseContent}");
+            }
+
+            var result = DeserializeResponse<CreatePayoutResponse>(responseContent);
+
+            if (result?.Data == null)
+            {
+                throw new InvalidOperationException("Invalid response from PayOS Payout API - no data returned");
+            }
+
+            _logger.LogInformation("Payout created successfully. Payout ID: {PayoutId}, ReferenceId: {ReferenceId}, State: {State}",
+                result.Data.Id, result.Data.ReferenceId, result.Data.ApprovalState);
+
+            return result.Data;
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException and not ArgumentException and not ArgumentNullException)
+        {
+            _logger.LogError(ex, "Error creating payout");
+            throw new InvalidOperationException($"Create payout failed: {ex.Message}", ex);
+        }
     }
 
-    /// <summary>
-    /// Deserialize JSON response to generic PayOS response model
-    /// </summary>
-    private PayOSResponse<T> DeserializeResponse<T>(string jsonContent) where T : class
-    {
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        return JsonSerializer.Deserialize<PayOSResponse<T>>(jsonContent, options)!;
-    }
-
-    /// <summary>
-    /// Create payment signature for PayOS API request
-    /// Computes the PayOS HMAC-SHA256 Signature based on specific properties alphabetically ordered
-    /// amount={amount}&cancelUrl={cancelUrl}&description={description}&orderCode={orderCode}&returnUrl={returnUrl}
-    /// </summary>
-    private string CreatePaymentSignature(
-        int amount, 
-        string cancelUrl, 
-        string description, 
-        int orderCode, 
-        string returnUrl)
-    {
-        return ComputeHmacSignature(
-            $"amount={amount}&cancelUrl={cancelUrl}&description={description}&orderCode={orderCode}&returnUrl={returnUrl}",
-            _settings.ChecksumKey);
-    }
-
-    /// <summary>
-    /// Compute HMAC-SHA256 signature from data string
-    /// </summary>
-    private static string ComputeHmacSignature(string data, string checksumKey)
-    {
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(checksumKey));
-        var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-        
-        // Return lowercase HEX string format
-        return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "Used for JSON deserialization")]
-    private sealed class PayOSResponse<T> where T : class
-    {
-        public string? Code { get; set; } = default;
-        public string? Desc { get; set; } = default;
-        public T? Data { get; set; } = default;
-        public string? Signature { get; set; } = default;
-    }
-    //raw response data model from payos for create payment link API (for debugging/logging purposes)
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "Used for JSON deserialization")]
-    private sealed class CreatePaymentLinkResponseData
-    {
-        public string? Bin { get; set; } = default;
-        public string? AccountNumber { get; set; } = default;
-        public string? AccountName { get; set; } = default;
-        public int Amount { get; set; } = default;
-        public string? Description { get; set; } = default;
-        public int OrderCode { get; set; } = default;
-        public string? Currency { get; set; } = default;
-        public string? PaymentLinkId { get; set; } = default;
-        public string? Status { get; set; } = default;
-        public string? CheckoutUrl { get; set; } = default;
-        public string? QrCode { get; set; } = default;
-    }
+#endregion
 }

@@ -39,6 +39,7 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<Refund> Refunds { get; set; }
     public DbSet<SchoolWallet> SchoolWallets { get; set; }
     public DbSet<WalletWithdrawalRequest> WalletWithdrawalRequests { get; set; }
+    public DbSet<ParentBankAccount> ParentBankAccounts { get; set; }
 
     // Provider, Campaign & Production
     public DbSet<Provider> Providers { get; set; }

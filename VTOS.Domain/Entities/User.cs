@@ -34,4 +34,5 @@ public class User : BaseEntity
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
     public ICollection<OutfitRecommendation> OutfitRecommendations { get; set; } = new List<OutfitRecommendation>();
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    public ICollection<ParentBankAccount> BankAccounts { get; set; } = new List<ParentBankAccount>();
 }

@@ -69,6 +69,7 @@ public class SchoolsController : ControllerBase
     private readonly IUpdateOutfitCommandHandler _updateOutfitHandler;
     private readonly IDeleteOutfitCommandHandler _deleteOutfitHandler;
     private readonly IGetProvidersQueryHandler _getProvidersHandler;
+    private readonly IApproveRefundCommandHandler _approveRefundHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -113,7 +114,8 @@ public class SchoolsController : ControllerBase
         ICreateOutfitCommandHandler createOutfitHandler,
         IUpdateOutfitCommandHandler updateOutfitHandler,
         IDeleteOutfitCommandHandler deleteOutfitHandler,
-        IGetProvidersQueryHandler getProvidersHandler)
+        IGetProvidersQueryHandler getProvidersHandler,
+        IApproveRefundCommandHandler approveRefundHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -157,6 +159,7 @@ public class SchoolsController : ControllerBase
         _updateOutfitHandler = updateOutfitHandler;
         _deleteOutfitHandler = deleteOutfitHandler;
         _getProvidersHandler = getProvidersHandler;
+        _approveRefundHandler = approveRefundHandler;
     }
 
 
@@ -964,6 +967,30 @@ public class SchoolsController : ControllerBase
             new RejectProductionOrderCommand(_currentUser.UserId, id, request.Reason), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { message = result.Value });
+    }
+
+    /// <summary>
+    /// Approve a refund request: deduct school wallet, payout to parent bank account, update statuses.
+    /// </summary>
+    [HttpPost("me/refunds/{refundId:guid}/approve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApproveRefund(
+        Guid refundId,
+        CancellationToken ct)
+    {
+        var result = await _approveRefundHandler.HandleAsync(
+            new ApproveRefundCommand(_currentUser.UserId, refundId), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode is "REFUND_NOT_FOUND" or "SCHOOL_NOT_FOUND" or "USER_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
     }
 }
 

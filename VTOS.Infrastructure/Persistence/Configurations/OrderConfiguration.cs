@@ -37,6 +37,9 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.DeliveryMethod)
             .HasMaxLength(50);
 
+        builder.Property(o => o.CancelReason)
+            .HasMaxLength(500);
+
         // Relationships
         builder.HasOne(o => o.ChildProfile)
             .WithMany(cp => cp.Orders)

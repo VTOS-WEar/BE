@@ -1,4 +1,5 @@
 using VTOS.Application.Common;
+using VTOS.Application.Common.Models;
 
 namespace VTOS.Application.Features.Orders.Commands;
 
@@ -7,7 +8,8 @@ namespace VTOS.Application.Features.Orders.Commands;
 /// </summary>
 public record CancelOrderCommand(
     Guid ParentId,
-    Guid OrderId
+    Guid OrderId,
+    string? Reason = null
 );
 
 /// <summary>
@@ -15,5 +17,5 @@ public record CancelOrderCommand(
 /// </summary>
 public interface ICancelOrderCommandHandler
 {
-    Task<Result> HandleAsync(CancelOrderCommand command, CancellationToken cancellationToken = default);
+    Task<Result<List<RefundResponse>>> HandleAsync(CancelOrderCommand command, CancellationToken cancellationToken = default);
 }
