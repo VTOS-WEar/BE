@@ -40,7 +40,7 @@ public class UserController : ControllerBase
         ISubmitVerificationCommandHandler submitVerificationHandler,
         IValidator<SubmitVerificationCommand> submitVerificationValidator,
         GetMyChildrenQueryHandler getMyChildrenHandler,
-        FindChildrenCommandHandler findChildrenHandle,
+        FindChildrenCommandHandler findChildrenHandler,
         IAddParentBankAccountCommandHandler addBankAccountHandler)
     {
         _currentUser = currentUser;
@@ -189,7 +189,7 @@ public class UserController : ControllerBase
 
         return Ok(result.Value);
     }
-}
+
 
     /// <summary>
     /// Add a bank account for the current parent user.
@@ -217,9 +217,4 @@ public class UserController : ControllerBase
     }
 }
 
-public record AddParentBankAccountRequest(
-    string BankName,
-    string? BankCode,
-    string AccountNumber,
-    string AccountHolderName,
-    bool IsDefault = false);
+
