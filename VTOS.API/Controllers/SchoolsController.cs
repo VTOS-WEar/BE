@@ -72,6 +72,7 @@ public class SchoolsController : ControllerBase
     private readonly IApproveRefundCommandHandler _approveRefundHandler;
     private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
     private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
+    private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -119,7 +120,8 @@ public class SchoolsController : ControllerBase
         IGetProvidersQueryHandler getProvidersHandler,
         IApproveRefundCommandHandler approveRefundHandler,
         ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
-        IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler)
+        IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler,
+        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -166,6 +168,7 @@ public class SchoolsController : ControllerBase
         _approveRefundHandler = approveRefundHandler;
         _createWithdrawalHandler = createWithdrawalHandler;
         _updateBankAccountHandler = updateBankAccountHandler;
+        _getSchoolRefundsHandler = getSchoolRefundsHandler;
     }
 
 
@@ -995,6 +998,27 @@ public class SchoolsController : ControllerBase
                 ? NotFound(new { error = result.Error, code = result.ErrorCode })
                 : BadRequest(new { error = result.Error, code = result.ErrorCode });
         }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get refund requests for the current school.
+    /// </summary>
+    [HttpGet("me/refunds")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetRefunds(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getSchoolRefundsHandler.HandleAsync(
+            new GetSchoolRefundsQuery(_currentUser.UserId, page, pageSize, status), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
         return Ok(result.Value);
     }

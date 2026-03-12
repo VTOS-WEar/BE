@@ -250,6 +250,14 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Users.Commands.IAddParentBankAccountCommandHandler,
             VTOS.Application.Features.Users.Commands.AddParentBankAccountCommandHandler>();
 
+        // School Module - Get Refund Requests
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolRefundsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolRefundsQueryHandler>();
+
+        // Admin Module - Get Withdrawal Requests
+        services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
+            VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
+
         return services;
     }
 }
