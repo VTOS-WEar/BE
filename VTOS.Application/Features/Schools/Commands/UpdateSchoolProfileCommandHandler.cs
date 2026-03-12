@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
@@ -14,10 +15,12 @@ namespace VTOS.Application.Features.Schools.Commands;
 public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly IMemoryCache _cache;
 
-    public UpdateSchoolProfileCommandHandler(IApplicationDbContext db)
+    public UpdateSchoolProfileCommandHandler(IApplicationDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     public async Task<Result<SchoolProfileDto>> HandleAsync(UpdateSchoolProfileCommand command, CancellationToken ct = default)
@@ -76,6 +79,9 @@ public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHand
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Invalidate public cache so /api/public/schools/{id} returns fresh data
+        _cache.Remove($"public:school:{school.Id}");
 
         var dto = new SchoolProfileDto
         {

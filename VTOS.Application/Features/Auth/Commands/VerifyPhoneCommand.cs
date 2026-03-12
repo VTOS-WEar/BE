@@ -2,12 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Auth.DTOs;
-using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Features.Auth.Commands;
 
 /// <summary>
-/// Command for verifying phone and linking children.
+/// Command for verifying and saving a parent's phone number.
+/// Child linking is now done separately via POST /api/users/me/find-children.
 /// Requires authenticated user.
 /// </summary>
 public record VerifyPhoneCommand(
@@ -17,7 +17,7 @@ public record VerifyPhoneCommand(
 
 /// <summary>
 /// Handler for phone verification command.
-/// Fetches children from StudentDataImport based on ParentPhone.
+/// Only saves the phone number to the user's account.
 /// </summary>
 public class VerifyPhoneCommandHandler
 {
@@ -54,66 +54,13 @@ public class VerifyPhoneCommandHandler
                 "PHONE_ALREADY_USED");
         }
 
-        // Update user phone
+        // Save phone to user record
         user.Phone = command.Phone;
-
-        // Find matching students from StudentDataImport
-        var studentImports = await _context.Set<StudentDataImport>()
-            .Include(s => s.School)
-            .Where(s => s.ParentPhone == command.Phone && !s.IsRegistered)
-            .ToListAsync(cancellationToken);
-
-        var createdChildren = new List<ChildDto>();
-
-        // Create ChildProfile for each match
-        foreach (var studentImport in studentImports)
-        {
-            var childProfile = new ChildProfile
-            {
-                Id = Guid.NewGuid(),
-                ParentUserID = user.Id,
-                FullName = studentImport.FullName,
-                Age = studentImport.DateOfBirth.HasValue 
-                    ? DateTime.UtcNow.Year - studentImport.DateOfBirth.Value.Year 
-                    : 0,
-                Grade = studentImport.Class ?? string.Empty,
-                Gender = Domain.Enums.Gender.Male, // Default, can be updated later
-                SchoolID = studentImport.SchoolID,
-                IsDeleted = false
-            };
-
-            _context.ChildProfiles.Add(childProfile);
-
-            // Update StudentDataImport
-            studentImport.IsRegistered = true;
-            studentImport.MatchedChildID = childProfile.Id;
-
-            // Add to response
-            createdChildren.Add(new ChildDto(
-                childProfile.Id,
-                childProfile.FullName,
-                childProfile.Age,
-                childProfile.Grade,
-                childProfile.Gender.ToString(),
-                new SchoolDto(
-                    studentImport.School.Id,
-                    studentImport.School.SchoolName,
-                    studentImport.School.LogoURL
-                )
-            ));
-        }
-
         await _context.SaveChangesAsync(cancellationToken);
-
-        var message = createdChildren.Count > 0
-            ? $"Successfully linked {createdChildren.Count} children to your account"
-            : "No children found with this phone number";
 
         return Result<VerifyPhoneResponse>.Success(new VerifyPhoneResponse(
             command.Phone,
-            createdChildren.Count,
-            createdChildren,
-            message
+            "Số điện thoại đã được lưu thành công."
         ));
     }
 }

@@ -48,6 +48,10 @@ public class UpdateStudentCommandHandler : IUpdateStudentCommandHandler
         if (cmd.WeightKg.HasValue)
             child.WeightKg = cmd.WeightKg.Value;
 
+        // Update ParentPhone only if child is NOT yet linked to a real parent account
+        if (!string.IsNullOrWhiteSpace(cmd.ParentPhone) && child.ParentUserID == null)
+            child.ParentPhone = cmd.ParentPhone.Trim();
+
         await _db.SaveChangesAsync(ct);
 
         return Result<StudentDetailDto>.Success(new StudentDetailDto
@@ -61,6 +65,7 @@ public class UpdateStudentCommandHandler : IUpdateStudentCommandHandler
             WeightKg = child.WeightKg,
             HasMeasurements = child.HeightCm > 0 && child.WeightKg > 0,
             IsParentLinked = child.ParentUserID != null,
+            ParentPhone = child.ParentPhone,
         });
     }
 

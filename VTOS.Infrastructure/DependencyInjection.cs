@@ -109,6 +109,11 @@ public static class DependencyInjection
         services.AddScoped<IUpdateAvatarCommandHandler, UpdateAvatarCommandHandler>();
         services.AddScoped<ISubmitVerificationCommandHandler, SubmitVerificationCommandHandler>();
 
+        // Parent - Children Management
+        services.AddScoped<GetMyChildrenQueryHandler>();
+        services.AddScoped<FindChildrenCommandHandler>();
+
+
         //Child Infor
         services.AddScoped<IGetMyChildProfileQueryHandler, GetMyChildProfileQueryHandler>();
         services.AddScoped<IGetChildProfileQueryHandler, GetChildProfileQueryHandler>();
@@ -120,6 +125,7 @@ public static class DependencyInjection
         services.AddScoped<GetOutfitDetailQueryHandler>();
         services.AddScoped<GetSchoolDetailQueryHandler>();
         services.AddScoped<GetUniformListQueryHandler>();
+        services.AddScoped<GetPublicCampaignDetailQueryHandler>();
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
