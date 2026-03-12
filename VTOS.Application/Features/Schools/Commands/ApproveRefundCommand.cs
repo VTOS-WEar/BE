@@ -1,10 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Common.Models;
-using VTOS.Domain.Entities;
-using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Commands;
 
@@ -16,5 +11,5 @@ public record ApproveRefundCommand(Guid SchoolUserId, Guid RefundId);
 
 public interface IApproveRefundCommandHandler
 {
-    Task<Result> HandleAsync(ApproveRefundCommand command, CancellationToken ct = default);
+    Task<Result<RefundResponse>> HandleAsync(ApproveRefundCommand command, CancellationToken ct = default);
 }

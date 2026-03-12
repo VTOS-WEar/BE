@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Common.Models;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -28,7 +29,7 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
         _logger = logger;
     }
 
-    public async Task<Result> HandleAsync(CancelOrderCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result<List<RefundResponse>>> HandleAsync(CancelOrderCommand command, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -39,42 +40,51 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
                 .FirstOrDefaultAsync(o => o.Id == command.OrderId, cancellationToken);
 
             if (order == null)
-                return Result.Failure("Order not found", "ORDER_NOT_FOUND");
+                return Result<List<RefundResponse>>.Failure("Order not found", "ORDER_NOT_FOUND");
 
             // Step 2: Validate ownership
             if (order.ChildProfile.ParentUserID != command.ParentId)
             {
                 _logger.LogWarning("Unauthorized cancel attempt: Parent {ParentId} on Order {OrderId}",
                     command.ParentId, command.OrderId);
-                return Result.Failure("You are not authorized to cancel this order", "UNAUTHORIZED_ORDER_ACCESS");
+                return Result<List<RefundResponse>>.Failure("You are not authorized to cancel this order", "UNAUTHORIZED_ORDER_ACCESS");
             }
 
             // Step 3: Route to the correct cancellation flow based on current status
-            var result = order.OrderStatus switch
+            List<RefundResponse> refunds;
+            switch (order.OrderStatus)
             {
-                OrderStatus.Pending => await HandlePendingCancellationAsync(order, cancellationToken),
-                OrderStatus.Paid    => HandlePaidCancellation(order, command.Reason),
-                _ => Result.Failure($"Order cannot be cancelled. Current status: {order.OrderStatus}", "ORDER_NOT_CANCELLABLE")
-            };
-
-            if (!result.IsSuccess)
-                return result;
+                case OrderStatus.Pending:
+                    var pendingResult = await HandlePendingCancellationAsync(order, cancellationToken);
+                    if (!pendingResult.IsSuccess)
+                        return Result<List<RefundResponse>>.Failure(pendingResult.Error!, pendingResult.ErrorCode);
+                    refunds = new List<RefundResponse>();
+                    break;
+                case OrderStatus.Paid:
+                    var paidResult = HandlePaidCancellation(order, command.Reason);
+                    if (!paidResult.IsSuccess)
+                        return Result<List<RefundResponse>>.Failure(paidResult.Error!, paidResult.ErrorCode);
+                    refunds = paidResult.Value!;
+                    break;
+                default:
+                    return Result<List<RefundResponse>>.Failure($"Order cannot be cancelled. Current status: {order.OrderStatus}", "ORDER_NOT_CANCELLABLE");
+            }
 
             // Step 4: Set cancel reason
             order.CancelReason = command.Reason;
 
-            // Step 4: Save all changes
+            // Step 5: Save all changes
             await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Order {OrderId} cancelled successfully by Parent {ParentId}",
                 command.OrderId, command.ParentId);
 
-            return Result.Success();
+            return Result<List<RefundResponse>>.Success(refunds);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error cancelling order {OrderId}", command.OrderId);
-            return Result.Failure($"Failed to cancel order: {ex.Message}", "CANCEL_ORDER_ERROR");
+            return Result<List<RefundResponse>>.Failure($"Failed to cancel order: {ex.Message}", "CANCEL_ORDER_ERROR");
         }
     }
 
@@ -123,7 +133,7 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
     /// - Update PaymentTransaction status → Cancelled  
     /// - Create Refund request for completed transactions
     /// </summary>
-    private Result HandlePaidCancellation(Order order, string? reason)
+    private Result<List<RefundResponse>> HandlePaidCancellation(Order order, string? reason)
     {
         SetOrderCancelled(order);
 
@@ -131,6 +141,8 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
         var completedTransactions = order.PaymentTransactions
             .Where(t => t.TransactionStatus == PaymentStatus.Completed)
             .ToList();
+
+        var refundResponses = new List<RefundResponse>();
 
         foreach (var transaction in completedTransactions)
         {
@@ -146,6 +158,18 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
 
             _context.Refunds.Add(refund);
 
+            refundResponses.Add(new RefundResponse
+            {
+                RefundId = refund.Id,
+                OrderId = order.Id,
+                PaymentTransactionId = transaction.Id,
+                RefundAmount = refund.RefundAmount,
+                RefundStatus = refund.RefundStatus.ToString(),
+                DisputeReason = refund.DisputeReason,
+                CreatedAt = refund.CreatedAt,
+                UpdatedAt = refund.CreatedAt
+            });
+
             _logger.LogInformation(
                 "Refund request created: RefundId={RefundId}, TransactionId={TransactionId}, Amount={Amount}",
                 refund.Id, transaction.Id, refund.RefundAmount);
@@ -154,7 +178,7 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
         // Cancel remaining pending/processing transactions (if any)
         CancelPendingTransactions(order);
 
-        return Result.Success();
+        return Result<List<RefundResponse>>.Success(refundResponses);
     }
 
     private static void SetOrderCancelled(Order order)

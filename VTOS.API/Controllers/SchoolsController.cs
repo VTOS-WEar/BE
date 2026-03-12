@@ -984,12 +984,12 @@ public class SchoolsController : ControllerBase
 
         if (!result.IsSuccess)
         {
-            return result.ErrorCode is "REFUND_NOT_FOUND" or "SCHOOL_NOT_FOUND"
+            return result.ErrorCode is "REFUND_NOT_FOUND" or "SCHOOL_NOT_FOUND" or "USER_NOT_FOUND"
                 ? NotFound(new { error = result.Error, code = result.ErrorCode })
                 : BadRequest(new { error = result.Error, code = result.ErrorCode });
         }
 
-        return Ok(new { message = "Refund approved successfully." });
+        return Ok(result.Value);
     }
 }
 

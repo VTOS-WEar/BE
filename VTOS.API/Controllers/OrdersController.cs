@@ -156,7 +156,7 @@ public class OrdersController : ControllerBase
             }
 
             _logger.LogInformation("Order cancelled successfully: OrderId={OrderId}", orderId);
-            return Ok(result);
+            return Ok(new { message = "Order cancelled successfully.", refunds = result.Value });
         }
         catch (Exception ex)
         {

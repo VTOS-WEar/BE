@@ -24,7 +24,7 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
         _logger = logger;
     }
 
-    public async Task<Result> HandleAsync(ApproveRefundCommand command, CancellationToken ct = default)
+    public async Task<Result<RefundResponse>> HandleAsync(ApproveRefundCommand command, CancellationToken ct = default)
     {
         try
         {
@@ -35,13 +35,13 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 .FirstOrDefaultAsync(u => u.Id == command.SchoolUserId, ct);
 
             if (schoolUser == null)
-                return Result.Failure("User not found.", "USER_NOT_FOUND");
+                return Result<RefundResponse>.Failure("User not found.", "USER_NOT_FOUND");
 
             if (schoolUser.Role?.RoleName != "School")
-                return Result.Failure("Only school managers can approve refunds.", "FORBIDDEN");
+                return Result<RefundResponse>.Failure("Only school managers can approve refunds.", "FORBIDDEN");
 
             if (schoolUser.SchoolID == null)
-                return Result.Failure("User is not assigned to any school.", "SCHOOL_NOT_FOUND");
+                return Result<RefundResponse>.Failure("User is not assigned to any school.", "SCHOOL_NOT_FOUND");
 
             var schoolId = schoolUser.SchoolID.Value;
 
@@ -53,25 +53,25 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 .FirstOrDefaultAsync(r => r.Id == command.RefundId, ct);
 
             if (refund == null)
-                return Result.Failure("Refund not found.", "REFUND_NOT_FOUND");
+                return Result<RefundResponse>.Failure("Refund not found.", "REFUND_NOT_FOUND");
 
             if (refund.RefundStatus != RefundStatus.Pending)
-                return Result.Failure($"Refund cannot be approved. Current status: {refund.RefundStatus}", "REFUND_NOT_APPROVABLE");
+                return Result<RefundResponse>.Failure($"Refund cannot be approved. Current status: {refund.RefundStatus}", "REFUND_NOT_APPROVABLE");
 
             // Step 3: Validate that this refund belongs to the current user's school
             var order = refund.PaymentTransaction.Order;
             if (order.ChildProfile.SchoolID != schoolId)
-                return Result.Failure("This refund does not belong to your school.", "UNAUTHORIZED_REFUND_ACCESS");
+                return Result<RefundResponse>.Failure("This refund does not belong to your school.", "UNAUTHORIZED_REFUND_ACCESS");
 
             // Step 4: Load school wallet and check balance
             var wallet = await _db.Set<SchoolWallet>()
                 .FirstOrDefaultAsync(w => w.SchoolID == schoolId && w.IsActive, ct);
 
             if (wallet == null)
-                return Result.Failure("School wallet not found or inactive.", "WALLET_NOT_FOUND");
+                return Result<RefundResponse>.Failure("School wallet not found or inactive.", "WALLET_NOT_FOUND");
 
             if (wallet.Balance < refund.RefundAmount)
-                return Result.Failure("Insufficient school wallet balance for refund.", "INSUFFICIENT_BALANCE");
+                return Result<RefundResponse>.Failure("Insufficient school wallet balance for refund.", "INSUFFICIENT_BALANCE");
 
             // Step 5: Get parent's default bank account for payout
             var parentId = order.ChildProfile.ParentUserID;
@@ -79,10 +79,10 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 .FirstOrDefaultAsync(b => b.ParentUserID == parentId && b.IsDefault, ct);
 
             if (parentBank == null)
-                return Result.Failure("Parent does not have a default bank account configured.", "PARENT_BANK_NOT_FOUND");
+                return Result<RefundResponse>.Failure("Parent does not have a default bank account configured.", "PARENT_BANK_NOT_FOUND");
 
             if (string.IsNullOrWhiteSpace(parentBank.BankCode))
-                return Result.Failure("Parent bank account is missing bank code.", "PARENT_BANK_CODE_MISSING");
+                return Result<RefundResponse>.Failure("Parent bank account is missing bank code.", "PARENT_BANK_CODE_MISSING");
 
             // Step 6: Call PayOS to perform actual payout to parent's bank account
             var payoutRequest = new CreatePayoutRequest
@@ -98,7 +98,7 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
             var payoutResult = await _payOSService.CreatePayoutAsync(payoutRequest, ct);
 
             if (payoutResult == null || string.IsNullOrEmpty(payoutResult.Id))
-                return Result.Failure("Payout to parent bank account failed.", "PAYOUT_FAILED");
+                return Result<RefundResponse>.Failure("Payout to parent bank account failed.", "PAYOUT_FAILED");
 
             _logger.LogInformation(
                 "PayOS payout created: PayoutId={PayoutId}, RefundId={RefundId}, Amount={Amount}",
@@ -123,12 +123,22 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 "Refund approved: RefundId={RefundId}, Amount={Amount}, SchoolWallet={WalletId}, PayoutId={PayoutId}, PayoutTo={BankAccount}",
                 refund.Id, refund.RefundAmount, wallet.Id, payoutResult.Id, parentBank.AccountNumber);
 
-            return Result.Success();
+            return Result<RefundResponse>.Success(new RefundResponse
+            {
+                RefundId = refund.Id,
+                OrderId = order.Id,
+                PaymentTransactionId = refund.PaymentID,
+                RefundAmount = refund.RefundAmount,
+                RefundStatus = refund.RefundStatus.ToString(),
+                DisputeReason = refund.DisputeReason,
+                CreatedAt = refund.CreatedAt,
+                UpdatedAt = refund.UpdatedAt ?? refund.CreatedAt
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error approving refund {RefundId}", command.RefundId);
-            return Result.Failure($"Failed to approve refund: {ex.Message}", "APPROVE_REFUND_ERROR");
+            return Result<RefundResponse>.Failure($"Failed to approve refund: {ex.Message}", "APPROVE_REFUND_ERROR");
         }
     }
 }
