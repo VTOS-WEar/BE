@@ -131,6 +131,10 @@ public static class DependencyInjection
         services.AddScoped<IGetOrderStatusQueryHandler, GetOrderStatusQueryHandler>();
         services.AddScoped<IGetOrderHistoryQueryHandler, GetOrderHistoryQueryHandler>();
 
+        // Refund Module Handler
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IApproveRefundCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ApproveRefundCommandHandler>();
+
         // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSchoolProfileQueryHandler>();

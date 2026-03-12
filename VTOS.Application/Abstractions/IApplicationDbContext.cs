@@ -34,6 +34,7 @@ public interface IApplicationDbContext
     DbSet<StudentDataImport> StudentDataImports { get; }
     DbSet<ImportBatch> ImportBatches { get; }
     DbSet<Complaint> Complaints { get; }
+    DbSet<ParentBankAccount> ParentBankAccounts { get; }
 
     DbSet<T> Set<T>() where T : class;
     

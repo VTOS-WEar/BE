@@ -12,6 +12,7 @@ public class Order : AuditableEntity
     public string ShippingAddress { get; set; } = string.Empty;
     public Guid? CampaignID { get; set; }
     public string? DeliveryMethod { get; set; }
+    public string? CancelReason { get; set; }
 
     // Navigation properties
     public ChildProfile ChildProfile { get; set; } = null!;
