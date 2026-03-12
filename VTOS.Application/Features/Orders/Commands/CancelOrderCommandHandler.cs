@@ -53,12 +53,15 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
             var result = order.OrderStatus switch
             {
                 OrderStatus.Pending => await HandlePendingCancellationAsync(order, cancellationToken),
-                OrderStatus.Paid    => HandlePaidCancellation(order),
+                OrderStatus.Paid    => HandlePaidCancellation(order, command.Reason),
                 _ => Result.Failure($"Order cannot be cancelled. Current status: {order.OrderStatus}", "ORDER_NOT_CANCELLABLE")
             };
 
             if (!result.IsSuccess)
                 return result;
+
+            // Step 4: Set cancel reason
+            order.CancelReason = command.Reason;
 
             // Step 4: Save all changes
             await _context.SaveChangesAsync(cancellationToken);
@@ -120,7 +123,7 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
     /// - Update PaymentTransaction status → Cancelled  
     /// - Create Refund request for completed transactions
     /// </summary>
-    private Result HandlePaidCancellation(Order order)
+    private Result HandlePaidCancellation(Order order, string? reason)
     {
         SetOrderCancelled(order);
 
@@ -137,6 +140,7 @@ public class CancelOrderCommandHandler : ICancelOrderCommandHandler
                 PaymentID = transaction.Id,
                 RefundAmount = transaction.Amount,
                 RefundStatus = RefundStatus.Pending,
+                DisputeReason = reason,
                 CreatedAt = DateTime.UtcNow
             };
 

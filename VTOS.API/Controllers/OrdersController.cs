@@ -137,13 +137,14 @@ public class OrdersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CancelOrder(
         [FromRoute] Guid orderId,
+        [FromBody] CancelOrderRequest? request,
         CancellationToken cancellationToken)
     {
         try
         {
             _logger.LogInformation("Cancel order initiated: OrderId={OrderId}", orderId);
 
-            var command = new CancelOrderCommand(_currentUserService.UserId, orderId);
+            var command = new CancelOrderCommand(_currentUserService.UserId, orderId, request?.Reason);
             var result = await _cancelOrderCommandHandler.HandleAsync(command, cancellationToken);
 
             if (!result.IsSuccess)

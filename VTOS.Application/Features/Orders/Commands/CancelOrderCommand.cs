@@ -7,7 +7,8 @@ namespace VTOS.Application.Features.Orders.Commands;
 /// </summary>
 public record CancelOrderCommand(
     Guid ParentId,
-    Guid OrderId
+    Guid OrderId,
+    string? Reason = null
 );
 
 /// <summary>
