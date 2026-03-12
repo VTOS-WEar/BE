@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Common.Models;
@@ -330,9 +332,16 @@ public class PayOSController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("payment webhook infor: " + JsonConvert.SerializeObject(webhook));
             _logger.LogInformation("Received PayOS webhook for PaymentLinkId: {PaymentLinkId}, Success: {Success}",
                 webhook?.Data?.PaymentLinkId, webhook?.Success);
-
+            if (webhook != null)
+            {
+                if(webhook?.Data?.AccountNumber == "12345678")
+                {
+                    return Ok("ok");
+                }
+            }
             var result = await _paymentWebhookHandler.HandleWebhookAsync(webhook, cancellationToken);
 
             if (!result.IsSuccess)
