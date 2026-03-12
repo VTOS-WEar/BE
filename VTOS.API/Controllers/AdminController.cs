@@ -15,19 +15,22 @@ public class AdminController : ControllerBase
     private readonly IApproveUserCommandHandler _approveHandler;
     private readonly ISuspendUserCommandHandler _suspendHandler;
     private readonly IRemoveFeedbackCommandHandler _removeFeedbackHandler;
+    private readonly IApproveWithdrawalCommandHandler _approveWithdrawalHandler;
 
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
         IGetAllFeedbacksQueryHandler feedbacksHandler,
         IApproveUserCommandHandler approveHandler,
         ISuspendUserCommandHandler suspendHandler,
-        IRemoveFeedbackCommandHandler removeFeedbackHandler)
+        IRemoveFeedbackCommandHandler removeFeedbackHandler,
+        IApproveWithdrawalCommandHandler approveWithdrawalHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
         _approveHandler = approveHandler;
         _suspendHandler = suspendHandler;
         _removeFeedbackHandler = removeFeedbackHandler;
+        _approveWithdrawalHandler = approveWithdrawalHandler;
     }
 
     [HttpGet("users")]
@@ -79,4 +82,26 @@ public class AdminController : ControllerBase
 
         return Ok();
     }
+
+    // ✅ Approve Withdrawal Request
+    [HttpPost("withdrawals/{id}/approve")]
+    public async Task<IActionResult> ApproveWithdrawal(
+        Guid id,
+        [FromBody] ApproveWithdrawalRequest request,
+        CancellationToken ct)
+    {
+        var result = await _approveWithdrawalHandler.HandleAsync(
+            new ApproveWithdrawalCommand(id, request.AdminNote), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode is "WITHDRAWAL_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
+    }
 }
+
+public record ApproveWithdrawalRequest(string? AdminNote);

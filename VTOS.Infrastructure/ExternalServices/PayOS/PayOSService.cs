@@ -440,7 +440,7 @@ public partial class PayOSService : IPayOSService
 
             _logger.LogInformation("Creating payout. ReferenceId: {ReferenceId}, Amount: {Amount}, ToBin: {ToBin}, ToAccount: {ToAccount}",
                 request.ReferenceId, request.Amount, request.ToBin, request.ToAccountNumber);
-
+            request.ReferenceId += GenerateOrderCode().ToString().Substring(3);
             // Build payload dictionary for signature computation
             var payloadDict = new Dictionary<string, object?>
             {
