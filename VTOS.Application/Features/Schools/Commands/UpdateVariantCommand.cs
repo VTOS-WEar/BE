@@ -12,8 +12,6 @@ public record UpdateVariantCommand(
     Guid OutfitId,
     Guid VariantId,
     string? Size,
-    decimal? Price,
-    int? StockQuantity,
     string? ColorVariant,
     string? MaterialType,
     string? SKUCode

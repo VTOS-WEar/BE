@@ -10,8 +10,6 @@ public record CreateVariantCommand(
     Guid UserId,
     Guid OutfitId,
     string Size,
-    decimal Price,
-    int StockQuantity,
     string? ColorVariant,
     string? MaterialType,
     string? SKUCode

@@ -22,8 +22,6 @@ public class ProductVariantDto
 public class CreateVariantRequest
 {
     public string Size { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public int StockQuantity { get; set; }
     public string? ColorVariant { get; set; }
     public string? MaterialType { get; set; }
     public string? SKUCode { get; set; }
@@ -35,8 +33,6 @@ public class CreateVariantRequest
 public class UpdateVariantRequest
 {
     public string? Size { get; set; }
-    public decimal? Price { get; set; }
-    public int? StockQuantity { get; set; }
     public string? ColorVariant { get; set; }
     public string? MaterialType { get; set; }
     public string? SKUCode { get; set; }

@@ -598,8 +598,6 @@ public class SchoolsController : ControllerBase
                 _currentUser.UserId,
                 outfitId,
                 request.Size,
-                request.Price,
-                request.StockQuantity,
                 request.ColorVariant,
                 request.MaterialType,
                 request.SKUCode
@@ -621,8 +619,6 @@ public class SchoolsController : ControllerBase
                 outfitId,
                 variantId,
                 request.Size,
-                request.Price,
-                request.StockQuantity,
                 request.ColorVariant,
                 request.MaterialType,
                 request.SKUCode

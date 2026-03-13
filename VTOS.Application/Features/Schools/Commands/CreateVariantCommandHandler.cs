@@ -54,8 +54,8 @@ public class CreateVariantCommandHandler : ICreateVariantCommandHandler
             Id = Guid.NewGuid(),
             OutfitID = command.OutfitId,
             Size = command.Size,
-            Price = command.Price,
-            StockQuantity = command.StockQuantity,
+            Price = outfit.Price, // Inherit price from Outfit
+            StockQuantity = 0, // Managed by Provider later
             ColorVariant = command.ColorVariant,
             MaterialType = command.MaterialType,
             SKUCode = command.SKUCode,

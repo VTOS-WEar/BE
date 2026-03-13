@@ -59,8 +59,6 @@ public class UpdateVariantCommandHandler : IUpdateVariantCommandHandler
 
         // Apply partial updates
         if (command.Size != null) variant.Size = command.Size;
-        if (command.Price.HasValue) variant.Price = command.Price.Value;
-        if (command.StockQuantity.HasValue) variant.StockQuantity = command.StockQuantity.Value;
         if (command.ColorVariant != null) variant.ColorVariant = command.ColorVariant;
         if (command.MaterialType != null) variant.MaterialType = command.MaterialType;
         if (command.SKUCode != null) variant.SKUCode = command.SKUCode;
