@@ -137,6 +137,9 @@ public static class DependencyInjection
         services.AddScoped<IGetOrderStatusQueryHandler, GetOrderStatusQueryHandler>();
         services.AddScoped<IGetOrderHistoryQueryHandler, GetOrderHistoryQueryHandler>();
 
+        // Background Jobs
+        services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
+
         // Refund Module Handler
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IApproveRefundCommandHandler,
             VTOS.Application.Features.Schools.Commands.ApproveRefundCommandHandler>();
