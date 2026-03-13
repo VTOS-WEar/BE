@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Entities;
@@ -16,10 +17,12 @@ namespace VTOS.Application.Features.Schools.Commands;
 public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly IMemoryCache _cache;
 
-    public PublishCampaignCommandHandler(IApplicationDbContext db)
+    public PublishCampaignCommandHandler(IApplicationDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     public async Task<Result<PublishCampaignResponseDto>> HandleAsync(PublishCampaignCommand command, CancellationToken ct = default)
@@ -99,6 +102,9 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
 
         // 6. Save atomically
         await _db.SaveChangesAsync(ct);
+
+        // 7. Invalidate public caches so parents see the new campaign immediately
+        _cache.Remove($"public:school:{schoolId}");
 
         return Result<PublishCampaignResponseDto>.Success(new PublishCampaignResponseDto
         {

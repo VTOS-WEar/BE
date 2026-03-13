@@ -44,18 +44,20 @@ public class GetCampaignSummaryQueryHandler : IGetCampaignSummaryQueryHandler
 
         var campaign = await _db.Campaigns
             .AsNoTracking()
-            .Include(c => c.Orders)
-                .ThenInclude(o => o.OrderItems)
-                    .ThenInclude(oi => oi.ProductVariant)
-                        .ThenInclude(pv => pv.Outfit)
             .FirstOrDefaultAsync(c => c.Id == query.CampaignId && c.SchoolID == user.SchoolID.Value, ct);
 
         if (campaign == null)
             return Result<CampaignSummaryDto>.Failure("Campaign not found.", "CAMPAIGN_NOT_FOUND");
 
-        var allItems = campaign.Orders.SelectMany(o => o.OrderItems).ToList();
+        // Count orders separately (avoids loading Order entity with missing CancelReason column)
+        var totalOrders = await _db.Orders
+            .AsNoTracking()
+            .CountAsync(o => o.CampaignID == query.CampaignId, ct);
 
-        var outfitSummaries = allItems
+        // Get order items via OrderItems → join Orders, avoiding full Order entity load
+        var outfitSummaries = await _db.OrderItems
+            .AsNoTracking()
+            .Where(oi => oi.Order.CampaignID == query.CampaignId)
             .GroupBy(oi => new { oi.ProductVariant.OutfitID, oi.ProductVariant.Outfit.OutfitName })
             .Select(g => new OutfitSummaryDto(
                 g.Key.OutfitID,
@@ -63,14 +65,15 @@ public class GetCampaignSummaryQueryHandler : IGetCampaignSummaryQueryHandler
                 g.Sum(x => x.Quantity),
                 g.Sum(x => x.Quantity * x.UnitPrice)
             ))
-            .ToList();
+            .ToListAsync(ct);
+
+        var totalItemsOrdered = outfitSummaries.Sum(s => s.TotalOrdered);
+        var totalRevenue = outfitSummaries.Sum(s => s.TotalRevenue);
 
         return Result<CampaignSummaryDto>.Success(new CampaignSummaryDto(
             campaign.Id, campaign.CampaignName, campaign.Status.ToString(),
             campaign.StartDate, campaign.EndDate,
-            campaign.Orders.Count,
-            allItems.Sum(x => x.Quantity),
-            allItems.Sum(x => x.Quantity * x.UnitPrice),
+            totalOrders, totalItemsOrdered, totalRevenue,
             outfitSummaries
         ));
     }
