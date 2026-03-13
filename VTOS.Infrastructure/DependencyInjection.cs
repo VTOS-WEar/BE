@@ -244,6 +244,30 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProvidersQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetProvidersQueryHandler>();
 
+        // School Module - Withdrawal Request
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateWithdrawalRequestCommandHandler,
+            VTOS.Application.Features.Schools.Commands.CreateWithdrawalRequestCommandHandler>();
+
+        // School Module - Bank Account
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolBankAccountCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateSchoolBankAccountCommandHandler>();
+
+        // Admin Module - Approve Withdrawal
+        services.AddScoped<VTOS.Application.Features.Admin.Commands.IApproveWithdrawalCommandHandler,
+            VTOS.Application.Features.Admin.Commands.ApproveWithdrawalCommandHandler>();
+
+        // Parent Module - Bank Account
+        services.AddScoped<VTOS.Application.Features.Users.Commands.IAddParentBankAccountCommandHandler,
+            VTOS.Application.Features.Users.Commands.AddParentBankAccountCommandHandler>();
+
+        // School Module - Get Refund Requests
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolRefundsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolRefundsQueryHandler>();
+
+        // Admin Module - Get Withdrawal Requests
+        services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
+            VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
+
         return services;
     }
 }
