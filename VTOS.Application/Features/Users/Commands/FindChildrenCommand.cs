@@ -105,7 +105,9 @@ public class FindChildrenCommandHandler
                 child.Gender.ToString(),
                 child.School != null
                     ? new ChildSchoolDto(child.School.Id, child.School.SchoolName, child.School.LogoURL)
-                    : null
+                    : null,
+                child.HeightCm,
+                child.WeightKg
             ));
         }
 

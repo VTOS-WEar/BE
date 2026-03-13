@@ -70,6 +70,10 @@ public class SchoolsController : ControllerBase
     private readonly IDeleteOutfitCommandHandler _deleteOutfitHandler;
     private readonly IGetProvidersQueryHandler _getProvidersHandler;
     private readonly IApproveRefundCommandHandler _approveRefundHandler;
+    private readonly IGetOutfitVariantsQueryHandler _getVariantsHandler;
+    private readonly ICreateVariantCommandHandler _createVariantHandler;
+    private readonly IUpdateVariantCommandHandler _updateVariantHandler;
+    private readonly IDeleteVariantCommandHandler _deleteVariantHandler;
     private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
     private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
     private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
@@ -119,6 +123,10 @@ public class SchoolsController : ControllerBase
         IDeleteOutfitCommandHandler deleteOutfitHandler,
         IGetProvidersQueryHandler getProvidersHandler,
         IApproveRefundCommandHandler approveRefundHandler,
+        IGetOutfitVariantsQueryHandler getVariantsHandler,
+        ICreateVariantCommandHandler createVariantHandler,
+        IUpdateVariantCommandHandler updateVariantHandler,
+        IDeleteVariantCommandHandler deleteVariantHandler,
         ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
         IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler,
         IGetSchoolRefundsQueryHandler getSchoolRefundsHandler)
@@ -166,6 +174,10 @@ public class SchoolsController : ControllerBase
         _deleteOutfitHandler = deleteOutfitHandler;
         _getProvidersHandler = getProvidersHandler;
         _approveRefundHandler = approveRefundHandler;
+        _getVariantsHandler = getVariantsHandler;
+        _createVariantHandler = createVariantHandler;
+        _updateVariantHandler = updateVariantHandler;
+        _deleteVariantHandler = deleteVariantHandler;
         _createWithdrawalHandler = createWithdrawalHandler;
         _updateBankAccountHandler = updateBankAccountHandler;
         _getSchoolRefundsHandler = getSchoolRefundsHandler;
@@ -557,6 +569,79 @@ public class SchoolsController : ControllerBase
         var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, ct);
 
         return Ok(new { imageUrl });
+    }
+
+    // ── Product Variant (Size) CRUD endpoints ──
+
+    /// <summary>
+    /// Get all product variants (sizes) for an outfit.
+    /// </summary>
+    [HttpGet("me/outfits/{outfitId:guid}/variants")]
+    [ProducesResponseType(typeof(List<ProductVariantDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOutfitVariants(Guid outfitId, CancellationToken ct)
+    {
+        var result = await _getVariantsHandler.HandleAsync(
+            new GetOutfitVariantsQuery(_currentUser.UserId, outfitId), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Create a new product variant (size) for an outfit.
+    /// </summary>
+    [HttpPost("me/outfits/{outfitId:guid}/variants")]
+    [ProducesResponseType(typeof(ProductVariantDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateVariant(Guid outfitId, [FromBody] CreateVariantRequest request, CancellationToken ct)
+    {
+        var result = await _createVariantHandler.HandleAsync(
+            new CreateVariantCommand(
+                _currentUser.UserId,
+                outfitId,
+                request.Size,
+                request.Price,
+                request.StockQuantity,
+                request.ColorVariant,
+                request.MaterialType,
+                request.SKUCode
+            ), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    /// <summary>
+    /// Update a product variant (size) for an outfit (partial update).
+    /// </summary>
+    [HttpPut("me/outfits/{outfitId:guid}/variants/{variantId:guid}")]
+    [ProducesResponseType(typeof(ProductVariantDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateVariant(Guid outfitId, Guid variantId, [FromBody] UpdateVariantRequest request, CancellationToken ct)
+    {
+        var result = await _updateVariantHandler.HandleAsync(
+            new UpdateVariantCommand(
+                _currentUser.UserId,
+                outfitId,
+                variantId,
+                request.Size,
+                request.Price,
+                request.StockQuantity,
+                request.ColorVariant,
+                request.MaterialType,
+                request.SKUCode
+            ), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Delete a product variant (size) for an outfit.
+    /// </summary>
+    [HttpDelete("me/outfits/{outfitId:guid}/variants/{variantId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteVariant(Guid outfitId, Guid variantId, CancellationToken ct)
+    {
+        var result = await _deleteVariantHandler.HandleAsync(
+            new DeleteVariantCommand(_currentUser.UserId, outfitId, variantId), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return NoContent();
     }
 
     /// <summary>Parse all data rows (skip header) from an XLSX stream using ClosedXML.</summary>

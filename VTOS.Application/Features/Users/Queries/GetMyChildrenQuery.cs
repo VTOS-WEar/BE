@@ -34,7 +34,9 @@ public class GetMyChildrenQueryHandler
                 c.Age,
                 c.Grade,
                 c.Gender.ToString(),
-                new ChildSchoolDto(c.School.Id, c.School.SchoolName, c.School.LogoURL)
+                new ChildSchoolDto(c.School.Id, c.School.SchoolName, c.School.LogoURL),
+                c.HeightCm,
+                c.WeightKg
             ))
             .ToListAsync(cancellationToken);
 

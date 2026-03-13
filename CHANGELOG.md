@@ -2,6 +2,43 @@
 
 All notable changes to the VTOS Backend project.
 
+## [2026-03-12] - Variant CRUD & Size Recommendation
+
+### Added
+- **School Module: Variant (Size) CRUD**
+  - `GET /api/schools/me/outfits/{outfitId}/variants` — List all sizes for an outfit
+  - `POST /api/schools/me/outfits/{outfitId}/variants` — Create new size (size, price, stockQuantity, colorVariant, materialType, skuCode)
+  - `PUT /api/schools/me/outfits/{outfitId}/variants/{variantId}` — Update size (partial update)
+  - `DELETE /api/schools/me/outfits/{outfitId}/variants/{variantId}` — Delete size
+
+- **Application Layer** (`VTOS.Application/Features/Schools/`)
+  - **Commands**: `CreateVariantCommand`, `UpdateVariantCommand`, `DeleteVariantCommand` + Handlers
+  - **Queries**: `GetOutfitVariantsQuery` + Handler
+  - **DTOs**: `ProductVariantDto`, `CreateVariantRequest`, `UpdateVariantRequest`
+
+- **Frontend: VariantManager Modal**
+  - `VariantManager.tsx` — NEW modal with table of sizes, inline add/edit/delete
+  - `UniformManagement.tsx` — Added "Quản lý kích cỡ" button to open VariantManager
+
+- **Size Recommendation (FE-only algorithm)**
+  - `sizeRecommendation.ts` — NEW utility: Vietnamese standard sizing table (100–180cm), recommends best-fit size based on height (primary) + weight (secondary)
+  - `CampaignDetail.tsx` — ⭐ badge on recommended size, auto-select, reason text ("Phù hợp chiều cao Xcm, cân nặng Ykg"), warning when child has no measurements
+
+### Changed
+- `ChildProfileDto.cs` — Added `HeightCm`, `WeightKg` properties
+- `GetMyChildrenQuery.cs` — Added height/weight projection to DTO
+- `FindChildrenCommand.cs` — Added height/weight to child DTO mapping
+- `users.ts` (FE) — Added `heightCm`, `weightKg` to ChildProfileDto interface
+- `DependencyInjection.cs` — Registered 4 new variant handlers
+
+### Technical Notes
+- Size recommendation is **FE-only** — no dedicated BE endpoint. All data (child measurements + variant sizes) available on client side
+- Algorithm: height-based lookup → if weight exceeds range, bump up one size → match against available variants (exact → alias → partial)
+- Vietnamese standard sizing table: 9 entries (100 XS → 180 2XL+)
+- Pattern: same CQRS as Student CRUD — nested under `/outfits/{outfitId}/variants`
+
+---
+
 ## [2026-03-09] - School Profile Enhancements (UC-42)
 
 ### Added
