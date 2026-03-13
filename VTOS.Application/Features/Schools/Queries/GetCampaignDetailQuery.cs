@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 
@@ -36,36 +37,57 @@ public interface IGetCampaignDetailQueryHandler
 public class GetCampaignDetailQueryHandler : IGetCampaignDetailQueryHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly ILogger<GetCampaignDetailQueryHandler> _logger;
 
-    public GetCampaignDetailQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetCampaignDetailQueryHandler(IApplicationDbContext db, ILogger<GetCampaignDetailQueryHandler> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     public async Task<Result<CampaignDetailDto>> HandleAsync(GetCampaignDetailQuery query, CancellationToken ct = default)
     {
-        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.SchoolID == null)
-            return Result<CampaignDetailDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");
+        try
+        {
+            var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
+            if (user?.SchoolID == null)
+                return Result<CampaignDetailDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
-        var campaign = await _db.Campaigns
-            .AsNoTracking()
-            .Include(c => c.CampaignOutfits)
-                .ThenInclude(co => co.Outfit)
-            .Include(c => c.Orders)
-            .FirstOrDefaultAsync(c => c.Id == query.CampaignId && c.SchoolID == user.SchoolID.Value, ct);
+            var campaign = await _db.Campaigns
+                .AsNoTracking()
+                .Include(c => c.CampaignOutfits)
+                    .ThenInclude(co => co.Outfit)
+                .FirstOrDefaultAsync(c => c.Id == query.CampaignId && c.SchoolID == user.SchoolID.Value, ct);
 
-        if (campaign == null)
-            return Result<CampaignDetailDto>.Failure("Campaign not found.", "CAMPAIGN_NOT_FOUND");
+            if (campaign == null)
+                return Result<CampaignDetailDto>.Failure("Campaign not found.", "CAMPAIGN_NOT_FOUND");
 
-        var outfitDtos = campaign.CampaignOutfits.Select(co => new CampaignOutfitDetailDto(
-            co.Id, co.OutfitID, co.Outfit.OutfitName, co.Outfit.MainImageURL,
-            co.CampaignPrice, co.MaxQuantity, co.ProviderID
-        )).ToList();
+            // Count orders separately to avoid loading full Order entity
+            // (which may have columns not yet in DB like CancelReason)
+            var orderCount = await _db.Orders
+                .AsNoTracking()
+                .CountAsync(o => o.CampaignID == query.CampaignId, ct);
 
-        var dto = new CampaignDetailDto(
-            campaign.Id, campaign.CampaignName, campaign.Status.ToString(),
-            campaign.StartDate, campaign.EndDate, campaign.Description,
-            campaign.CreatedAt, campaign.Orders.Count, outfitDtos
-        );
+            var outfitDtos = campaign.CampaignOutfits
+                .Where(co => co.Outfit != null) // protect against deleted outfits
+                .Select(co => new CampaignOutfitDetailDto(
+                    co.Id, co.OutfitID, co.Outfit.OutfitName, co.Outfit.MainImageURL,
+                    co.CampaignPrice, co.MaxQuantity, co.ProviderID
+                )).ToList();
 
-        return Result<CampaignDetailDto>.Success(dto);
+            var dto = new CampaignDetailDto(
+                campaign.Id, campaign.CampaignName, campaign.Status.ToString(),
+                campaign.StartDate, campaign.EndDate, campaign.Description,
+                campaign.CreatedAt, orderCount, outfitDtos
+            );
+
+            return Result<CampaignDetailDto>.Success(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting campaign detail for CampaignId={CampaignId}, UserId={UserId}",
+                query.CampaignId, query.UserId);
+            return Result<CampaignDetailDto>.Failure($"Internal error: {ex.Message}", "INTERNAL_ERROR");
+        }
     }
 }
