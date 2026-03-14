@@ -38,6 +38,27 @@ public class AdminController : ControllerBase
     private readonly IGetTotalRevenueQueryHandler _getTotalRevenueHandler;
     private readonly IGetPaymentCompletionRateQueryHandler _getPaymentCompletionRateHandler;
 
+    // Reports & Export (3.13.8-11)
+    private readonly IViewReportQueryHandler _viewReportHandler;
+    private readonly IExportReportCommandHandler _exportReportHandler;
+    private readonly IGenerateSystemReportCommandHandler _generateSystemReportHandler;
+    private readonly IExportSchoolActivityLogsCommandHandler _exportSchoolActivityLogsHandler;
+
+    // Uniform Categories (3.14.1-4)
+    private readonly GetCategoriesQueryHandler _getCategoriesHandler;
+    private readonly AddCategoryCommandHandler _addCategoryHandler;
+    private readonly UpdateCategoryCommandHandler _updateCategoryHandler;
+    private readonly DeleteCategoryCommandHandler _deleteCategoryHandler;
+
+    // Settings Configuration (3.14.5-8)
+    private readonly ConfigureSizeTemplateCommandHandler _configureSizeTemplateHandler;
+    private readonly ConfigureDefaultSizeChartCommandHandler _configureDefaultSizeChartHandler;
+    private readonly ConfigurePaymentMethodCommandHandler _configurePaymentMethodHandler;
+    private readonly ConfigureAITryOnSettingsCommandHandler _configureAITryOnSettingsHandler;
+
+    // Payment Monitoring (3.15.1)
+    private readonly MonitorPaymentTransactionsQueryHandler _monitorPaymentTransactionsHandler;
+
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
         IGetAllFeedbacksQueryHandler feedbacksHandler,
@@ -56,7 +77,20 @@ public class AdminController : ControllerBase
         IGetTotalOrdersQueryHandler getTotalOrdersHandler,
         IGetTotalQuantityPerItemQueryHandler getTotalQuantityPerItemHandler,
         IGetTotalRevenueQueryHandler getTotalRevenueHandler,
-        IGetPaymentCompletionRateQueryHandler getPaymentCompletionRateHandler)
+        IGetPaymentCompletionRateQueryHandler getPaymentCompletionRateHandler,
+        IViewReportQueryHandler viewReportHandler,
+        IExportReportCommandHandler exportReportHandler,
+        IGenerateSystemReportCommandHandler generateSystemReportHandler,
+        IExportSchoolActivityLogsCommandHandler exportSchoolActivityLogsHandler,
+        GetCategoriesQueryHandler getCategoriesHandler,
+        AddCategoryCommandHandler addCategoryHandler,
+        UpdateCategoryCommandHandler updateCategoryHandler,
+        DeleteCategoryCommandHandler deleteCategoryHandler,
+        ConfigureSizeTemplateCommandHandler configureSizeTemplateHandler,
+        ConfigureDefaultSizeChartCommandHandler configureDefaultSizeChartHandler,
+        ConfigurePaymentMethodCommandHandler configurePaymentMethodHandler,
+        ConfigureAITryOnSettingsCommandHandler configureAITryOnSettingsHandler,
+        MonitorPaymentTransactionsQueryHandler monitorPaymentTransactionsHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
@@ -77,6 +111,23 @@ public class AdminController : ControllerBase
         _getTotalQuantityPerItemHandler = getTotalQuantityPerItemHandler;
         _getTotalRevenueHandler = getTotalRevenueHandler;
         _getPaymentCompletionRateHandler = getPaymentCompletionRateHandler;
+
+        _viewReportHandler = viewReportHandler;
+        _exportReportHandler = exportReportHandler;
+        _generateSystemReportHandler = generateSystemReportHandler;
+        _exportSchoolActivityLogsHandler = exportSchoolActivityLogsHandler;
+
+        _getCategoriesHandler = getCategoriesHandler;
+        _addCategoryHandler = addCategoryHandler;
+        _updateCategoryHandler = updateCategoryHandler;
+        _deleteCategoryHandler = deleteCategoryHandler;
+
+        _configureSizeTemplateHandler = configureSizeTemplateHandler;
+        _configureDefaultSizeChartHandler = configureDefaultSizeChartHandler;
+        _configurePaymentMethodHandler = configurePaymentMethodHandler;
+        _configureAITryOnSettingsHandler = configureAITryOnSettingsHandler;
+
+        _monitorPaymentTransactionsHandler = monitorPaymentTransactionsHandler;
     }
 
     [HttpGet("users")]
@@ -305,11 +356,255 @@ public class AdminController : ControllerBase
             new GetPaymentCompletionRateQuery(dateFrom, dateTo), ct);
         return Ok(result);
     }
+
+    // ✅ 3.13.8 View Report
+    [HttpGet("reports")]
+    public async Task<IActionResult> ViewReport(
+        [FromQuery] string reportType,
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo,
+        [FromQuery] Guid? schoolId,
+        CancellationToken ct = default)
+    {
+        var from = !string.IsNullOrEmpty(dateFrom) ? DateTime.Parse(dateFrom) : (DateTime?)null;
+        var to = !string.IsNullOrEmpty(dateTo) ? DateTime.Parse(dateTo) : (DateTime?)null;
+
+        var result = await _viewReportHandler.HandleAsync(
+            new ViewReportQuery(reportType, from, to, schoolId), ct);
+        return Ok(result);
+    }
+
+    // ✅ 3.13.9 Export Report
+    [HttpGet("reports/export")]
+    public async Task<IActionResult> ExportReport(
+        [FromQuery] string reportType,
+        [FromQuery] string exportFormat,
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo,
+        [FromQuery] Guid? schoolId,
+        CancellationToken ct = default)
+    {
+        var from = !string.IsNullOrEmpty(dateFrom) ? DateTime.Parse(dateFrom) : (DateTime?)null;
+        var to = !string.IsNullOrEmpty(dateTo) ? DateTime.Parse(dateTo) : (DateTime?)null;
+
+        var result = await _exportReportHandler.HandleAsync(
+            new ExportReportCommand(reportType, exportFormat, from, to, schoolId), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        // Set proper Content-Type and file extension based on format
+        var (contentType, extension) = exportFormat.ToUpper() switch
+        {
+            "CSV" => ("text/csv", ".csv"),
+            "EXCEL" => ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx"),
+            "PDF" => ("application/pdf", ".pdf"),
+            _ => ("application/octet-stream", ".bin")
+        };
+
+        var filename = $"{reportType}_report_{DateTime.UtcNow:yyyyMMdd_HHmmss}{extension}";
+        return File(result.Value, contentType, filename);
+    }
+
+    // ✅ 3.13.10 Generate System Report
+    [HttpPost("reports/generate")]
+    public async Task<IActionResult> GenerateSystemReport(
+        [FromBody] GenerateSystemReportRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _generateSystemReportHandler.HandleAsync(
+            new GenerateSystemReportCommand(request.ReportFrequency), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    // ✅ 3.13.11 Export School Activity Logs
+    [HttpGet("activities/export/{schoolId:guid}")]
+    public async Task<IActionResult> ExportSchoolActivityLogs(
+        Guid schoolId,
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo,
+        CancellationToken ct = default)
+    {
+        var from = !string.IsNullOrEmpty(dateFrom) ? DateTime.Parse(dateFrom) : (DateTime?)null;
+        var to = !string.IsNullOrEmpty(dateTo) ? DateTime.Parse(dateTo) : (DateTime?)null;
+
+        var result = await _exportSchoolActivityLogsHandler.HandleAsync(
+            new ExportSchoolActivityLogsCommand(schoolId, from, to), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return File(result.Value, "text/csv", $"school_activity_logs_{schoolId}__{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv");
+    }
+
+    // ✅ 3.14.1 View Uniform Categories
+    [HttpGet("categories")]
+    public async Task<IActionResult> GetCategories(CancellationToken ct = default)
+    {
+        var result = await _getCategoriesHandler.HandleAsync(new GetCategoriesQuery(), ct);
+        return Ok(result);
+    }
+
+    // ✅ 3.14.2 Add Uniform Category
+    [HttpPost("categories")]
+    public async Task<IActionResult> AddCategory(
+        [FromBody] AddCategoryRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _addCategoryHandler.HandleAsync(
+            new AddCategoryCommand(request.CategoryName), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return CreatedAtAction(nameof(GetCategories), new { id = result.Value }, result.Value);
+    }
+
+    // ✅ 3.14.3 Update Uniform Category
+    [HttpPut("categories/{id:guid}")]
+    public async Task<IActionResult> UpdateCategory(
+        Guid id,
+        [FromBody] UpdateCategoryRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _updateCategoryHandler.HandleAsync(
+            new UpdateCategoryCommand(id, request.CategoryName), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    // ✅ 3.14.4 Delete Uniform Category
+    [HttpDelete("categories/{id:guid}")]
+    public async Task<IActionResult> DeleteCategory(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var result = await _deleteCategoryHandler.HandleAsync(
+            new DeleteCategoryCommand(id), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    // ✅ 3.14.5 Configure Uniform Size Template
+    [HttpPost("settings/size-template")]
+    public async Task<IActionResult> ConfigureSizeTemplate(
+        [FromBody] ConfigureSizeTemplateRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _configureSizeTemplateHandler.HandleAsync(
+            new ConfigureSizeTemplateCommand(request.ChartName, request.Description, request.Unit ?? "cm"), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return CreatedAtAction(nameof(GetCategories), new { id = result.Value }, result.Value);
+    }
+
+    // ✅ 3.14.6 Configure Default Size Chart
+    [HttpPost("settings/default-size-chart")]
+    public async Task<IActionResult> ConfigureDefaultSizeChart(
+        [FromBody] ConfigureDefaultSizeChartRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _configureDefaultSizeChartHandler.HandleAsync(
+            new ConfigureDefaultSizeChartCommand(request.SizeChartId), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    // ✅ 3.14.7 Configure Payment Method
+    [HttpPost("settings/payment-method")]
+    public async Task<IActionResult> ConfigurePaymentMethod(
+        [FromBody] ConfigurePaymentMethodRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _configurePaymentMethodHandler.HandleAsync(
+            new ConfigurePaymentMethodCommand(request.PaymentGateway, request.IsEnabled, request.ApiKey, request.SecretKey), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    // ✅ 3.14.8 Configure AI Try-On Settings
+    [HttpPost("settings/ai-tryon")]
+    public async Task<IActionResult> ConfigureAITryOnSettings(
+        [FromBody] ConfigureAITryOnSettingsRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _configureAITryOnSettingsHandler.HandleAsync(
+            new ConfigureAITryOnSettingsCommand(request.ModelVersion, request.ImageResolution, request.MaxUploadFileSizeMB), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    // ✅ 3.15.1 Monitor Payment Transactions
+    [HttpGet("payments")]
+    public async Task<IActionResult> MonitorPaymentTransactions(
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo,
+        [FromQuery] string? status,
+        [FromQuery] string? paymentGateway,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var result = await _monitorPaymentTransactionsHandler.HandleAsync(
+            new MonitorPaymentTransactionsQuery(dateFrom, dateTo, status, paymentGateway, page, pageSize), ct);
+        return Ok(result);
+    }
 }
+
 
 public record ApproveWithdrawalRequest(string? AdminNote);
 
 public record ApproveOrRejectRequest(
     string Action,
     string? AdminNote = null
+);
+
+// Report/Analytics DTOs
+public record GenerateSystemReportRequest(string ReportFrequency);
+
+// Category DTOs
+public record AddCategoryRequest(string CategoryName);
+public record UpdateCategoryRequest(string CategoryName);
+
+// Settings Configuration DTOs
+public record ConfigureSizeTemplateRequest(
+    string ChartName,
+    string? Description = null,
+    string? Unit = null
+);
+
+public record ConfigureDefaultSizeChartRequest(Guid SizeChartId);
+
+public record ConfigurePaymentMethodRequest(
+    string PaymentGateway,
+    bool IsEnabled,
+    string? ApiKey = null,
+    string? SecretKey = null
+);
+
+public record ConfigureAITryOnSettingsRequest(
+    string? ModelVersion = null,
+    string? ImageResolution = null,
+    int? MaxUploadFileSizeMB = null
 );
