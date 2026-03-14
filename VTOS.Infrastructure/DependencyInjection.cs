@@ -271,6 +271,25 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
 
+        // Admin Module - User Management (UC 3.2.8, 3.2.11)
+        services.AddScoped<IGetUserDetailQueryHandler, GetUserDetailQueryHandler>();
+        services.AddScoped<IGetUserReportQueryHandler, GetUserReportQueryHandler>();
+
+        // Admin Module - School/Provider Approval (UC 3.2.12, 3.2.13)
+        services.AddScoped<IApproveSchoolRequestCommandHandler, ApproveSchoolRequestCommandHandler>();
+        services.AddScoped<IApproveProviderRequestCommandHandler, ApproveProviderRequestCommandHandler>();
+
+        // Admin Module - Parent Management (UC 3.5.1, 3.5.2)
+        services.AddScoped<IGetParentListQueryHandler, GetParentListQueryHandler>();
+        services.AddScoped<IGetParentDetailQueryHandler, GetParentDetailQueryHandler>();
+
+        // Admin Module - Analytics & Dashboard (UC 3.13.1-5)
+        services.AddScoped<IGetDashboardAnalyticsQueryHandler, GetDashboardAnalyticsQueryHandler>();
+        services.AddScoped<IGetTotalOrdersQueryHandler, GetTotalOrdersQueryHandler>();
+        services.AddScoped<IGetTotalQuantityPerItemQueryHandler, GetTotalQuantityPerItemQueryHandler>();
+        services.AddScoped<IGetTotalRevenueQueryHandler, GetTotalRevenueQueryHandler>();
+        services.AddScoped<IGetPaymentCompletionRateQueryHandler, GetPaymentCompletionRateQueryHandler>();
+
         return services;
     }
 }
