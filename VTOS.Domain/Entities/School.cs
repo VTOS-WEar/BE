@@ -8,6 +8,7 @@ public class School : AuditableEntity
     public string? LogoURL { get; set; }
     public string? ContactInfo { get; set; }
     public string? Level { get; set; }
+    public bool IsDeleted { get; set; }
     public Guid? CatalogID { get; set; }
 
     // Navigation properties
@@ -16,5 +17,6 @@ public class School : AuditableEntity
     public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
     public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();
     public SchoolWallet? Wallet { get; set; }
+    
 }
 
