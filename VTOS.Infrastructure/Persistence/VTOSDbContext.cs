@@ -50,6 +50,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<ProductionBatch> ProductionBatches { get; set; }
     public DbSet<ProductionBatchItem> ProductionBatchItems { get; set; }
     public DbSet<Complaint> Complaints { get; set; }
+    public DbSet<Contract> Contracts { get; set; }
+    public DbSet<ContractItem> ContractItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

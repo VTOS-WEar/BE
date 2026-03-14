@@ -4,6 +4,9 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
+using VTOS.Application.Features.Contracts.Commands;
+using VTOS.Application.Features.Contracts.DTOs;
+using VTOS.Application.Features.Contracts.Queries;
 using VTOS.Application.Features.Schools.Commands;
 using VTOS.Application.Features.Schools.DTOs;
 using VTOS.Application.Features.Schools.Queries;
@@ -77,6 +80,9 @@ public class SchoolsController : ControllerBase
     private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
     private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
     private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
+    private readonly ICreateContractCommandHandler _createContractHandler;
+    private readonly IGetContractsQueryHandler _getContractsHandler;
+    private readonly IGetContractDetailQueryHandler _getContractDetailHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -129,7 +135,10 @@ public class SchoolsController : ControllerBase
         IDeleteVariantCommandHandler deleteVariantHandler,
         ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
         IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler,
-        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler)
+        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler,
+        ICreateContractCommandHandler createContractHandler,
+        IGetContractsQueryHandler getContractsHandler,
+        IGetContractDetailQueryHandler getContractDetailHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -181,6 +190,9 @@ public class SchoolsController : ControllerBase
         _createWithdrawalHandler = createWithdrawalHandler;
         _updateBankAccountHandler = updateBankAccountHandler;
         _getSchoolRefundsHandler = getSchoolRefundsHandler;
+        _createContractHandler = createContractHandler;
+        _getContractsHandler = getContractsHandler;
+        _getContractDetailHandler = getContractDetailHandler;
     }
 
 
@@ -1144,6 +1156,42 @@ public class SchoolsController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
+        return Ok(result.Value);
+    }
+
+    // ──────── Contract Management (Phase 2) ────────
+
+    /// <summary>Create a new contract with a provider (items: outfit, price/unit, qty range).</summary>
+    [HttpPost("me/contracts")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateContract([FromBody] CreateContractRequest request, CancellationToken ct)
+    {
+        var result = await _createContractHandler.HandleAsync(
+            new CreateContractCommand(_currentUser.UserId, request), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return CreatedAtAction(nameof(GetContractDetail), new { id = result.Value!.ContractId }, result.Value);
+    }
+
+    /// <summary>List contracts for the current school, optionally filtered by status.</summary>
+    [HttpGet("me/contracts")]
+    [ProducesResponseType(typeof(List<ContractDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContracts([FromQuery] string? status, CancellationToken ct)
+    {
+        var result = await _getContractsHandler.HandleAsync(
+            new GetContractsQuery(_currentUser.UserId, "School", status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get contract detail by ID (school-scoped).</summary>
+    [HttpGet("me/contracts/{id}")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContractDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getContractDetailHandler.HandleAsync(
+            new GetContractDetailQuery(_currentUser.UserId, "School", id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
 }

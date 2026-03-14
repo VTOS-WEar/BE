@@ -271,6 +271,24 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
 
+        // Provider Module - Profile
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProfileQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderProfileQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateProviderProfileCommandHandler,
+            VTOS.Application.Features.Providers.Commands.UpdateProviderProfileCommandHandler>();
+
+        // Contract Module (Phase 2)
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.ICreateContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.CreateContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.IApproveContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.ApproveContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.IRejectContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.RejectContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractsQueryHandler,
+            VTOS.Application.Features.Contracts.Queries.GetContractsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractDetailQueryHandler,
+            VTOS.Application.Features.Contracts.Queries.GetContractDetailQueryHandler>();
+
         return services;
     }
 }

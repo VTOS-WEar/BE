@@ -10,11 +10,13 @@ namespace VTOS.Infrastructure;
 /// Runs only when the Role table is empty — safe to call on every startup.
 ///
 /// Test accounts (password: Test@1234):
-///   school1@vtos.com  — School role, linked to School 1
-///   school2@vtos.com  — School role, linked to School 2
-///   school3@vtos.com  — School role, linked to School 3
-///   parent0@vtos.com  — Parent role
-///   parent1@vtos.com  — Parent role
+///   school1@vtos.com   — School role, linked to School 1
+///   school2@vtos.com   — School role, linked to School 2
+///   school3@vtos.com   — School role, linked to School 3
+///   parent0@vtos.com   — Parent role
+///   parent1@vtos.com   — Parent role
+///   provider1@vtos.com — Provider role, linked to Provider 1
+///   provider2@vtos.com — Provider role, linked to Provider 2
 /// </summary>
 public static class DbInitializer
 {
@@ -22,6 +24,7 @@ public static class DbInitializer
     private static readonly Guid ROLE_ADMIN  = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly Guid ROLE_PARENT = Guid.Parse("22222222-2222-2222-2222-222222222222");
     private static readonly Guid ROLE_SCHOOL = Guid.Parse("33333333-3333-3333-3333-333333333333");
+    private static readonly Guid ROLE_PROVIDER = Guid.Parse("44444444-4444-4444-4444-444444444444");
 
     private static readonly Guid SCH1 = Guid.Parse("6D3CCB42-97FF-44D4-AC8B-68FC56B4DDD9");
     private static readonly Guid SCH2 = Guid.Parse("D25F24A9-29F5-4FD9-B7A7-CD224EA512C5");
@@ -35,6 +38,9 @@ public static class DbInitializer
     private static readonly Guid USR_P1 = Guid.Parse("2F5FE30D-C8F7-4AA0-B31D-3D3859D60F5A");
     private static readonly Guid USR_P2 = Guid.Parse("CF748A1E-6707-46D1-9702-2820248D7436");
     private static readonly Guid USR_P3 = Guid.Parse("86114525-C907-4EB8-BF49-C9AF2AB29185");
+
+    private static readonly Guid USR_PRV1 = Guid.Parse("B1000001-0000-0000-0000-000000000001");
+    private static readonly Guid USR_PRV2 = Guid.Parse("B1000002-0000-0000-0000-000000000002");
 
     private static readonly Guid PRV1 = Guid.Parse("A8FDE7B9-9A70-45B4-AA99-95194DD71AEE");
     private static readonly Guid PRV2 = Guid.Parse("D674D4CE-4DED-4A7B-8CA4-00A66F4A966F");
@@ -67,9 +73,10 @@ public static class DbInitializer
 
         // ── Roles ──────────────────────────────────────────────────────────────
         db.Roles.AddRange(
-            new Role { Id = ROLE_ADMIN,  RoleName = "Admin",  IsSystemRole = true, CreatedAt = now },
-            new Role { Id = ROLE_PARENT, RoleName = "Parent", IsSystemRole = true, CreatedAt = now },
-            new Role { Id = ROLE_SCHOOL, RoleName = "School", IsSystemRole = true, CreatedAt = now }
+            new Role { Id = ROLE_ADMIN,    RoleName = "Admin",    IsSystemRole = true, CreatedAt = now },
+            new Role { Id = ROLE_PARENT,   RoleName = "Parent",   IsSystemRole = true, CreatedAt = now },
+            new Role { Id = ROLE_SCHOOL,   RoleName = "School",   IsSystemRole = true, CreatedAt = now },
+            new Role { Id = ROLE_PROVIDER, RoleName = "Provider", IsSystemRole = true, CreatedAt = now }
         );
         await db.SaveChangesAsync();
 
@@ -107,7 +114,10 @@ public static class DbInitializer
             new User { Id = USR_P0, FullName = "Phu huynh 0", Email = "parent0@vtos.com", PasswordHash = hash, Phone = "0900000000", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_P1, FullName = "Phu huynh 1", Email = "parent1@vtos.com", PasswordHash = hash, Phone = "0900000001", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_P2, FullName = "Phu huynh 2", Email = "parent2@vtos.com", PasswordHash = hash, Phone = "0900000002", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_P3, FullName = "Phu huynh 3", Email = "parent3@vtos.com", PasswordHash = hash, Phone = "0900000003", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now }
+            new User { Id = USR_P3, FullName = "Phu huynh 3", Email = "parent3@vtos.com", PasswordHash = hash, Phone = "0900000003", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
+            // Provider accounts
+            new User { Id = USR_PRV1, FullName = "Nha cung cap 1", Email = "provider1@vtos.com", PasswordHash = hash, Phone = "0900000021", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, ProviderID = PRV1, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_PRV2, FullName = "Nha cung cap 2", Email = "provider2@vtos.com", PasswordHash = hash, Phone = "0900000022", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, ProviderID = PRV2, IsActive = true, IsDeleted = false, CreatedAt = now }
         );
         await db.SaveChangesAsync();
 
