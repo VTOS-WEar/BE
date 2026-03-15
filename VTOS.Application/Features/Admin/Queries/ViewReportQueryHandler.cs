@@ -135,7 +135,7 @@ public class ViewReportQueryHandler : IViewReportQueryHandler
         {
             ProviderName = p.ProviderName,
             ContactEmail = p.Email,
-            Status = p.Status ?? "Unknown"
+            Status = p.Status.ToString() ?? "Unknown"
         }).ToList();
 
         return new
