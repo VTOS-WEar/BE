@@ -53,6 +53,10 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<Contract> Contracts { get; set; }
     public DbSet<ContractItem> ContractItems { get; set; }
 
+    // Delivery & Distribution (Phase 4)
+    public DbSet<DeliveryRecord> DeliveryRecords { get; set; }
+    public DbSet<DistributionRecord> DistributionRecords { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

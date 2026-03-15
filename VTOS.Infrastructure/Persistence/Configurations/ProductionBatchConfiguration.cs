@@ -33,6 +33,10 @@ public class ProductionBatchConfiguration : IEntityTypeConfiguration<ProductionB
 
         builder.HasIndex(pb => pb.IsDeleted);
 
+        // Phase 4 — Delivery tracking
+        builder.Property(pb => pb.DeliveredQuantity);
+        builder.Property(pb => pb.DeliveryNote).HasMaxLength(1000);
+
         // Relationships
         builder.HasOne(pb => pb.Campaign)
             .WithMany(c => c.ProductionBatches)

@@ -37,6 +37,8 @@ public interface IApplicationDbContext
     DbSet<ParentBankAccount> ParentBankAccounts { get; }
     DbSet<Contract> Contracts { get; }
     DbSet<ContractItem> ContractItems { get; }
+    DbSet<DeliveryRecord> DeliveryRecords { get; }
+    DbSet<DistributionRecord> DistributionRecords { get; }
 
     DbSet<T> Set<T>() where T : class;
     
