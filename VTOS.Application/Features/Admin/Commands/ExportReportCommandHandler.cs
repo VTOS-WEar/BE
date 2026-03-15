@@ -4,10 +4,6 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
 using ClosedXML.Excel;
-using iText.Kernel.Pdf;
-using iText.Layout;
-using iText.Layout.Element;
-using iText.Layout.Properties;
 using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Features.Admin.Commands;
@@ -26,7 +22,7 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
         CancellationToken cancellationToken)
     {
         // Validation
-        var validFormats = new[] { "CSV", "EXCEL", "PDF" };
+        var validFormats = new[] { "CSV", "EXCEL" };
         if (!validFormats.Contains(command.ExportFormat))
             return Result<byte[]>.Failure("Invalid export format", "INVALID_FORMAT");
 
@@ -63,7 +59,6 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
         {
             "CSV" => ExportOrdersToCSV(orders),
             "EXCEL" => ExportOrdersToExcel(orders),
-            "PDF" => ExportOrdersToPDF(orders),
             _ => throw new InvalidOperationException("Unknown format")
         };
     }
@@ -121,57 +116,6 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
         }
     }
 
-    private byte[] ExportOrdersToPDF(List<Order> orders)
-    {
-        var memoryStream = new MemoryStream();
-        try
-        {
-            var writer = new PdfWriter(memoryStream);
-            var pdf = new PdfDocument(writer);
-            var document = new Document(pdf);
-            
-            // Add title
-            document.Add(new Paragraph("Order Report")
-                .SetFontSize(18)
-                .SetBold());
-
-            document.Add(new Paragraph($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}")
-                .SetFontSize(10)
-                .SetMarginTop(10)
-                .SetMarginBottom(15));
-
-            // Create table with 4 columns
-            float[] columnWidths = { 1, 1, 1, 1 };
-            var table = new Table(columnWidths);
-            
-            // Add header cells
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Order ID").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Status").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Amount").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Created Date").SetBold()));
-
-            foreach (var order in orders)
-            {
-                table.AddCell(new Cell().Add(new Paragraph(order.Id.ToString())));
-                table.AddCell(new Cell().Add(new Paragraph(order.OrderStatus.ToString())));
-                table.AddCell(new Cell().Add(new Paragraph($"${order.TotalAmount:F2}")));
-                table.AddCell(new Cell().Add(new Paragraph(order.CreatedAt.ToString("yyyy-MM-dd"))));
-            }
-
-            document.Add(table);
-            document.Close();
-            pdf.Close();
-            writer.Close();
-
-            memoryStream.Position = 0;
-            return memoryStream.ToArray();
-        }
-        finally
-        {
-            memoryStream?.Dispose();
-        }
-    }
-
     private async Task<byte[]> ExportRevenueReport(ExportReportCommand command, CancellationToken cancellationToken)
     {
         var ordersQuery = _context.Orders
@@ -189,7 +133,6 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
         {
             "CSV" => ExportRevenueToCSV(orders),
             "EXCEL" => ExportRevenueToExcel(orders),
-            "PDF" => ExportRevenueToPDF(orders),
             _ => throw new InvalidOperationException("Unknown format")
         };
     }
@@ -260,67 +203,6 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
         }
     }
 
-    private byte[] ExportRevenueToPDF(List<Order> orders)
-    {
-        var memoryStream = new MemoryStream();
-        try
-        {
-            var writer = new PdfWriter(memoryStream);
-            var pdf = new PdfDocument(writer);
-            var document = new Document(pdf);
-            
-            // Add title
-            document.Add(new Paragraph("Revenue Report")
-                .SetFontSize(18)
-                .SetBold());
-
-            document.Add(new Paragraph($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}")
-                .SetFontSize(10)
-                .SetMarginTop(10)
-                .SetMarginBottom(15));
-
-            // Create table with 4 columns
-            float[] columnWidths = { 1, 1, 1, 1 };
-            var table = new Table(columnWidths);
-            
-            // Add header cells
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Order ID").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Amount").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Status").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Date").SetBold()));
-
-            decimal totalRevenue = 0;
-
-            foreach (var order in orders)
-            {
-                table.AddCell(new Cell().Add(new Paragraph(order.Id.ToString())));
-                table.AddCell(new Cell().Add(new Paragraph($"${order.TotalAmount:F2}")));
-                table.AddCell(new Cell().Add(new Paragraph(order.OrderStatus.ToString())));
-                table.AddCell(new Cell().Add(new Paragraph(order.CreatedAt.ToString("yyyy-MM-dd"))));
-                totalRevenue += order.TotalAmount;
-            }
-
-            document.Add(table);
-
-            // Summary
-            document.Add(new Paragraph($"\nTotal Revenue: ${totalRevenue:F2}")
-                .SetFontSize(12)
-                .SetBold()
-                .SetMarginTop(15));
-            
-            document.Close();
-            pdf.Close();
-            writer.Close();
-
-            memoryStream.Position = 0;
-            return memoryStream.ToArray();
-        }
-        finally
-        {
-            memoryStream?.Dispose();
-        }
-    }
-
     private async Task<byte[]> ExportSchoolPerformanceReport(ExportReportCommand command, CancellationToken cancellationToken)
     {
         var schools = await _context.Schools
@@ -343,7 +225,6 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
         {
             "CSV" => ExportSchoolPerformanceToCSV(performanceData),
             "EXCEL" => ExportSchoolPerformanceToExcel(performanceData),
-            "PDF" => ExportSchoolPerformanceToPDF(performanceData),
             _ => throw new InvalidOperationException("Unknown format")
         };
     }
@@ -403,59 +284,6 @@ public class ExportReportCommandHandler : IExportReportCommandHandler
                 workbook.SaveAs(stream);
                 return stream.ToArray();
             }
-        }
-    }
-
-    private byte[] ExportSchoolPerformanceToPDF(List<dynamic> performanceData)
-    {
-        var memoryStream = new MemoryStream();
-        try
-        {
-            var writer = new PdfWriter(memoryStream);
-            var pdf = new PdfDocument(writer);
-            var document = new Document(pdf);
-            
-            // Add title
-            document.Add(new Paragraph("School Performance Report")
-                .SetFontSize(18)
-                .SetBold());
-
-            document.Add(new Paragraph($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}")
-                .SetFontSize(10)
-                .SetMarginTop(10)
-                .SetMarginBottom(15));
-
-            // Create table with 5 columns
-            float[] columnWidths = { 1.5f, 1, 1, 1, 1 };
-            var table = new Table(columnWidths);
-            
-            // Add header cells
-            table.AddHeaderCell(new Cell().Add(new Paragraph("School Name").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Total Orders").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Completed Orders").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Total Revenue").SetBold()));
-            table.AddHeaderCell(new Cell().Add(new Paragraph("Active Campaigns").SetBold()));
-
-            foreach (var item in performanceData)
-            {
-                table.AddCell(new Cell().Add(new Paragraph(item.SchoolName)));
-                table.AddCell(new Cell().Add(new Paragraph(item.TotalOrders.ToString())));
-                table.AddCell(new Cell().Add(new Paragraph(item.CompletedOrders.ToString())));
-                table.AddCell(new Cell().Add(new Paragraph($"${item.TotalRevenue:F2}")));
-                table.AddCell(new Cell().Add(new Paragraph(item.ActiveCampaigns.ToString())));
-            }
-
-            document.Add(table);
-            document.Close();
-            pdf.Close();
-            writer.Close();
-
-            memoryStream.Position = 0;
-            return memoryStream.ToArray();
-        }
-        finally
-        {
-            memoryStream?.Dispose();
         }
     }
 }
