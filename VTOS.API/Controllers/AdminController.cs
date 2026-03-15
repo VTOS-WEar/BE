@@ -248,7 +248,7 @@ public class AdminController : ControllerBase
         CancellationToken ct)
     {
         var result = await _approveSchoolHandler.HandleAsync(
-            new ApproveSchoolRequestCommand(schoolId, request.Action, request.AdminNote), ct);
+            new ApproveSchoolRequestCommand(schoolId, request.Action, request.RejectionReason, request.AdminNote), ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -264,7 +264,7 @@ public class AdminController : ControllerBase
         CancellationToken ct)
     {
         var result = await _approveProviderHandler.HandleAsync(
-            new ApproveProviderRequestCommand(providerId, request.Action, request.AdminNote), ct);
+            new ApproveProviderRequestCommand(providerId, request.Action, request.RejectionReason, request.AdminNote), ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -577,6 +577,7 @@ public record ApproveWithdrawalRequest(string? AdminNote);
 
 public record ApproveOrRejectRequest(
     string Action,
+    string? RejectionReason = null,
     string? AdminNote = null
 );
 
