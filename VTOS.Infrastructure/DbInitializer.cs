@@ -62,6 +62,18 @@ public static class DbInitializer
     private static readonly Guid BATCH2 = Guid.Parse("AAA00002-0000-0000-0000-000000000002");
     private static readonly Guid BATCH3 = Guid.Parse("AAA00003-0000-0000-0000-000000000003");
 
+    // New test campaign for production order generation
+    private static readonly Guid CAM4 = Guid.Parse("CC400001-0000-0000-0000-000000000004");
+    // Product variants for Outfit 1
+    private static readonly Guid PV1_S = Guid.Parse("DD100001-0000-0000-0000-000000000001");
+    private static readonly Guid PV1_M = Guid.Parse("DD100002-0000-0000-0000-000000000002");
+    private static readonly Guid PV1_L = Guid.Parse("DD100003-0000-0000-0000-000000000003");
+    // Orders
+    private static readonly Guid ORD1 = Guid.Parse("EE100001-0000-0000-0000-000000000001");
+    private static readonly Guid ORD2 = Guid.Parse("EE100002-0000-0000-0000-000000000002");
+    private static readonly Guid CHILD0 = Guid.Parse("A319CD79-2B45-4507-89FD-318E26A5A26A");
+    private static readonly Guid CHILD3 = Guid.Parse("7C1FC73C-78E3-4F67-957D-9BB9FF0DFF99");
+
     public static async Task SeedAsync(VTOSDbContext db)
     {
         // Guard: only seed when database is empty
@@ -159,6 +171,43 @@ public static class DbInitializer
             new ChildProfile { Id = Guid.Parse("4FCC8D2B-1488-47D8-ABD9-C1B2A36B6BA4"), ParentUserID = USR_P1, FullName = "Hoc sinh 1", Age = 10, Grade = "Lop 5", Gender = Gender.Male, SchoolID = SCH2, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 140, WeightKg = 35 },
             new ChildProfile { Id = Guid.Parse("67FF78A4-78A9-4BAF-9BE2-DF0331E6A7DE"), ParentUserID = USR_P2, FullName = "Hoc sinh 2", Age = 10, Grade = "Lop 5", Gender = Gender.Male, SchoolID = SCH3, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 140, WeightKg = 35 },
             new ChildProfile { Id = Guid.Parse("7C1FC73C-78E3-4F67-957D-9BB9FF0DFF99"), ParentUserID = USR_P3, FullName = "Hoc sinh 3", Age = 10, Grade = "Lop 5", Gender = Gender.Male, SchoolID = SCH1, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 140, WeightKg = 35 }
+        );
+        await db.SaveChangesAsync();
+
+        // ── CAM4: Locked campaign for testing GenerateProductionOrder ─────
+        db.Campaigns.Add(
+            new Campaign { Id = CAM4, SchoolID = SCH1, CampaignName = "Chien dich Test SX - 2026", Description = "Campaign de test tao don san xuat", StartDate = new DateTime(2026,1,1), EndDate = new DateTime(2026,6,30), Status = CampaignStatus.Locked, CreatedAt = now }
+        );
+        await db.SaveChangesAsync();
+
+        db.CampaignOutfits.Add(
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM4, OutfitID = OFT1, ProviderID = PRV1, CampaignPrice = 200000, MaxQuantity = 500 }
+        );
+        await db.SaveChangesAsync();
+
+        // ── ProductVariants for Outfit 1 ─────────────────────────────────
+        db.ProductVariants.AddRange(
+            new ProductVariant { Id = PV1_S, OutfitID = OFT1, Size = "S", Price = 200000, StockQuantity = 100, SKUCode = "OFT1-S", IsDeleted = false },
+            new ProductVariant { Id = PV1_M, OutfitID = OFT1, Size = "M", Price = 200000, StockQuantity = 100, SKUCode = "OFT1-M", IsDeleted = false },
+            new ProductVariant { Id = PV1_L, OutfitID = OFT1, Size = "L", Price = 200000, StockQuantity = 100, SKUCode = "OFT1-L", IsDeleted = false }
+        );
+        await db.SaveChangesAsync();
+
+        // ── Parent Orders on CAM4 ────────────────────────────────────────
+        db.Orders.AddRange(
+            new Order { Id = ORD1, ChildProfileID = CHILD0, CampaignID = CAM4, OrderDate = now, OrderStatus = OrderStatus.Confirmed, TotalAmount = 600000, ShippingAddress = "Dia chi PH0", CreatedAt = now },
+            new Order { Id = ORD2, ChildProfileID = CHILD3, CampaignID = CAM4, OrderDate = now, OrderStatus = OrderStatus.Confirmed, TotalAmount = 400000, ShippingAddress = "Dia chi PH3", CreatedAt = now }
+        );
+        await db.SaveChangesAsync();
+
+        // ── OrderItems on CAM4 orders ────────────────────────────────────
+        db.OrderItems.AddRange(
+            // Parent 0: 2x size S, 1x size M
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD1, ProductVariantID = PV1_S, Quantity = 2, UnitPrice = 200000, SizeOrdered = "S", IsCustomOrder = false, CreatedAt = now },
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD1, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 200000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now },
+            // Parent 3: 1x size M, 1x size L
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD2, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 200000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now },
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD2, ProductVariantID = PV1_L, Quantity = 1, UnitPrice = 200000, SizeOrdered = "L", IsCustomOrder = false, CreatedAt = now }
         );
         await db.SaveChangesAsync();
 
