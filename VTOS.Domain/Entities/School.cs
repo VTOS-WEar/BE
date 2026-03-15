@@ -1,4 +1,5 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
@@ -10,6 +11,14 @@ public class School : AuditableEntity
     public string? Level { get; set; }
     public bool IsDeleted { get; set; }
     public Guid? CatalogID { get; set; }
+    
+    // Status
+    public SchoolStatus Status { get; set; } = SchoolStatus.Pending;
+    
+    // Verification fields
+    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+    public string? RejectionReason { get; set; }
+    public string? VerificationDocumentUrl { get; set; }
 
     // Navigation properties
     public ICollection<ChildProfile> ChildProfiles { get; set; } = new List<ChildProfile>();
