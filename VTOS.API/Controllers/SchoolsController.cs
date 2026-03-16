@@ -90,6 +90,9 @@ public class SchoolsController : ControllerBase
     private readonly IDistributeOrdersCommandHandler _distributeOrdersHandler;
     private readonly IGetDistributionStatusQueryHandler _getDistributionStatusHandler;
     private readonly IGetSchoolDeliveryStatusQueryHandler _getSchoolDeliveryStatusHandler;
+    // Phase 5 — Complaints
+    private readonly IGetComplaintDetailQueryHandler _getComplaintDetailHandler;
+    private readonly ICloseComplaintCommandHandler _closeComplaintHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -152,7 +155,10 @@ public class SchoolsController : ControllerBase
         IReportDefectCommandHandler reportDefectHandler,
         IDistributeOrdersCommandHandler distributeOrdersHandler,
         IGetDistributionStatusQueryHandler getDistributionStatusHandler,
-        IGetSchoolDeliveryStatusQueryHandler getSchoolDeliveryStatusHandler)
+        IGetSchoolDeliveryStatusQueryHandler getSchoolDeliveryStatusHandler,
+        // Phase 5
+        IGetComplaintDetailQueryHandler getComplaintDetailHandler,
+        ICloseComplaintCommandHandler closeComplaintHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -213,6 +219,8 @@ public class SchoolsController : ControllerBase
         _distributeOrdersHandler = distributeOrdersHandler;
         _getDistributionStatusHandler = getDistributionStatusHandler;
         _getSchoolDeliveryStatusHandler = getSchoolDeliveryStatusHandler;
+        _getComplaintDetailHandler = getComplaintDetailHandler;
+        _closeComplaintHandler = closeComplaintHandler;
     }
 
 
@@ -1001,12 +1009,37 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> GetProductionComplaints(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
         CancellationToken ct = default)
     {
         var result = await _getProductionComplaintsHandler.HandleAsync(
-            new GetProductionComplaintsQuery(_currentUser.UserId, page, pageSize), ct);
+            new GetProductionComplaintsQuery(_currentUser.UserId, page, pageSize, status), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.10.5 — View complaint detail.</summary>
+    [HttpGet("me/complaints/{id:guid}")]
+    [ProducesResponseType(typeof(ComplaintDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetComplaintDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getComplaintDetailHandler.HandleAsync(
+            new GetComplaintDetailQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.10.7 — Close a resolved complaint.</summary>
+    [HttpPut("me/complaints/{id:guid}/close")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CloseComplaint(Guid id, CancellationToken ct)
+    {
+        var result = await _closeComplaintHandler.HandleAsync(
+            new CloseComplaintCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
     }
 
     /// <summary>UC 3.9.12 — View production order list.</summary>
