@@ -1,4 +1,5 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
@@ -8,7 +9,16 @@ public class School : AuditableEntity
     public string? LogoURL { get; set; }
     public string? ContactInfo { get; set; }
     public string? Level { get; set; }
+    public bool IsDeleted { get; set; }
     public Guid? CatalogID { get; set; }
+    
+    // Status
+    public SchoolStatus Status { get; set; } = SchoolStatus.Pending;
+    
+    // Verification fields
+    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+    public string? RejectionReason { get; set; }
+    public string? VerificationDocumentUrl { get; set; }
 
     // Navigation properties
     public ICollection<ChildProfile> ChildProfiles { get; set; } = new List<ChildProfile>();
@@ -17,5 +27,6 @@ public class School : AuditableEntity
     public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();
     public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
     public SchoolWallet? Wallet { get; set; }
+    
 }
 

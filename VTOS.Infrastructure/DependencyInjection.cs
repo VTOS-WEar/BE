@@ -121,7 +121,7 @@ public static class DependencyInjection
 
         // Public Module Handlers (UC 3.3.2, 3.3.3, 3.3.4, 3.3.5)
         services.AddScoped<GetSchoolsQueryHandler>();
-        services.AddScoped<GetCategoriesQueryHandler>();
+        services.AddScoped<Application.Features.Admin.Queries.GetCategoriesQueryHandler>();
         services.AddScoped<GetOutfitDetailQueryHandler>();
         services.AddScoped<GetSchoolDetailQueryHandler>();
         services.AddScoped<GetUniformListQueryHandler>();

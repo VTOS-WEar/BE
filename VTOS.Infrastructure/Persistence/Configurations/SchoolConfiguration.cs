@@ -28,6 +28,20 @@ public class SchoolConfiguration : IEntityTypeConfiguration<School>
 
         builder.Property(s => s.CatalogID);
 
+        builder.Property(s => s.Status)
+            .HasDefaultValue(VTOS.Domain.Enums.SchoolStatus.Pending)
+            .HasConversion<string>();
+
+        builder.Property(s => s.VerificationStatus)
+            .HasDefaultValue(VTOS.Domain.Enums.VerificationStatus.Pending)
+            .HasConversion<string>();
+
+        builder.Property(s => s.RejectionReason)
+            .HasMaxLength(1000);
+
+        builder.Property(s => s.VerificationDocumentUrl)
+            .HasMaxLength(500);
+
         // Relationships
         builder.HasMany(s => s.ChildProfiles)
             .WithOne(cp => cp.School)

@@ -1,4 +1,5 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
@@ -13,8 +14,15 @@ public class Provider : BaseEntity
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? Address { get; set; }
-    public string? Status { get; set; }
     public bool IsDeleted { get; set; }
+    
+    // Status
+    public ProviderStatus Status { get; set; } = ProviderStatus.Pending;
+    
+    // Verification fields
+    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+    public string? RejectionReason { get; set; }
+    public string? VerificationDocumentUrl { get; set; }
 
     // Navigation properties
     public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
