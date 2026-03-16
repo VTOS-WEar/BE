@@ -13,10 +13,14 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
         builder.HasKey(pt => pt.Id);
         builder.Property(pt => pt.Id).HasColumnName("PaymentID");
 
-        builder.Property(pt => pt.OrderID)
-            .IsRequired();
+        builder.Property(pt => pt.OrderID);
 
         builder.Property(pt => pt.WalletID);
+
+        builder.Property(pt => pt.TransactionType)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasConversion<string>();
 
         builder.Property(pt => pt.GatewayType)
             .IsRequired()
@@ -39,12 +43,16 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
             .HasMaxLength(2000);
 
         builder.Property(pt => pt.PaymentLinkId)
-        .HasMaxLength(2000);
+            .HasMaxLength(2000);
+
+        builder.Property(pt => pt.Description)
+            .HasMaxLength(500);
 
         // Relationships
         builder.HasOne(pt => pt.Order)
             .WithMany(o => o.PaymentTransactions)
             .HasForeignKey(pt => pt.OrderID)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(pt => pt.Wallet)
