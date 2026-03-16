@@ -80,7 +80,7 @@ public class RegisterCommandHandler : IRegisterCommandHandler
                 Id = Guid.NewGuid(),
                 ProviderName = command.FullName,
                 Email = command.Email,
-                Status = "Active",
+                Status = Domain.Enums.ProviderStatus.Active,
                 IsDeleted = false
             };
             _context.Providers.Add(providerEntity);
