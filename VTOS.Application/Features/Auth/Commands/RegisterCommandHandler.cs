@@ -41,14 +41,14 @@ public class RegisterCommandHandler : IRegisterCommandHandler
                 "EMAIL_EXISTS");
         }
 
-        // Determine role (default: "Parent", allowed: "Parent", "School")
-        var allowedRoles = new[] { "Parent", "School" };
+        // Determine role (default: "Parent", allowed: "Parent", "School", "Provider")
+        var allowedRoles = new[] { "Parent", "School", "Provider" };
         var roleName = string.IsNullOrWhiteSpace(command.RoleName) ? "Parent" : command.RoleName.Trim();
 
         if (!allowedRoles.Contains(roleName, StringComparer.OrdinalIgnoreCase))
         {
             return Result<RegisterResponse>.Failure(
-                $"Invalid role '{roleName}'. Allowed roles: Parent, School.",
+                $"Invalid role '{roleName}'. Allowed roles: Parent, School, Provider.",
                 "INVALID_ROLE");
         }
 
@@ -71,6 +71,21 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             _context.Roles.Add(role);
         }
 
+        // If registering as Provider, create a Provider entity
+        Provider? providerEntity = null;
+        if (roleName == "Provider")
+        {
+            providerEntity = new Provider
+            {
+                Id = Guid.NewGuid(),
+                ProviderName = command.FullName,
+                Email = command.Email,
+                Status = "Active",
+                IsDeleted = false
+            };
+            _context.Providers.Add(providerEntity);
+        }
+
         // Create new user (INACTIVE until email verified)
         var user = new User
         {
@@ -80,6 +95,7 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             FullName = command.FullName,
             Phone = null, // Phone collected after first login
             RoleID = role.Id,
+            ProviderID = providerEntity?.Id,
             IsActive = false, // INACTIVE until email verified
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow

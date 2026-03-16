@@ -74,5 +74,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .WithOne(cp => cp.ParentUser)
             .HasForeignKey(cp => cp.ParentUserID)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(u => u.Provider)
+            .WithMany()
+            .HasForeignKey(u => u.ProviderID)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

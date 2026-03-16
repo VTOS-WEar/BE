@@ -35,6 +35,10 @@ public interface IApplicationDbContext
     DbSet<ImportBatch> ImportBatches { get; }
     DbSet<Complaint> Complaints { get; }
     DbSet<ParentBankAccount> ParentBankAccounts { get; }
+    DbSet<Contract> Contracts { get; }
+    DbSet<ContractItem> ContractItems { get; }
+    DbSet<DeliveryRecord> DeliveryRecords { get; }
+    DbSet<DistributionRecord> DistributionRecords { get; }
 
     DbSet<T> Set<T>() where T : class;
     

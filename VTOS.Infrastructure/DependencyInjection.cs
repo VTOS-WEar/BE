@@ -271,6 +271,56 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
 
+        // Provider Module - Profile
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProfileQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderProfileQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateProviderProfileCommandHandler,
+            VTOS.Application.Features.Providers.Commands.UpdateProviderProfileCommandHandler>();
+
+        // Provider Module - Production Orders (Phase 3)
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProductionOrderListQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderProductionOrderListQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProductionOrderDetailQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderProductionOrderDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IAcceptProductionOrderCommandHandler,
+            VTOS.Application.Features.Providers.Commands.AcceptProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ICompleteProductionOrderCommandHandler,
+            VTOS.Application.Features.Providers.Commands.CompleteProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IProviderRejectProductionOrderCommandHandler,
+            VTOS.Application.Features.Providers.Commands.ProviderRejectProductionOrderCommandHandler>();
+
+        // Provider Module - Delivery (Phase 4)
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IDeliverProductionOrderCommandHandler,
+            VTOS.Application.Features.Providers.Commands.DeliverProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetDeliveryStatusQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetDeliveryStatusQueryHandler>();
+
+        // School Module - Delivery & Distribution (Phase 4)
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IConfirmDeliveryCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ConfirmDeliveryCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetVerifyQuantityQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetVerifyQuantityQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IReportDefectCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ReportDefectCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDistributeOrdersCommandHandler,
+            VTOS.Application.Features.Schools.Commands.DistributeOrdersCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetDistributionStatusQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetDistributionStatusQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolDeliveryStatusQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolDeliveryStatusQueryHandler>();
+
+        // Contract Module (Phase 2)
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.ICreateContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.CreateContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.IApproveContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.ApproveContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.IRejectContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.RejectContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractsQueryHandler,
+            VTOS.Application.Features.Contracts.Queries.GetContractsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractDetailQueryHandler,
+            VTOS.Application.Features.Contracts.Queries.GetContractDetailQueryHandler>();
+
         // Admin Module - User Management (UC 3.2.8, 3.2.11)
         services.AddScoped<IGetUserDetailQueryHandler, GetUserDetailQueryHandler>();
         services.AddScoped<IGetUserReportQueryHandler, GetUserReportQueryHandler>();

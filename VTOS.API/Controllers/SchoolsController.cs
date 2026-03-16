@@ -4,6 +4,9 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
+using VTOS.Application.Features.Contracts.Commands;
+using VTOS.Application.Features.Contracts.DTOs;
+using VTOS.Application.Features.Contracts.Queries;
 using VTOS.Application.Features.Schools.Commands;
 using VTOS.Application.Features.Schools.DTOs;
 using VTOS.Application.Features.Schools.Queries;
@@ -77,6 +80,16 @@ public class SchoolsController : ControllerBase
     private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
     private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
     private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
+    private readonly ICreateContractCommandHandler _createContractHandler;
+    private readonly IGetContractsQueryHandler _getContractsHandler;
+    private readonly IGetContractDetailQueryHandler _getContractDetailHandler;
+    // Phase 4 — Delivery & Distribution
+    private readonly IConfirmDeliveryCommandHandler _confirmDeliveryHandler;
+    private readonly IGetVerifyQuantityQueryHandler _getVerifyQuantityHandler;
+    private readonly IReportDefectCommandHandler _reportDefectHandler;
+    private readonly IDistributeOrdersCommandHandler _distributeOrdersHandler;
+    private readonly IGetDistributionStatusQueryHandler _getDistributionStatusHandler;
+    private readonly IGetSchoolDeliveryStatusQueryHandler _getSchoolDeliveryStatusHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -129,7 +142,17 @@ public class SchoolsController : ControllerBase
         IDeleteVariantCommandHandler deleteVariantHandler,
         ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
         IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler,
-        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler)
+        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler,
+        ICreateContractCommandHandler createContractHandler,
+        IGetContractsQueryHandler getContractsHandler,
+        IGetContractDetailQueryHandler getContractDetailHandler,
+        // Phase 4
+        IConfirmDeliveryCommandHandler confirmDeliveryHandler,
+        IGetVerifyQuantityQueryHandler getVerifyQuantityHandler,
+        IReportDefectCommandHandler reportDefectHandler,
+        IDistributeOrdersCommandHandler distributeOrdersHandler,
+        IGetDistributionStatusQueryHandler getDistributionStatusHandler,
+        IGetSchoolDeliveryStatusQueryHandler getSchoolDeliveryStatusHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -181,6 +204,15 @@ public class SchoolsController : ControllerBase
         _createWithdrawalHandler = createWithdrawalHandler;
         _updateBankAccountHandler = updateBankAccountHandler;
         _getSchoolRefundsHandler = getSchoolRefundsHandler;
+        _createContractHandler = createContractHandler;
+        _getContractsHandler = getContractsHandler;
+        _getContractDetailHandler = getContractDetailHandler;
+        _confirmDeliveryHandler = confirmDeliveryHandler;
+        _getVerifyQuantityHandler = getVerifyQuantityHandler;
+        _reportDefectHandler = reportDefectHandler;
+        _distributeOrdersHandler = distributeOrdersHandler;
+        _getDistributionStatusHandler = getDistributionStatusHandler;
+        _getSchoolDeliveryStatusHandler = getSchoolDeliveryStatusHandler;
     }
 
 
@@ -1146,6 +1178,122 @@ public class SchoolsController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    // ──────── Contract Management (Phase 2) ────────
+
+    /// <summary>Create a new contract with a provider (items: outfit, price/unit, qty range).</summary>
+    [HttpPost("me/contracts")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateContract([FromBody] CreateContractRequest request, CancellationToken ct)
+    {
+        var result = await _createContractHandler.HandleAsync(
+            new CreateContractCommand(_currentUser.UserId, request), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return CreatedAtAction(nameof(GetContractDetail), new { id = result.Value!.ContractId }, result.Value);
+    }
+
+    /// <summary>List contracts for the current school, optionally filtered by status.</summary>
+    [HttpGet("me/contracts")]
+    [ProducesResponseType(typeof(List<ContractDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContracts([FromQuery] string? status, CancellationToken ct)
+    {
+        var result = await _getContractsHandler.HandleAsync(
+            new GetContractsQuery(_currentUser.UserId, "School", status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get contract detail by ID (school-scoped).</summary>
+    [HttpGet("me/contracts/{id}")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContractDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getContractDetailHandler.HandleAsync(
+            new GetContractDetailQuery(_currentUser.UserId, "School", id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    // ──────── Delivery & Distribution (Phase 4) ────────
+
+    /// <summary>View delivery status for a production order (school side).</summary>
+    [HttpGet("me/production-orders/{batchId:guid}/delivery-status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetDeliveryStatus(Guid batchId, CancellationToken ct)
+    {
+        var result = await _getSchoolDeliveryStatusHandler.HandleAsync(
+            new GetSchoolDeliveryStatusQuery(_currentUser.UserId, batchId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Confirm a specific delivery record with accepted/defective quantities.</summary>
+    [HttpPut("me/production-orders/{batchId:guid}/confirm-delivery/{deliveryId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmDelivery(Guid batchId, Guid deliveryId, [FromBody] ConfirmDeliveryRequest request, CancellationToken ct)
+    {
+        var result = await _confirmDeliveryHandler.HandleAsync(
+            new ConfirmDeliveryCommand(_currentUser.UserId, batchId, deliveryId, request.AcceptedQuantity, request.DefectiveQuantity, request.DefectNote), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    /// <summary>Verify delivered quantity vs expected per outfit/size.</summary>
+    [HttpGet("me/production-orders/{batchId:guid}/verify-quantity")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyQuantity(Guid batchId, CancellationToken ct)
+    {
+        var result = await _getVerifyQuantityHandler.HandleAsync(
+            new GetVerifyQuantityQuery(_currentUser.UserId, batchId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Report defective uniforms (creates a Complaint).</summary>
+    [HttpPost("me/production-orders/{batchId:guid}/defect-report")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ReportDefect(Guid batchId, [FromBody] ReportDefectRequest request, CancellationToken ct)
+    {
+        var result = await _reportDefectHandler.HandleAsync(
+            new ReportDefectCommand(_currentUser.UserId, batchId, request.Title, request.Description), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { complaintId = result.Value });
+    }
+
+    /// <summary>Distribute uniforms to parent orders (AtSchool or AtHome).</summary>
+    [HttpPost("me/production-orders/{batchId:guid}/distribute")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DistributeOrders(Guid batchId, [FromBody] DistributeOrdersRequest request, CancellationToken ct)
+    {
+        var result = await _distributeOrdersHandler.HandleAsync(
+            new DistributeOrdersCommand(_currentUser.UserId, batchId, request.OrderIds, request.ShippingCompany, request.TrackingCode, request.ProofImageUrl, request.Note), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>View distribution status for a production order's campaign orders.</summary>
+    [HttpGet("me/production-orders/{batchId:guid}/distribution")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetDistributionStatus(Guid batchId, CancellationToken ct)
+    {
+        var result = await _getDistributionStatusHandler.HandleAsync(
+            new GetDistributionStatusQuery(_currentUser.UserId, batchId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
 }
 
 /// <summary>Request body for creating a withdrawal request.</summary>
@@ -1160,6 +1308,20 @@ public record UpdateSchoolBankAccountRequest(
 
 /// <summary>Request body for UC 3.9.18 Reject Production Order.</summary>
 public record RejectProductionOrderRequest(string Reason);
+
+/// <summary>Request body for confirming delivery.</summary>
+public record ConfirmDeliveryRequest(int AcceptedQuantity, int? DefectiveQuantity, string? DefectNote);
+
+/// <summary>Request body for reporting defective uniforms.</summary>
+public record ReportDefectRequest(string Title, string Description);
+
+/// <summary>Request body for distributing orders.</summary>
+public record DistributeOrdersRequest(
+    List<Guid> OrderIds,
+    string? ShippingCompany,
+    string? TrackingCode,
+    string? ProofImageUrl,
+    string? Note);
 
 /// <summary>Request body for creating an outfit.</summary>
 public record CreateOutfitRequest(

@@ -22,9 +22,16 @@ public class ProductionBatch : BaseEntity
     public DateTime? ProcessedAt { get; set; }         // UC 3.9.17
     public bool IsDeleted { get; set; }
 
+    // Phase 4 — Delivery tracking
+    public int DeliveredQuantity { get; set; }         // Running total of delivered qty
+    public DateTime? DeliveryConfirmedAt { get; set; } // When school confirmed all deliveries
+    public string? DeliveryNote { get; set; }          // General delivery note
+
     // Navigation properties
     public Campaign Campaign { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
     public ICollection<ProductionBatchItem> Items { get; set; } = new List<ProductionBatchItem>();
     public ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
+    public ICollection<DeliveryRecord> DeliveryRecords { get; set; } = new List<DeliveryRecord>();
+    public ICollection<DistributionRecord> DistributionRecords { get; set; } = new List<DistributionRecord>();
 }
