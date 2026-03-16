@@ -91,9 +91,9 @@ public static class DbInitializer
 
         // ── Providers ─────────────────────────────────────────────────────────
         db.Providers.AddRange(
-            new Provider { Id = PRV1, ProviderName = "Nha cung cap 1", Status = "Active", IsDeleted = false },
-            new Provider { Id = PRV2, ProviderName = "Nha cung cap 2", Status = "Active", IsDeleted = false },
-            new Provider { Id = PRV3, ProviderName = "Nha cung cap 3", Status = "Active", IsDeleted = false }
+            new Provider { Id = PRV1, ProviderName = "Nha cung cap 1", Status = ProviderStatus.Active, IsDeleted = false },
+            new Provider { Id = PRV2, ProviderName = "Nha cung cap 2", Status = ProviderStatus.Active, IsDeleted = false },
+            new Provider { Id = PRV3, ProviderName = "Nha cung cap 3", Status = ProviderStatus.Active, IsDeleted = false }
         );
         await db.SaveChangesAsync();
 

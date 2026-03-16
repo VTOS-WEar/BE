@@ -53,7 +53,7 @@ public class GetProvidersQueryHandler : IGetProvidersQueryHandler
                 p.Phone,
                 p.Email,
                 p.Address,
-                p.Status
+                p.Status.ToString()
             ))
             .ToListAsync(ct);
 

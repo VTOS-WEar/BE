@@ -121,7 +121,7 @@ public static class DependencyInjection
 
         // Public Module Handlers (UC 3.3.2, 3.3.3, 3.3.4, 3.3.5)
         services.AddScoped<GetSchoolsQueryHandler>();
-        services.AddScoped<GetCategoriesQueryHandler>();
+        services.AddScoped<Application.Features.Admin.Queries.GetCategoriesQueryHandler>();
         services.AddScoped<GetOutfitDetailQueryHandler>();
         services.AddScoped<GetSchoolDetailQueryHandler>();
         services.AddScoped<GetUniformListQueryHandler>();
@@ -270,6 +270,46 @@ public static class DependencyInjection
         // Admin Module - Get Withdrawal Requests
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
+
+        // Admin Module - User Management (UC 3.2.8, 3.2.11)
+        services.AddScoped<IGetUserDetailQueryHandler, GetUserDetailQueryHandler>();
+        services.AddScoped<IGetUserReportQueryHandler, GetUserReportQueryHandler>();
+
+        // Admin Module - School/Provider Approval (UC 3.2.12, 3.2.13)
+        services.AddScoped<IApproveSchoolRequestCommandHandler, ApproveSchoolRequestCommandHandler>();
+        services.AddScoped<IApproveProviderRequestCommandHandler, ApproveProviderRequestCommandHandler>();
+
+        // Admin Module - Parent Management (UC 3.5.1, 3.5.2)
+        services.AddScoped<IGetParentListQueryHandler, GetParentListQueryHandler>();
+        services.AddScoped<IGetParentDetailQueryHandler, GetParentDetailQueryHandler>();
+
+        // Admin Module - Analytics & Dashboard (UC 3.13.1-5)
+        services.AddScoped<IGetDashboardAnalyticsQueryHandler, GetDashboardAnalyticsQueryHandler>();
+        services.AddScoped<IGetTotalOrdersQueryHandler, GetTotalOrdersQueryHandler>();
+        services.AddScoped<IGetTotalQuantityPerItemQueryHandler, GetTotalQuantityPerItemQueryHandler>();
+        services.AddScoped<IGetTotalRevenueQueryHandler, GetTotalRevenueQueryHandler>();
+        services.AddScoped<IGetPaymentCompletionRateQueryHandler, GetPaymentCompletionRateQueryHandler>();
+
+        // Admin Module - Reports & Export (UC 3.13.8-11)
+        services.AddScoped<IViewReportQueryHandler, ViewReportQueryHandler>();
+        services.AddScoped<IExportReportCommandHandler, ExportReportCommandHandler>();
+        services.AddScoped<IGenerateSystemReportCommandHandler, GenerateSystemReportCommandHandler>();
+        services.AddScoped<IExportSchoolActivityLogsCommandHandler, ExportSchoolActivityLogsCommandHandler>();
+
+        // Admin Module - Uniform Categories (UC 3.14.1-4)
+        services.AddScoped<Application.Features.Admin.Queries.GetCategoriesQueryHandler>();
+        services.AddScoped<AddCategoryCommandHandler>();
+        services.AddScoped<UpdateCategoryCommandHandler>();
+        services.AddScoped<DeleteCategoryCommandHandler>();
+
+        // Admin Module - Settings Configuration (UC 3.14.5-8)
+        services.AddScoped<ConfigureSizeTemplateCommandHandler>();
+        services.AddScoped<ConfigureDefaultSizeChartCommandHandler>();
+        services.AddScoped<ConfigurePaymentMethodCommandHandler>();
+        services.AddScoped<ConfigureAITryOnSettingsCommandHandler>();
+
+        // Admin Module - Payment Monitoring (UC 3.15.1)
+        services.AddScoped<MonitorPaymentTransactionsQueryHandler>();
 
         return services;
     }

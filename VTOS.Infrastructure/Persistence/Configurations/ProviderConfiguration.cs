@@ -30,7 +30,18 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .HasMaxLength(500);
 
         builder.Property(p => p.Status)
-            .HasMaxLength(20);
+            .HasDefaultValue(VTOS.Domain.Enums.ProviderStatus.Pending)
+            .HasConversion<string>();
+
+        builder.Property(p => p.VerificationStatus)
+            .HasDefaultValue(VTOS.Domain.Enums.VerificationStatus.Pending)
+            .HasConversion<string>();
+
+        builder.Property(p => p.RejectionReason)
+            .HasMaxLength(1000);
+
+        builder.Property(p => p.VerificationDocumentUrl)
+            .HasMaxLength(500);
 
         builder.Property(p => p.IsDeleted)
             .IsRequired();
