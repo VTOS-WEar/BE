@@ -37,10 +37,10 @@ public class GetSchoolRefundsQueryHandler : IGetSchoolRefundsQueryHandler
         var refundsQuery = _db.Refunds
             .AsNoTracking()
             .Include(r => r.PaymentTransaction)
-                .ThenInclude(pt => pt.Order)
+                .ThenInclude(pt => pt.Order!)
                     .ThenInclude(o => o.ChildProfile)
                         .ThenInclude(cp => cp.ParentUser)
-            .Where(r => r.PaymentTransaction.Order.ChildProfile.SchoolID == schoolId);
+            .Where(r => r.PaymentTransaction.Order != null && r.PaymentTransaction.Order.ChildProfile.SchoolID == schoolId);
 
         // Apply status filter
         if (!string.IsNullOrEmpty(query.Status) && Enum.TryParse<RefundStatus>(query.Status, true, out var status))

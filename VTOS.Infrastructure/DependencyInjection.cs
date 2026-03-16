@@ -309,6 +309,26 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolDeliveryStatusQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSchoolDeliveryStatusQueryHandler>();
 
+        // Phase 5 - Complaints
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetComplaintDetailQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetComplaintDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICloseComplaintCommandHandler,
+            VTOS.Application.Features.Schools.Commands.CloseComplaintCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderComplaintsQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderComplaintsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderComplaintDetailQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderComplaintDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IRespondComplaintCommandHandler,
+            VTOS.Application.Features.Providers.Commands.RespondComplaintCommandHandler>();
+
+        // Phase 5 - Generic Chat
+        services.AddScoped<VTOS.Application.Features.Chat.Queries.IGetChatMessagesQueryHandler,
+            VTOS.Application.Features.Chat.Queries.GetChatMessagesQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Chat.Commands.ISendChatMessageCommandHandler,
+            VTOS.Application.Features.Chat.Commands.SendChatMessageCommandHandler>();
+        services.AddScoped<VTOS.Application.Abstractions.IChatBroadcaster,
+            VTOS.Infrastructure.Hubs.SignalRChatBroadcaster>();
+
         // Contract Module (Phase 2)
         services.AddScoped<VTOS.Application.Features.Contracts.Commands.ICreateContractCommandHandler,
             VTOS.Application.Features.Contracts.Commands.CreateContractCommandHandler>();
@@ -360,6 +380,28 @@ public static class DependencyInjection
 
         // Admin Module - Payment Monitoring (UC 3.15.1)
         services.AddScoped<MonitorPaymentTransactionsQueryHandler>();
+
+        // Phase 6 - Internal Payment
+        services.AddScoped<VTOS.Application.Features.Payments.Commands.IPayOrderCommandHandler,
+            VTOS.Application.Features.Payments.Commands.PayOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Commands.IPayProviderCommandHandler,
+            VTOS.Application.Features.Payments.Commands.PayProviderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Commands.IRefundOrderCommandHandler,
+            VTOS.Application.Features.Payments.Commands.RefundOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Commands.IUpdateWalletBankInfoCommandHandler,
+            VTOS.Application.Features.Payments.Commands.UpdateWalletBankInfoCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Commands.IGenerateInvoiceCommandHandler,
+            VTOS.Application.Features.Payments.Commands.GenerateInvoiceCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetSchoolWalletQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetSchoolWalletQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetWalletTransactionsQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetWalletTransactionsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetParentPaymentHistoryQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetParentPaymentHistoryQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderRevenueQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetProviderRevenueQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderPaymentHistoryQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetProviderPaymentHistoryQueryHandler>();
 
         return services;
     }

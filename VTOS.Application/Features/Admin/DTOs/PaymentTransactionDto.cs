@@ -2,7 +2,7 @@ namespace VTOS.Application.Features.Admin.DTOs;
 
 public record PaymentTransactionDto(
     Guid PaymentId,
-    Guid OrderId,
+    Guid? OrderId,
     string PaymentGateway,
     string Status,
     decimal Amount,

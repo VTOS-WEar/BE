@@ -39,6 +39,10 @@ public interface IApplicationDbContext
     DbSet<ContractItem> ContractItems { get; }
     DbSet<DeliveryRecord> DeliveryRecords { get; }
     DbSet<DistributionRecord> DistributionRecords { get; }
+    DbSet<ChatMessage> ChatMessages { get; }
+    DbSet<SchoolWallet> SchoolWallets { get; }
+    DbSet<Invoice> Invoices { get; }
+    DbSet<WalletWithdrawalRequest> WalletWithdrawalRequests { get; }
 
     DbSet<T> Set<T>() where T : class;
     

@@ -28,7 +28,7 @@ public class SchoolRefundListResponse
 public class SchoolRefundDto
 {
     public Guid RefundId { get; set; }
-    public Guid OrderId { get; set; }
+    public Guid? OrderId { get; set; }
     public Guid PaymentTransactionId { get; set; }
     public decimal RefundAmount { get; set; }
     public string RefundStatus { get; set; } = string.Empty;

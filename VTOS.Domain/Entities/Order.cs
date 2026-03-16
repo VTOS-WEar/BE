@@ -13,6 +13,7 @@ public class Order : AuditableEntity
     public Guid? CampaignID { get; set; }
     public string? DeliveryMethod { get; set; }
     public string? CancelReason { get; set; }
+    public bool IsProviderPaid { get; set; }
 
     // Navigation properties
     public ChildProfile ChildProfile { get; set; } = null!;
