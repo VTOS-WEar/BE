@@ -347,6 +347,7 @@ public static class DependencyInjection
         services.AddScoped<IExportSchoolActivityLogsCommandHandler, ExportSchoolActivityLogsCommandHandler>();
 
         // Admin Module - Uniform Categories (UC 3.14.1-4)
+        services.AddScoped<Application.Features.Admin.Queries.GetCategoriesQueryHandler>();
         services.AddScoped<AddCategoryCommandHandler>();
         services.AddScoped<UpdateCategoryCommandHandler>();
         services.AddScoped<DeleteCategoryCommandHandler>();
