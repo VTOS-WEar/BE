@@ -57,6 +57,9 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<DeliveryRecord> DeliveryRecords { get; set; }
     public DbSet<DistributionRecord> DistributionRecords { get; set; }
 
+    // Chat (Phase 5)
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
