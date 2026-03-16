@@ -1,20 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Queries;
 
-public record GetProductionComplaintsQuery(Guid UserId, int Page = 1, int PageSize = 10);
+public record GetProductionComplaintsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
 
 public record ComplaintDto(
     Guid ComplaintId,
     Guid CampaignId,
     string? CampaignName,
     Guid? BatchId,
+    Guid? ProviderId,
+    string? ProviderName,
     string Title,
     string Description,
+    string? Response,
     string Status,
     DateTime CreatedAt,
+    DateTime? RespondedAt,
     DateTime? ResolvedAt
 );
 
@@ -46,8 +51,14 @@ public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQuery
 
         var q = _db.Complaints.AsNoTracking()
             .Include(c => c.Campaign)
-            .Where(c => c.SchoolID == schoolId)
-            .OrderByDescending(c => c.CreatedAt);
+            .Include(c => c.Provider)
+            .Where(c => c.SchoolID == schoolId);
+
+        // Status filter
+        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<ComplaintStatus>(query.Status, true, out var statusEnum))
+            q = q.Where(c => c.Status == statusEnum);
+
+        q = q.OrderByDescending(c => c.CreatedAt);
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -55,8 +66,9 @@ public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQuery
             .Take(query.PageSize)
             .Select(c => new ComplaintDto(
                 c.Id, c.CampaignID, c.Campaign.CampaignName,
-                c.BatchID, c.Title, c.Description,
-                c.Status.ToString(), c.CreatedAt, c.ResolvedAt
+                c.BatchID, c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
+                c.Title, c.Description, c.Response,
+                c.Status.ToString(), c.CreatedAt, c.RespondedAt, c.ResolvedAt
             ))
             .ToListAsync(ct);
 
@@ -64,3 +76,4 @@ public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQuery
             new GetProductionComplaintsResponse(items, total, query.Page, query.PageSize));
     }
 }
+

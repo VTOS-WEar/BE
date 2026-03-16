@@ -17,6 +17,8 @@ public class Complaint : AuditableEntity
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public ComplaintStatus Status { get; set; } = ComplaintStatus.Open;
+    public string? Response { get; set; }
+    public DateTime? RespondedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
 
     // Navigation properties

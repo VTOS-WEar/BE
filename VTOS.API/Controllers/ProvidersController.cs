@@ -37,6 +37,10 @@ public class ProvidersController : ControllerBase
     // Phase 4 — Delivery
     private readonly IDeliverProductionOrderCommandHandler _deliverHandler;
     private readonly IGetDeliveryStatusQueryHandler _getDeliveryStatusHandler;
+    // Phase 5 — Complaints
+    private readonly IGetProviderComplaintsQueryHandler _getProviderComplaintsHandler;
+    private readonly IGetProviderComplaintDetailQueryHandler _getProviderComplaintDetailHandler;
+    private readonly IRespondComplaintCommandHandler _respondComplaintHandler;
 
     public ProvidersController(
         ICurrentUserService currentUser,
@@ -54,7 +58,11 @@ public class ProvidersController : ControllerBase
         IProviderRejectProductionOrderCommandHandler providerRejectProductionOrderHandler,
         // Phase 4
         IDeliverProductionOrderCommandHandler deliverHandler,
-        IGetDeliveryStatusQueryHandler getDeliveryStatusHandler)
+        IGetDeliveryStatusQueryHandler getDeliveryStatusHandler,
+        // Phase 5
+        IGetProviderComplaintsQueryHandler getProviderComplaintsHandler,
+        IGetProviderComplaintDetailQueryHandler getProviderComplaintDetailHandler,
+        IRespondComplaintCommandHandler respondComplaintHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -70,6 +78,9 @@ public class ProvidersController : ControllerBase
         _providerRejectProductionOrderHandler = providerRejectProductionOrderHandler;
         _deliverHandler = deliverHandler;
         _getDeliveryStatusHandler = getDeliveryStatusHandler;
+        _getProviderComplaintsHandler = getProviderComplaintsHandler;
+        _getProviderComplaintDetailHandler = getProviderComplaintDetailHandler;
+        _respondComplaintHandler = respondComplaintHandler;
     }
 
     // ──────── Profile ────────
@@ -260,6 +271,47 @@ public class ProvidersController : ControllerBase
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
+
+    // ──────── Complaint Management (Phase 5) ────────
+
+    /// <summary>List complaints sent to this provider.</summary>
+    [HttpGet("me/complaints")]
+    [ProducesResponseType(typeof(GetProviderComplaintsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProviderComplaints(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getProviderComplaintsHandler.HandleAsync(
+            new GetProviderComplaintsQuery(_currentUser.UserId, page, pageSize, status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get complaint detail by ID (provider-scoped).</summary>
+    [HttpGet("me/complaints/{id:guid}")]
+    [ProducesResponseType(typeof(Application.Features.Schools.Queries.ComplaintDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProviderComplaintDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getProviderComplaintDetailHandler.HandleAsync(
+            new GetProviderComplaintDetailQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Respond to a complaint (optionally mark as resolved).</summary>
+    [HttpPut("me/complaints/{id:guid}/respond")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RespondComplaint(Guid id, [FromBody] RespondComplaintRequest request, CancellationToken ct)
+    {
+        var result = await _respondComplaintHandler.HandleAsync(
+            new RespondComplaintCommand(_currentUser.UserId, id, request.Response, request.MarkResolved), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
 }
 
 /// <summary>Request body for delivering uniforms.</summary>
@@ -276,3 +328,6 @@ public record UpdateProviderProfileRequest(
 
 /// <summary>Request body for provider rejecting a production order.</summary>
 public record ProviderRejectProductionOrderRequest(string Reason);
+
+/// <summary>Request body for responding to a complaint.</summary>
+public record RespondComplaintRequest(string Response, bool MarkResolved = false);
