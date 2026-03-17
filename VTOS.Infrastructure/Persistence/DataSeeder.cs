@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 using VTOS.Application.Abstractions;
@@ -19,6 +19,18 @@ public static class DataSeeder
         var adminRole = await context.Roles
             .FirstOrDefaultAsync(r => r.RoleName == "Admin");
 
+        if (adminRole == null)
+        {
+            adminRole = new Role
+            {
+                Id = Guid.NewGuid(),
+                RoleName = "Admin"
+            };
+
+            context.Roles.Add(adminRole);
+            await context.SaveChangesAsync();
+        }
+
         var parentRole = await context.Roles
             .FirstOrDefaultAsync(r => r.RoleName == "Parent");
 
@@ -31,6 +43,27 @@ public static class DataSeeder
             };
 
             context.Roles.Add(parentRole);
+            await context.SaveChangesAsync();
+        }
+
+        // ========================
+        // ADMIN USER
+        // ========================
+        if (!await context.Users.AnyAsync(u => u.Email == "admin@vtos.com"))
+        {
+            var adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "admin@vtos.com",
+                FullName = "Quản trị viên",
+                PasswordHash = passwordHasher.HashPassword("Test@1234"),
+                RoleID = adminRole.Id,
+                IsActive = true,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            context.Users.Add(adminUser);
             await context.SaveChangesAsync();
         }
 

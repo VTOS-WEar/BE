@@ -76,7 +76,31 @@ public static class DbInitializer
 
     public static async Task SeedAsync(VTOSDbContext db)
     {
-        // Guard: only seed when database is empty
+        // ── Ensure Admin account always exists (runs on every startup) ────────
+        if (!await db.Users.AnyAsync(u => u.Email == "admin@vtos.com"))
+        {
+            var adminRole = await db.Roles.FirstOrDefaultAsync(r => r.RoleName == "Admin");
+            if (adminRole != null)
+            {
+                var adminHash = BCrypt.Net.BCrypt.HashPassword("Test@1234", BCrypt.Net.BCrypt.GenerateSalt(12));
+                db.Users.Add(new User
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = "Quản trị viên",
+                    Email = "admin@vtos.com",
+                    PasswordHash = adminHash,
+                    Phone = "0900000099",
+                    Gender = Gender.Male,
+                    RoleID = adminRole.Id,
+                    IsActive = true,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync();
+            }
+        }
+
+        // Guard: only seed remaining data when database is empty
         if (await db.Roles.AnyAsync()) return;
 
         // BCrypt hash with WorkFactor 12 — same as app's PasswordHasher
