@@ -10,6 +10,7 @@ namespace VTOS.Infrastructure;
 /// Runs only when the Role table is empty — safe to call on every startup.
 ///
 /// All seed data is scoped to Đà Nẵng city with realistic information.
+/// Business flow: Contract → Campaign → Order → Payment → Production → Delivery
 ///
 /// Test accounts (password: Test@1234):
 ///   admin@vtos.com      — Admin role
@@ -26,9 +27,9 @@ namespace VTOS.Infrastructure;
 public static class DbInitializer
 {
     // ── Fixed GUIDs ────────────────────────────────────────────────────────────
-    private static readonly Guid ROLE_ADMIN  = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private static readonly Guid ROLE_PARENT = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly Guid ROLE_SCHOOL = Guid.Parse("33333333-3333-3333-3333-333333333333");
+    private static readonly Guid ROLE_ADMIN    = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid ROLE_PARENT   = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static readonly Guid ROLE_SCHOOL   = Guid.Parse("33333333-3333-3333-3333-333333333333");
     private static readonly Guid ROLE_PROVIDER = Guid.Parse("44444444-4444-4444-4444-444444444444");
 
     private static readonly Guid SCH1 = Guid.Parse("6D3CCB42-97FF-44D4-AC8B-68FC56B4DDD9");
@@ -54,6 +55,7 @@ public static class DbInitializer
     private static readonly Guid CAM1 = Guid.Parse("BA850881-4ADF-4E66-997B-9FDE3BC7A502");
     private static readonly Guid CAM2 = Guid.Parse("8B212CD8-7BFA-4485-8F82-49D1D3F93B86");
     private static readonly Guid CAM3 = Guid.Parse("4BEBF209-FA07-432D-918B-163C20ECF58D");
+    private static readonly Guid CAM4 = Guid.Parse("CC400001-0000-0000-0000-000000000004");
 
     private static readonly Guid OFT1 = Guid.Parse("05762684-7FC7-4643-B3DF-CC0ED2FAF8B9");
     private static readonly Guid OFT2 = Guid.Parse("EA4E1CDB-5D31-44DE-A50F-60EFD3F06ECF");
@@ -69,25 +71,49 @@ public static class DbInitializer
     private static readonly Guid BATCH2 = Guid.Parse("AAA00002-0000-0000-0000-000000000002");
     private static readonly Guid BATCH3 = Guid.Parse("AAA00003-0000-0000-0000-000000000003");
 
-    // Locked campaign for testing GenerateProductionOrder
-    private static readonly Guid CAM4 = Guid.Parse("CC400001-0000-0000-0000-000000000004");
-    // Product variants for Outfit 1 (Áo sơ mi PCT)
+    // Product variants
     private static readonly Guid PV1_S = Guid.Parse("DD100001-0000-0000-0000-000000000001");
     private static readonly Guid PV1_M = Guid.Parse("DD100002-0000-0000-0000-000000000002");
     private static readonly Guid PV1_L = Guid.Parse("DD100003-0000-0000-0000-000000000003");
-    // Product variants for Outfit 2 (Quần tây TP)
     private static readonly Guid PV2_S = Guid.Parse("DD200001-0000-0000-0000-000000000001");
     private static readonly Guid PV2_M = Guid.Parse("DD200002-0000-0000-0000-000000000002");
-    // Orders
+    private static readonly Guid PV3_M = Guid.Parse("DD300001-0000-0000-0000-000000000001");
+
+    // Orders — cover ALL OrderStatus values
     private static readonly Guid ORD1 = Guid.Parse("EE100001-0000-0000-0000-000000000001");
     private static readonly Guid ORD2 = Guid.Parse("EE100002-0000-0000-0000-000000000002");
     private static readonly Guid ORD3 = Guid.Parse("EE100003-0000-0000-0000-000000000003");
     private static readonly Guid ORD4 = Guid.Parse("EE100004-0000-0000-0000-000000000004");
     private static readonly Guid ORD5 = Guid.Parse("EE100005-0000-0000-0000-000000000005");
+    private static readonly Guid ORD6 = Guid.Parse("EE100006-0000-0000-0000-000000000006");
+    private static readonly Guid ORD7 = Guid.Parse("EE100007-0000-0000-0000-000000000007");
+    private static readonly Guid ORD8 = Guid.Parse("EE100008-0000-0000-0000-000000000008");
+
+    // Children
     private static readonly Guid CHILD0 = Guid.Parse("A319CD79-2B45-4507-89FD-318E26A5A26A");
     private static readonly Guid CHILD1 = Guid.Parse("4FCC8D2B-1488-47D8-ABD9-C1B2A36B6BA4");
     private static readonly Guid CHILD2 = Guid.Parse("67FF78A4-78A9-4BAF-9BE2-DF0331E6A7DE");
     private static readonly Guid CHILD3 = Guid.Parse("7C1FC73C-78E3-4F67-957D-9BB9FF0DFF99");
+
+    // Contracts
+    private static readonly Guid CTR1 = Guid.Parse("FF100001-0000-0000-0000-000000000001");
+    private static readonly Guid CTR2 = Guid.Parse("FF100002-0000-0000-0000-000000000002");
+    private static readonly Guid CTR3 = Guid.Parse("FF100003-0000-0000-0000-000000000003");
+    private static readonly Guid CTR4 = Guid.Parse("FF100004-0000-0000-0000-000000000004");
+
+    // SchoolWallets (need fixed IDs for PaymentTransaction.WalletID)
+    private static readonly Guid WALLET1 = Guid.Parse("FFA00001-0000-0000-0000-000000000001");
+    private static readonly Guid WALLET2 = Guid.Parse("FFA00002-0000-0000-0000-000000000002");
+    private static readonly Guid WALLET3 = Guid.Parse("FFA00003-0000-0000-0000-000000000003");
+
+    // PaymentTransactions (need fixed IDs for Refund.PaymentID)
+    private static readonly Guid TXN1 = Guid.Parse("FFB00001-0000-0000-0000-000000000001");
+    private static readonly Guid TXN2 = Guid.Parse("FFB00002-0000-0000-0000-000000000002");
+    private static readonly Guid TXN3 = Guid.Parse("FFB00003-0000-0000-0000-000000000003");
+    private static readonly Guid TXN4 = Guid.Parse("FFB00004-0000-0000-0000-000000000004");
+    private static readonly Guid TXN5 = Guid.Parse("FFB00005-0000-0000-0000-000000000005");
+    private static readonly Guid TXN6 = Guid.Parse("FFB00006-0000-0000-0000-000000000006");
+    private static readonly Guid TXN7 = Guid.Parse("FFB00007-0000-0000-0000-000000000007");
 
     public static async Task SeedAsync(VTOSDbContext db)
     {
@@ -118,7 +144,6 @@ public static class DbInitializer
         // Guard: only seed remaining data when database is empty
         if (await db.Roles.AnyAsync()) return;
 
-        // BCrypt hash with WorkFactor 12 — same as app's PasswordHasher
         var hash = BCrypt.Net.BCrypt.HashPassword("Test@1234", BCrypt.Net.BCrypt.GenerateSalt(12));
         var now  = DateTime.UtcNow;
 
@@ -135,62 +160,56 @@ public static class DbInitializer
         db.Schools.AddRange(
             new School
             {
-                Id = SCH1,
-                SchoolName = "Trường THPT Phan Châu Trinh",
-                Level = "THPT",
-                LogoURL = "https://tamkhoiphat.com/wp-content/uploads/2024/03/logo-phan-chau-trinh.png",
-                ContactInfo = "{\"email\":\"contact@thptphanchautrinh.edu.vn\",\"phone\":\"0236 3822 367\",\"address\":\"154 Lê Lợi, Hải Châu, Đà Nẵng\",\"academicYear\":\"2025-2026\",\"foundedYear\":1952,\"website\":\"https://thptphanchautrinh.edu.vn\",\"description\":\"Trường THPT trọng điểm quốc gia tại Đà Nẵng, nổi tiếng với chất lượng giáo dục hàng đầu khu vực miền Trung.\"}",
+                Id = SCH1, SchoolName = "Trường THPT Phan Châu Trinh", Level = "THPT",
+                LogoURL = "https://i.ibb.co/placeholder/pct-logo.png",
+                ContactInfo = "{\"email\":\"contact@thptphanchautrinh.edu.vn\",\"phone\":\"0236 3822 367\",\"address\":\"154 Lê Lợi, Hải Châu, Đà Nẵng\",\"foundedYear\":1952}",
                 CreatedAt = now
             },
             new School
             {
-                Id = SCH2,
-                SchoolName = "Trường THPT Trần Phú",
-                Level = "THPT",
-                LogoURL = "https://tamkhoiphat.com/wp-content/uploads/2025/10/logo-truong-tran-phu-da-nang.png",
-                ContactInfo = "{\"email\":\"contact@thpttranphu.edu.vn\",\"phone\":\"0236 3895 289\",\"address\":\"11 Lê Thánh Tôn, Hải Châu, Đà Nẵng\",\"academicYear\":\"2025-2026\",\"foundedYear\":1965,\"website\":\"https://thpttranphu.edu.vn\",\"description\":\"Trường THPT công lập chất lượng cao tại trung tâm thành phố Đà Nẵng.\"}",
+                Id = SCH2, SchoolName = "Trường THPT Trần Phú", Level = "THPT",
+                LogoURL = "https://i.ibb.co/placeholder/tp-logo.png",
+                ContactInfo = "{\"email\":\"contact@thpttranphu.edu.vn\",\"phone\":\"0236 3895 289\",\"address\":\"11 Lê Thánh Tôn, Hải Châu, Đà Nẵng\",\"foundedYear\":1965}",
                 CreatedAt = now
             },
             new School
             {
-                Id = SCH3,
-                SchoolName = "Trường THCS Nguyễn Huệ",
-                Level = "THCS",
-                LogoURL = "https://lh5.googleusercontent.com/proxy/bjv3ZY933qljz5p5wmzzE6BIxUZHz7MyOnZHJ-lceOCV_sWtg_OpkxzyTmws1SIPAXMHoY2fY0gshhLB0aUUksRIaKzAriSS9GbcZOC-eZELICGp-eet5PCTFxWlTOQ3hXBaP2BdgovEn_g5eFjQ5pRUIyhogvCoAmaOSGGIRws",
-                ContactInfo = "{\"email\":\"contact@thcsnguyenhue.edu.vn\",\"phone\":\"0236 3823 456\",\"address\":\"62 Nguyễn Chí Thanh, Hải Châu, Đà Nẵng\",\"academicYear\":\"2025-2026\",\"foundedYear\":1975,\"website\":\"https://thcsnguyenhue.edu.vn\",\"description\":\"Trường THCS hàng đầu quận Hải Châu, Đà Nẵng với nhiều thành tích học tập xuất sắc.\"}",
+                Id = SCH3, SchoolName = "Trường THCS Nguyễn Huệ", Level = "THCS",
+                LogoURL = "https://i.ibb.co/placeholder/nh-logo.png",
+                ContactInfo = "{\"email\":\"contact@thcsnguyenhue.edu.vn\",\"phone\":\"0236 3823 456\",\"address\":\"62 Nguyễn Chí Thanh, Hải Châu, Đà Nẵng\",\"foundedYear\":1975}",
                 CreatedAt = now
             }
         );
         await db.SaveChangesAsync();
 
-        // ── SchoolWallets ──────────────────────────────────────────────────────
+        // ── SchoolWallets (fixed IDs for transaction linking) ──────────────────
         db.SchoolWallets.AddRange(
-            new SchoolWallet { Id = Guid.NewGuid(), SchoolID = SCH1, Balance = 2500000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000234567", BankAccountName = "TRUONG THPT PHAN CHAU TRINH", IsActive = true, CreatedAt = now, UpdatedAt = now },
-            new SchoolWallet { Id = Guid.NewGuid(), SchoolID = SCH2, Balance = 1800000, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678901234", BankAccountName = "TRUONG THPT TRAN PHU", IsActive = true, CreatedAt = now, UpdatedAt = now },
-            new SchoolWallet { Id = Guid.NewGuid(), SchoolID = SCH3, Balance = 950000, BankCode = "BIDV", BankName = "BIDV", BankAccountNumber = "31410001234567", BankAccountName = "TRUONG THCS NGUYEN HUE", IsActive = true, CreatedAt = now, UpdatedAt = now }
+            new SchoolWallet { Id = WALLET1, SchoolID = SCH1, Balance = 2_685_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000234567", BankAccountName = "TRUONG THPT PHAN CHAU TRINH", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            new SchoolWallet { Id = WALLET2, SchoolID = SCH2, Balance = 475_000, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678901234", BankAccountName = "TRUONG THPT TRAN PHU", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            new SchoolWallet { Id = WALLET3, SchoolID = SCH3, Balance = 0, BankCode = "BIDV", BankName = "BIDV", BankAccountNumber = "31410001234567", BankAccountName = "TRUONG THCS NGUYEN HUE", IsActive = true, CreatedAt = now, UpdatedAt = now }
         );
         await db.SaveChangesAsync();
 
         // ── Providers (Da Nang garment companies) ──────────────────────────────
         db.Providers.AddRange(
-            new Provider { Id = PRV1, ProviderName = "Công ty May Mặc Hoàng Gia", ContactPersonName = "Hoàng Minh Tuấn", Phone = "0905123456", Address = "Khu CN Hoà Khánh, Liên Chiểu, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false },
-            new Provider { Id = PRV2, ProviderName = "Đồng Phục Sơn Trà", ContactPersonName = "Võ Thị Lan Anh", Phone = "0935789012", Address = "78 Ngô Quyền, Sơn Trà, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false },
-            new Provider { Id = PRV3, ProviderName = "Xưởng May Thanh Khê", ContactPersonName = "Bùi Đình Phong", Phone = "0769456789", Address = "215 Điện Biên Phủ, Thanh Khê, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false }
+            new Provider { Id = PRV1, ProviderName = "Công ty May Mặc Hoàng Gia", ContactPersonName = "Hoàng Minh Tuấn", Phone = "0905123456", Email = "hoanggia@email.com", Address = "Khu CN Hoà Khánh, Liên Chiểu, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false },
+            new Provider { Id = PRV2, ProviderName = "Đồng Phục Sơn Trà", ContactPersonName = "Võ Thị Lan Anh", Phone = "0935789012", Email = "sontra@email.com", Address = "78 Ngô Quyền, Sơn Trà, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false },
+            new Provider { Id = PRV3, ProviderName = "Xưởng May Thanh Khê", ContactPersonName = "Bùi Đình Phong", Phone = "0769456789", Email = "thanhkhe@email.com", Address = "215 Điện Biên Phủ, Thanh Khê, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false }
         );
         await db.SaveChangesAsync();
 
         // ── Users ─────────────────────────────────────────────────────────────
         db.Users.AddRange(
-            // School manager accounts (realistic Da Nang Vietnamese names)
+            // School managers
             new User { Id = USR_SCH1, FullName = "Nguyễn Thị Thanh Hà", Email = "school1@vtos.com", PasswordHash = hash, Phone = "0905112233", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, SchoolID = SCH1, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_SCH2, FullName = "Trần Văn Minh", Email = "school2@vtos.com", PasswordHash = hash, Phone = "0935445566", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, SchoolID = SCH2, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_SCH3, FullName = "Lê Thị Bích Ngọc", Email = "school3@vtos.com", PasswordHash = hash, Phone = "0769778899", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, SchoolID = SCH3, IsActive = true, IsDeleted = false, CreatedAt = now },
-            // Parent accounts
+            // Parents
             new User { Id = USR_P0, FullName = "Trần Thị Hương", Email = "parent0@vtos.com", PasswordHash = hash, Phone = "0905101010", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_P1, FullName = "Lê Văn Đức", Email = "parent1@vtos.com", PasswordHash = hash, Phone = "0935202020", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_P2, FullName = "Phạm Thị Mai", Email = "parent2@vtos.com", PasswordHash = hash, Phone = "0769303030", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_P3, FullName = "Ngô Quang Hải", Email = "parent3@vtos.com", PasswordHash = hash, Phone = "0905404040", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
-            // Provider accounts
+            // Providers
             new User { Id = USR_PRV1, FullName = "Hoàng Minh Tuấn", Email = "provider1@vtos.com", PasswordHash = hash, Phone = "0905123456", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, ProviderID = PRV1, IsActive = true, IsDeleted = false, CreatedAt = now },
             new User { Id = USR_PRV2, FullName = "Võ Thị Lan Anh", Email = "provider2@vtos.com", PasswordHash = hash, Phone = "0935789012", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, ProviderID = PRV2, IsActive = true, IsDeleted = false, CreatedAt = now }
         );
@@ -204,131 +223,187 @@ public static class DbInitializer
         );
         await db.SaveChangesAsync();
 
-        // ── Outfits (realistic uniform items) ─────────────────────────────────
+        // ── Outfits ───────────────────────────────────────────────────────────
         db.Outfits.AddRange(
-            new Outfit { Id = OFT1, SchoolID = SCH1, OutfitName = "Áo sơ mi trắng THPT Phan Châu Trinh", Description = "Áo sơ mi trắng dài tay, logo trường thêu ngực trái, vải kate cao cấp", Price = 185000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
-            new Outfit { Id = OFT2, SchoolID = SCH2, OutfitName = "Quần tây xanh THPT Trần Phú", Description = "Quần tây xanh đen, vải tốt không nhăn, ống suông", Price = 195000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
-            new Outfit { Id = OFT3, SchoolID = SCH3, OutfitName = "Áo thể dục THCS Nguyễn Huệ", Description = "Áo thể dục cổ tròn, logo trường in ngực, vải thun cotton thoáng mát", Price = 120000, OutfitType = OutfitType.Sportswear, SizeChartID = SC3, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
-            new Outfit { Id = OFT4, SchoolID = SCH1, OutfitName = "Áo dài trắng nữ THPT Phan Châu Trinh", Description = "Áo dài trắng truyền thống, vải lụa mềm mại, dành cho nữ sinh", Price = 350000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
-            new Outfit { Id = OFT5, SchoolID = SCH2, OutfitName = "Áo khoác đồng phục THPT Trần Phú", Description = "Áo khoác gió đồng phục, logo trường thêu, có mũ trùm", Price = 280000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now }
+            new Outfit { Id = OFT1, SchoolID = SCH1, OutfitName = "Áo sơ mi trắng THPT Phan Châu Trinh", Description = "Áo sơ mi trắng dài tay, logo trường thêu ngực trái", Price = 185_000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT2, SchoolID = SCH2, OutfitName = "Quần tây xanh THPT Trần Phú", Description = "Quần tây xanh đen, vải tốt không nhăn", Price = 195_000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT3, SchoolID = SCH3, OutfitName = "Áo thể dục THCS Nguyễn Huệ", Description = "Áo thể dục cổ tròn, vải thun cotton thoáng mát", Price = 120_000, OutfitType = OutfitType.Sportswear, SizeChartID = SC3, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT4, SchoolID = SCH1, OutfitName = "Áo dài trắng nữ THPT Phan Châu Trinh", Description = "Áo dài trắng truyền thống dành cho nữ sinh", Price = 350_000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT5, SchoolID = SCH2, OutfitName = "Áo khoác đồng phục THPT Trần Phú", Description = "Áo khoác gió đồng phục, logo trường thêu", Price = 280_000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now }
+        );
+        await db.SaveChangesAsync();
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ── CONTRACTS (must exist BEFORE campaigns — define production prices)
+        // ══════════════════════════════════════════════════════════════════════
+        db.Set<Contract>().AddRange(
+            // CTR1: PCT ↔ Hoàng Gia — Approved (active, used for CAM1 & CAM4)
+            new Contract { Id = CTR1, SchoolID = SCH1, ProviderID = PRV1, ContractName = "HĐ May đồng phục PCT - Hoàng Gia 2025-2026", Status = "Approved", CreatedAt = now.AddDays(-60), ApprovedAt = now.AddDays(-55) },
+            // CTR2: TP ↔ Sơn Trà — Approved (active, used for CAM2)
+            new Contract { Id = CTR2, SchoolID = SCH2, ProviderID = PRV2, ContractName = "HĐ May đồng phục TP - Sơn Trà 2025-2026", Status = "Approved", CreatedAt = now.AddDays(-50), ApprovedAt = now.AddDays(-45) },
+            // CTR3: NH ↔ Thanh Khê — Approved (active, used for CAM3)
+            new Contract { Id = CTR3, SchoolID = SCH3, ProviderID = PRV3, ContractName = "HĐ May áo thể dục NH - Thanh Khê 2025-2026", Status = "Approved", CreatedAt = now.AddDays(-45), ApprovedAt = now.AddDays(-40) },
+            // CTR4: PCT ↔ Sơn Trà — Pending (for testing pending contract flow)
+            new Contract { Id = CTR4, SchoolID = SCH1, ProviderID = PRV2, ContractName = "HĐ May áo khoác PCT - Sơn Trà (chờ duyệt)", Status = "Pending", CreatedAt = now.AddDays(-3) }
+        );
+        await db.SaveChangesAsync();
+
+        // ── ContractItems (production cost per outfit — different from retail price)
+        db.Set<ContractItem>().AddRange(
+            // CTR1: PCT ↔ Hoàng Gia — áo sơ mi + áo dài
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR1, OutfitID = OFT1, PricePerUnit = 125_000, MinQuantity = 50, MaxQuantity = 500 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR1, OutfitID = OFT4, PricePerUnit = 230_000, MinQuantity = 30, MaxQuantity = 200 },
+            // CTR2: TP ↔ Sơn Trà — quần tây + áo khoác
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR2, OutfitID = OFT2, PricePerUnit = 130_000, MinQuantity = 40, MaxQuantity = 400 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR2, OutfitID = OFT5, PricePerUnit = 185_000, MinQuantity = 30, MaxQuantity = 300 },
+            // CTR3: NH ↔ Thanh Khê — áo thể dục
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR3, OutfitID = OFT3, PricePerUnit = 75_000, MinQuantity = 50, MaxQuantity = 350 },
+            // CTR4: Pending — áo khoác from different provider
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR4, OutfitID = OFT5, PricePerUnit = 175_000, MinQuantity = 20, MaxQuantity = 200 }
         );
         await db.SaveChangesAsync();
 
         // ── Campaigns ─────────────────────────────────────────────────────────
         db.Campaigns.AddRange(
-            new Campaign { Id = CAM1, SchoolID = SCH1, CampaignName = "Đồng phục Năm học 2025-2026 - PCT", Description = "Chiến dịch đặt đồng phục chính thức cho năm học mới 2025-2026 tại THPT Phan Châu Trinh", StartDate = new DateTime(2026,1,15), EndDate = new DateTime(2026,4,30), Status = CampaignStatus.Active, CreatedAt = now },
-            new Campaign { Id = CAM2, SchoolID = SCH2, CampaignName = "Đồng phục Năm học 2025-2026 - TP", Description = "Đặt đồng phục cho học sinh THPT Trần Phú năm học 2025-2026", StartDate = new DateTime(2026,2,1), EndDate = new DateTime(2026,5,15), Status = CampaignStatus.Active, CreatedAt = now },
-            new Campaign { Id = CAM3, SchoolID = SCH3, CampaignName = "Đồng phục Năm học 2025-2026 - NH", Description = "Chiến dịch đồng phục mới cho THCS Nguyễn Huệ, bao gồm áo thể dục và đồng phục hàng ngày", StartDate = new DateTime(2026,1,20), EndDate = new DateTime(2026,3,31), Status = CampaignStatus.Active, CreatedAt = now }
+            new Campaign { Id = CAM1, SchoolID = SCH1, CampaignName = "Đồng phục Năm học 2025-2026 - PCT", Description = "Chiến dịch đặt đồng phục chính thức THPT Phan Châu Trinh", StartDate = new DateTime(2026,1,15), EndDate = new DateTime(2026,4,30), Status = CampaignStatus.Active, CreatedAt = now.AddDays(-30) },
+            new Campaign { Id = CAM2, SchoolID = SCH2, CampaignName = "Đồng phục Năm học 2025-2026 - TP", Description = "Đặt đồng phục THPT Trần Phú", StartDate = new DateTime(2026,2,1), EndDate = new DateTime(2026,5,15), Status = CampaignStatus.Active, CreatedAt = now.AddDays(-25) },
+            new Campaign { Id = CAM3, SchoolID = SCH3, CampaignName = "Đồng phục Năm học 2025-2026 - NH", Description = "Chiến dịch đồng phục THCS Nguyễn Huệ", StartDate = new DateTime(2026,1,20), EndDate = new DateTime(2026,3,31), Status = CampaignStatus.Active, CreatedAt = now.AddDays(-28) },
+            new Campaign { Id = CAM4, SchoolID = SCH1, CampaignName = "Đồng phục Hè 2026 - PCT (Đã khóa)", Description = "Chiến dịch đồng phục mùa hè - đã khóa để tạo đơn sản xuất", StartDate = new DateTime(2026,3,1), EndDate = new DateTime(2026,6,30), Status = CampaignStatus.Locked, CreatedAt = now.AddDays(-20) }
         );
         await db.SaveChangesAsync();
 
         // ── CampaignOutfits ───────────────────────────────────────────────────
         db.CampaignOutfits.AddRange(
-            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM1, OutfitID = OFT1, ProviderID = PRV1, CampaignPrice = 185000, MaxQuantity = 500 },
-            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM1, OutfitID = OFT4, ProviderID = PRV1, CampaignPrice = 350000, MaxQuantity = 200 },
-            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM2, OutfitID = OFT2, ProviderID = PRV2, CampaignPrice = 195000, MaxQuantity = 400 },
-            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM2, OutfitID = OFT5, ProviderID = PRV2, CampaignPrice = 280000, MaxQuantity = 300 },
-            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM3, OutfitID = OFT3, ProviderID = PRV3, CampaignPrice = 120000, MaxQuantity = 350 }
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM1, OutfitID = OFT1, ProviderID = PRV1, CampaignPrice = 185_000, MaxQuantity = 500 },
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM1, OutfitID = OFT4, ProviderID = PRV1, CampaignPrice = 350_000, MaxQuantity = 200 },
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM2, OutfitID = OFT2, ProviderID = PRV2, CampaignPrice = 195_000, MaxQuantity = 400 },
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM2, OutfitID = OFT5, ProviderID = PRV2, CampaignPrice = 280_000, MaxQuantity = 300 },
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM3, OutfitID = OFT3, ProviderID = PRV3, CampaignPrice = 120_000, MaxQuantity = 350 },
+            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM4, OutfitID = OFT1, ProviderID = PRV1, CampaignPrice = 185_000, MaxQuantity = 500 }
         );
         await db.SaveChangesAsync();
 
-        // ── Children (realistic Da Nang student profiles) ─────────────────────
+        // ── Children ──────────────────────────────────────────────────────────
         db.ChildProfiles.AddRange(
-            new ChildProfile { Id = CHILD0, ParentUserID = USR_P0, FullName = "Trần Minh Khôi", DOB = new DateTime(2010, 3, 15), Age = 16, Grade = "Lớp 10A1", Gender = Gender.Male, SchoolID = SCH1, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 168, WeightKg = 55 },
-            new ChildProfile { Id = CHILD1, ParentUserID = USR_P1, FullName = "Lê Ngọc Bảo Trân", DOB = new DateTime(2009, 8, 22), Age = 17, Grade = "Lớp 11B3", Gender = Gender.Female, SchoolID = SCH2, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 158, WeightKg = 48 },
-            new ChildProfile { Id = CHILD2, ParentUserID = USR_P2, FullName = "Phạm Gia Huy", DOB = new DateTime(2012, 11, 5), Age = 14, Grade = "Lớp 8A2", Gender = Gender.Male, SchoolID = SCH3, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 155, WeightKg = 45 },
-            new ChildProfile { Id = CHILD3, ParentUserID = USR_P3, FullName = "Ngô Thùy Linh", DOB = new DateTime(2010, 6, 18), Age = 16, Grade = "Lớp 10A5", Gender = Gender.Female, SchoolID = SCH1, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 160, WeightKg = 50 }
+            new ChildProfile { Id = CHILD0, ParentUserID = USR_P0, FullName = "Trần Minh Khôi", DOB = new DateTime(2010,3,15), Age = 16, Grade = "Lớp 10A1", Gender = Gender.Male, SchoolID = SCH1, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 168, WeightKg = 55 },
+            new ChildProfile { Id = CHILD1, ParentUserID = USR_P1, FullName = "Lê Ngọc Bảo Trân", DOB = new DateTime(2009,8,22), Age = 17, Grade = "Lớp 11B3", Gender = Gender.Female, SchoolID = SCH2, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 158, WeightKg = 48 },
+            new ChildProfile { Id = CHILD2, ParentUserID = USR_P2, FullName = "Phạm Gia Huy", DOB = new DateTime(2012,11,5), Age = 14, Grade = "Lớp 8A2", Gender = Gender.Male, SchoolID = SCH3, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 155, WeightKg = 45 },
+            new ChildProfile { Id = CHILD3, ParentUserID = USR_P3, FullName = "Ngô Thùy Linh", DOB = new DateTime(2010,6,18), Age = 16, Grade = "Lớp 10A5", Gender = Gender.Female, SchoolID = SCH1, IsDeleted = false, Avatar = "avatar.jpg", HeightCm = 160, WeightKg = 50 }
         );
         await db.SaveChangesAsync();
 
-        // ── CAM4: Locked campaign for testing GenerateProductionOrder ─────
-        db.Campaigns.Add(
-            new Campaign { Id = CAM4, SchoolID = SCH1, CampaignName = "Đồng phục Hè 2026 - PCT (Đã khóa)", Description = "Chiến dịch đồng phục mùa hè cho THPT Phan Châu Trinh - đã khóa để tạo đơn sản xuất", StartDate = new DateTime(2026,3,1), EndDate = new DateTime(2026,6,30), Status = CampaignStatus.Locked, CreatedAt = now }
-        );
-        await db.SaveChangesAsync();
-
-        db.CampaignOutfits.Add(
-            new CampaignOutfit { Id = Guid.NewGuid(), CampaignID = CAM4, OutfitID = OFT1, ProviderID = PRV1, CampaignPrice = 185000, MaxQuantity = 500 }
-        );
-        await db.SaveChangesAsync();
-
-        // ── ProductVariants for Outfit 1 (Áo sơ mi PCT) ──────────────────
+        // ── ProductVariants ───────────────────────────────────────────────────
         db.ProductVariants.AddRange(
-            new ProductVariant { Id = PV1_S, OutfitID = OFT1, Size = "S", Price = 185000, StockQuantity = 100, SKUCode = "PCT-AOSOMI-S", IsDeleted = false },
-            new ProductVariant { Id = PV1_M, OutfitID = OFT1, Size = "M", Price = 185000, StockQuantity = 100, SKUCode = "PCT-AOSOMI-M", IsDeleted = false },
-            new ProductVariant { Id = PV1_L, OutfitID = OFT1, Size = "L", Price = 185000, StockQuantity = 100, SKUCode = "PCT-AOSOMI-L", IsDeleted = false }
-        );
-        // ── ProductVariants for Outfit 2 (Quần tây TP) ────────────────────
-        db.ProductVariants.AddRange(
-            new ProductVariant { Id = PV2_S, OutfitID = OFT2, Size = "S", Price = 195000, StockQuantity = 80, SKUCode = "TP-QUANTAY-S", IsDeleted = false },
-            new ProductVariant { Id = PV2_M, OutfitID = OFT2, Size = "M", Price = 195000, StockQuantity = 80, SKUCode = "TP-QUANTAY-M", IsDeleted = false }
+            // Outfit 1 — Áo sơ mi PCT
+            new ProductVariant { Id = PV1_S, OutfitID = OFT1, Size = "S", Price = 185_000, StockQuantity = 100, SKUCode = "PCT-AOSOMI-S", IsDeleted = false },
+            new ProductVariant { Id = PV1_M, OutfitID = OFT1, Size = "M", Price = 185_000, StockQuantity = 100, SKUCode = "PCT-AOSOMI-M", IsDeleted = false },
+            new ProductVariant { Id = PV1_L, OutfitID = OFT1, Size = "L", Price = 185_000, StockQuantity = 100, SKUCode = "PCT-AOSOMI-L", IsDeleted = false },
+            // Outfit 2 — Quần tây TP
+            new ProductVariant { Id = PV2_S, OutfitID = OFT2, Size = "S", Price = 195_000, StockQuantity = 80, SKUCode = "TP-QUANTAY-S", IsDeleted = false },
+            new ProductVariant { Id = PV2_M, OutfitID = OFT2, Size = "M", Price = 195_000, StockQuantity = 80, SKUCode = "TP-QUANTAY-M", IsDeleted = false },
+            // Outfit 3 — Áo thể dục NH
+            new ProductVariant { Id = PV3_M, OutfitID = OFT3, Size = "M", Price = 120_000, StockQuantity = 80, SKUCode = "NH-AOTD-M", IsDeleted = false }
         );
         await db.SaveChangesAsync();
 
-        // ── Parent Orders (mixed statuses for realistic testing) ──────────
+        // ══════════════════════════════════════════════════════════════════════
+        // ── ORDERS — All 8 OrderStatus values covered for comprehensive testing
+        // ══════════════════════════════════════════════════════════════════════
         db.Orders.AddRange(
-            // ORD1: Trần Minh Khôi (child of Trần Thị Hương) — CAM4 Locked campaign
-            new Order { Id = ORD1, ChildProfileID = CHILD0, CampaignID = CAM4, OrderDate = now.AddDays(-10), OrderStatus = OrderStatus.Confirmed, TotalAmount = 555000, ShippingAddress = "42 Nguyễn Văn Linh, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-10) },
-            // ORD2: Ngô Thùy Linh (child of Ngô Quang Hải) — CAM4 Locked campaign
-            new Order { Id = ORD2, ChildProfileID = CHILD3, CampaignID = CAM4, OrderDate = now.AddDays(-8), OrderStatus = OrderStatus.Confirmed, TotalAmount = 370000, ShippingAddress = "15 Phan Đăng Lưu, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-8) },
-            // ORD3: Trần Minh Khôi — Active campaign CAM1
-            new Order { Id = ORD3, ChildProfileID = CHILD0, CampaignID = CAM1, OrderDate = now.AddDays(-5), OrderStatus = OrderStatus.Paid, TotalAmount = 185000, ShippingAddress = "42 Nguyễn Văn Linh, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-5) },
-            // ORD4: Lê Ngọc Bảo Trân — Active campaign CAM2 — Delivered
-            new Order { Id = ORD4, ChildProfileID = CHILD1, CampaignID = CAM2, OrderDate = now.AddDays(-20), OrderStatus = OrderStatus.Delivered, TotalAmount = 475000, ShippingAddress = "88 Trần Cao Vân, Thanh Khê, Đà Nẵng", CreatedAt = now.AddDays(-20) },
-            // ORD5: Phạm Gia Huy — Active campaign CAM3 — Cancelled
-            new Order { Id = ORD5, ChildProfileID = CHILD2, CampaignID = CAM3, OrderDate = now.AddDays(-3), OrderStatus = OrderStatus.Cancelled, TotalAmount = 120000, ShippingAddress = "23 Lê Duẩn, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-3) }
+            // ORD1: Pending (chờ thanh toán)
+            new Order { Id = ORD1, ChildProfileID = CHILD0, CampaignID = CAM1, OrderDate = now.AddDays(-1), OrderStatus = OrderStatus.Pending, TotalAmount = 185_000, ShippingAddress = "42 Nguyễn Văn Linh, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-1) },
+            // ORD2: Paid (đã thanh toán, chờ xác nhận)
+            new Order { Id = ORD2, ChildProfileID = CHILD0, CampaignID = CAM1, OrderDate = now.AddDays(-5), OrderStatus = OrderStatus.Paid, TotalAmount = 350_000, ShippingAddress = "42 Nguyễn Văn Linh, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-5) },
+            // ORD3: Confirmed (đã xác nhận, chờ xử lý) — on locked campaign
+            new Order { Id = ORD3, ChildProfileID = CHILD0, CampaignID = CAM4, OrderDate = now.AddDays(-10), OrderStatus = OrderStatus.Confirmed, TotalAmount = 555_000, ShippingAddress = "42 Nguyễn Văn Linh, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-10) },
+            // ORD4: Processed (đã xử lý, chờ giao hàng)
+            new Order { Id = ORD4, ChildProfileID = CHILD3, CampaignID = CAM4, OrderDate = now.AddDays(-12), OrderStatus = OrderStatus.Processed, TotalAmount = 370_000, ShippingAddress = "15 Phan Đăng Lưu, Hải Châu, Đà Nẵng", CreatedAt = now.AddDays(-12) },
+            // ORD5: Shipped (đang giao hàng)
+            new Order { Id = ORD5, ChildProfileID = CHILD1, CampaignID = CAM2, OrderDate = now.AddDays(-20), OrderStatus = OrderStatus.Shipped, TotalAmount = 475_000, ShippingAddress = "88 Trần Cao Vân, Thanh Khê, Đà Nẵng", IsProviderPaid = true, CreatedAt = now.AddDays(-20) },
+            // ORD6: Delivered (đã phân phối — full flow complete)
+            new Order { Id = ORD6, ChildProfileID = CHILD1, CampaignID = CAM2, OrderDate = now.AddDays(-30), OrderStatus = OrderStatus.Delivered, TotalAmount = 195_000, ShippingAddress = "88 Trần Cao Vân, Thanh Khê, Đà Nẵng", IsProviderPaid = true, CreatedAt = now.AddDays(-30) },
+            // ORD7: Cancelled (đã hủy — with cancel reason)
+            new Order { Id = ORD7, ChildProfileID = CHILD2, CampaignID = CAM3, OrderDate = now.AddDays(-3), OrderStatus = OrderStatus.Cancelled, TotalAmount = 120_000, ShippingAddress = "23 Lê Duẩn, Hải Châu, Đà Nẵng", CancelReason = "Phụ huynh đặt nhầm size, muốn đặt lại", CreatedAt = now.AddDays(-3) },
+            // ORD8: Refunded (đã hoàn tiền — full refund flow)
+            new Order { Id = ORD8, ChildProfileID = CHILD2, CampaignID = CAM3, OrderDate = now.AddDays(-25), OrderStatus = OrderStatus.Refunded, TotalAmount = 120_000, ShippingAddress = "23 Lê Duẩn, Hải Châu, Đà Nẵng", CancelReason = "Sản phẩm bị lỗi, hoàn tiền theo yêu cầu", CreatedAt = now.AddDays(-25) }
         );
         await db.SaveChangesAsync();
 
         // ── OrderItems ────────────────────────────────────────────────────────
         db.OrderItems.AddRange(
-            // ORD1: 2x áo sơ mi size S + 1x size M = 555,000
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD1, ProductVariantID = PV1_S, Quantity = 2, UnitPrice = 185000, SizeOrdered = "S", IsCustomOrder = false, CreatedAt = now.AddDays(-10) },
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD1, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 185000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-10) },
-            // ORD2: 1x áo sơ mi size M + 1x size L = 370,000
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD2, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 185000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-8) },
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD2, ProductVariantID = PV1_L, Quantity = 1, UnitPrice = 185000, SizeOrdered = "L", IsCustomOrder = false, CreatedAt = now.AddDays(-8) },
-            // ORD3: 1x áo sơ mi size M = 185,000
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD3, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 185000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-5) },
-            // ORD4: 1x quần tây size S + 1x áo khoác = 475,000
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD4, ProductVariantID = PV2_S, Quantity = 1, UnitPrice = 195000, SizeOrdered = "S", IsCustomOrder = false, CreatedAt = now.AddDays(-20) },
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD4, ProductVariantID = PV2_M, Quantity = 1, UnitPrice = 280000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-20) },
-            // ORD5: 1x áo thể dục size M = 120,000
-            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD5, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 120000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-3) }
+            // ORD1: 1x áo sơ mi M = 185K (Pending)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD1, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 185_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-1) },
+            // ORD2: 1x áo dài = 350K (Paid) — using PV1_L as placeholder variant
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD2, ProductVariantID = PV1_L, Quantity = 1, UnitPrice = 350_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-5) },
+            // ORD3: 2x áo sơ mi S + 1x M = 555K (Confirmed)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD3, ProductVariantID = PV1_S, Quantity = 2, UnitPrice = 185_000, SizeOrdered = "S", IsCustomOrder = false, CreatedAt = now.AddDays(-10) },
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD3, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 185_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-10) },
+            // ORD4: 1x áo sơ mi M + 1x L = 370K (Processed)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD4, ProductVariantID = PV1_M, Quantity = 1, UnitPrice = 185_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-12) },
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD4, ProductVariantID = PV1_L, Quantity = 1, UnitPrice = 185_000, SizeOrdered = "L", IsCustomOrder = false, CreatedAt = now.AddDays(-12) },
+            // ORD5: 1x quần tây S + 1x áo khoác M = 475K (Shipped)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD5, ProductVariantID = PV2_S, Quantity = 1, UnitPrice = 195_000, SizeOrdered = "S", IsCustomOrder = false, CreatedAt = now.AddDays(-20) },
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD5, ProductVariantID = PV2_M, Quantity = 1, UnitPrice = 280_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-20) },
+            // ORD6: 1x quần tây M = 195K (Delivered)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD6, ProductVariantID = PV2_M, Quantity = 1, UnitPrice = 195_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-30) },
+            // ORD7: 1x áo thể dục M = 120K (Cancelled)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD7, ProductVariantID = PV3_M, Quantity = 1, UnitPrice = 120_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-3) },
+            // ORD8: 1x áo thể dục M = 120K (Refunded)
+            new OrderItem { Id = Guid.NewGuid(), OrderID = ORD8, ProductVariantID = PV3_M, Quantity = 1, UnitPrice = 120_000, SizeOrdered = "M", IsCustomOrder = false, CreatedAt = now.AddDays(-25) }
+        );
+        await db.SaveChangesAsync();
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ── PAYMENT TRANSACTIONS — All 3 TransactionTypes + all PaymentStatus
+        // ══════════════════════════════════════════════════════════════════════
+        db.PaymentTransactions.AddRange(
+            // TXN1: OrderPayment — ORD2 paid (→ funds SCH1 wallet) ✅ Completed
+            new PaymentTransaction { Id = TXN1, OrderID = ORD2, WalletID = WALLET1, Amount = 350_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Trần Thị Hương thanh toán đơn hàng áo dài", TransactionTimestamp = now.AddDays(-4), CreatedAt = now.AddDays(-4) },
+            // TXN2: OrderPayment — ORD3 confirmed (→ funds SCH1 wallet) ✅ Completed
+            new PaymentTransaction { Id = TXN2, OrderID = ORD3, WalletID = WALLET1, Amount = 555_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Trần Thị Hương thanh toán 3 áo sơ mi PCT", TransactionTimestamp = now.AddDays(-9), CreatedAt = now.AddDays(-9) },
+            // TXN3: OrderPayment — ORD4 processed (→ funds SCH1 wallet) ✅ Completed
+            new PaymentTransaction { Id = TXN3, OrderID = ORD4, WalletID = WALLET1, Amount = 370_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Ngô Quang Hải thanh toán đơn đồng phục hè", TransactionTimestamp = now.AddDays(-11), CreatedAt = now.AddDays(-11) },
+            // TXN4: OrderPayment — ORD5 shipped (→ funds SCH2 wallet) ✅ Completed
+            new PaymentTransaction { Id = TXN4, OrderID = ORD5, WalletID = WALLET2, Amount = 475_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Lê Văn Đức thanh toán đồng phục Trần Phú", TransactionTimestamp = now.AddDays(-19), CreatedAt = now.AddDays(-19) },
+            // TXN5: OrderPayment — ORD6 delivered (→ funds SCH2 wallet) ✅ Completed
+            new PaymentTransaction { Id = TXN5, OrderID = ORD6, WalletID = WALLET2, Amount = 195_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Lê Văn Đức thanh toán quần tây Trần Phú", TransactionTimestamp = now.AddDays(-29), CreatedAt = now.AddDays(-29) },
+            // TXN6: ProviderPayment — School pays Provider for ORD5 production ✅ Completed
+            new PaymentTransaction { Id = TXN6, OrderID = ORD5, WalletID = WALLET2, Amount = 195_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.Other, TransactionType = TransactionType.ProviderPayment, Description = "Thanh toán NCC Sơn Trà — lô sản xuất quần tây", TransactionTimestamp = now.AddDays(-15), CreatedAt = now.AddDays(-15) },
+            // TXN7: Refund — ORD8 refunded back to parent ✅ Completed
+            new PaymentTransaction { Id = TXN7, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.Refund, Description = "Hoàn tiền cho Phạm Thị Mai — sản phẩm lỗi", TransactionTimestamp = now.AddDays(-22), CreatedAt = now.AddDays(-22) }
+        );
+        await db.SaveChangesAsync();
+
+        // ── Refunds (linked to TXN7) ─────────────────────────────────────────
+        db.Set<Refund>().AddRange(
+            new Refund { Id = Guid.NewGuid(), PaymentID = TXN7, RefundAmount = 120_000, RefundStatus = RefundStatus.Completed, DisputeReason = "Áo thể dục bị lỗi in logo, hoàn tiền 100%", CreatedAt = now.AddDays(-22) }
         );
         await db.SaveChangesAsync();
 
         // ── ProductionBatches ─────────────────────────────────────────────────
         db.ProductionBatches.AddRange(
-            new ProductionBatch { Id = BATCH1, CampaignID = CAM1, ProviderID = PRV1, BatchName = "Lô sản xuất PCT - Áo sơ mi HK2", TotalQuantity = 150, CreatedDate = now.AddDays(-15), Status = ProductionBatchStatus.Pending,      DeliveryDeadline = new DateTime(2026,4,15), IsDeleted = false },
-            new ProductionBatch { Id = BATCH2, CampaignID = CAM2, ProviderID = PRV2, BatchName = "Lô sản xuất TP - Quần tây HK2", TotalQuantity = 100, CreatedDate = now.AddDays(-12), Status = ProductionBatchStatus.Approved,     DeliveryDeadline = new DateTime(2026,5,1),  IsDeleted = false },
-            new ProductionBatch { Id = BATCH3, CampaignID = CAM3, ProviderID = PRV3, BatchName = "Lô sản xuất NH - Áo thể dục", TotalQuantity = 80,  CreatedDate = now.AddDays(-10), Status = ProductionBatchStatus.InProduction, DeliveryDeadline = new DateTime(2026,3,20), IsDeleted = false, ProcessedAt = now.AddDays(-7) }
+            new ProductionBatch { Id = BATCH1, CampaignID = CAM1, ProviderID = PRV1, BatchName = "Lô SX PCT - Áo sơ mi HK2", TotalQuantity = 150, CreatedDate = now.AddDays(-15), Status = ProductionBatchStatus.Pending, DeliveryDeadline = new DateTime(2026,4,15), IsDeleted = false },
+            new ProductionBatch { Id = BATCH2, CampaignID = CAM2, ProviderID = PRV2, BatchName = "Lô SX TP - Quần tây HK2", TotalQuantity = 100, CreatedDate = now.AddDays(-12), Status = ProductionBatchStatus.Approved, DeliveryDeadline = new DateTime(2026,5,1), IsDeleted = false },
+            new ProductionBatch { Id = BATCH3, CampaignID = CAM3, ProviderID = PRV3, BatchName = "Lô SX NH - Áo thể dục", TotalQuantity = 80, CreatedDate = now.AddDays(-10), Status = ProductionBatchStatus.InProduction, DeliveryDeadline = new DateTime(2026,3,20), IsDeleted = false, ProcessedAt = now.AddDays(-7) }
         );
         await db.SaveChangesAsync();
 
         // ── ProductionBatchItems ──────────────────────────────────────────────
         db.ProductionBatchItems.AddRange(
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "S", Quantity = 50, UnitPrice = 125000 },
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "M", Quantity = 65, UnitPrice = 125000 },
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "L", Quantity = 35, UnitPrice = 125000 },
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH2, OutfitID = OFT2, Size = "M", Quantity = 55, UnitPrice = 130000 },
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH2, OutfitID = OFT2, Size = "L", Quantity = 45, UnitPrice = 130000 },
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH3, OutfitID = OFT3, Size = "M", Quantity = 80, UnitPrice = 75000 }
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "S", Quantity = 50, UnitPrice = 125_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "M", Quantity = 65, UnitPrice = 125_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "L", Quantity = 35, UnitPrice = 125_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH2, OutfitID = OFT2, Size = "M", Quantity = 55, UnitPrice = 130_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH2, OutfitID = OFT2, Size = "L", Quantity = 45, UnitPrice = 130_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH3, OutfitID = OFT3, Size = "M", Quantity = 80, UnitPrice = 75_000 }
         );
         await db.SaveChangesAsync();
 
         // ── Complaints ────────────────────────────────────────────────────────
         db.Complaints.AddRange(
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Áo sơ mi bị phai màu sau khi giặt", Description = "Một số áo sơ mi lô đầu tiên bị phai vàng sau 2 lần giặt máy, nghi do vải không đạt chuẩn", Status = ComplaintStatus.Open, CreatedAt = now.AddDays(-3) },
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Thiếu hàng size M 3 sản phẩm", Description = "Đơn giao 65 cái size M nhưng chỉ nhận được 62, thiếu 3 cái", Status = ComplaintStatus.InProgress, CreatedAt = now.AddDays(-5) },
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Giao hàng trễ hạn 10 ngày", Description = "Hạn giao là 01/03 nhưng đến 11/03 vẫn chưa nhận được hàng. Ảnh hưởng đến lịch phát đồng phục cho học sinh", Status = ComplaintStatus.Resolved, CreatedAt = now.AddDays(-12) }
-        );
-        await db.SaveChangesAsync();
-
-        // ── PaymentTransactions (for wallet seeded balance) ───────────────────
-        db.PaymentTransactions.AddRange(
-            new PaymentTransaction { Id = Guid.NewGuid(), OrderID = ORD4, Amount = 475000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Phụ huynh Lê Văn Đức thanh toán đơn hàng ORD4", TransactionTimestamp = now.AddDays(-19), CreatedAt = now.AddDays(-19) },
-            new PaymentTransaction { Id = Guid.NewGuid(), OrderID = ORD3, Amount = 185000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Phụ huynh Trần Thị Hương thanh toán đơn hàng ORD3", TransactionTimestamp = now.AddDays(-4), CreatedAt = now.AddDays(-4) }
+            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Áo sơ mi bị phai màu sau khi giặt", Description = "Một số áo lô đầu bị phai vàng sau 2 lần giặt máy", Status = ComplaintStatus.Open, CreatedAt = now.AddDays(-3) },
+            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Thiếu hàng size M 3 sản phẩm", Description = "Đơn giao 65 cái size M nhưng chỉ nhận 62, thiếu 3", Status = ComplaintStatus.InProgress, CreatedAt = now.AddDays(-5) },
+            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Giao hàng trễ hạn 10 ngày", Description = "Hạn giao 01/03 nhưng 11/03 vẫn chưa nhận được hàng", Status = ComplaintStatus.Resolved, CreatedAt = now.AddDays(-12) }
         );
         await db.SaveChangesAsync();
     }
