@@ -114,6 +114,7 @@ public static class DbInitializer
     private static readonly Guid TXN5 = Guid.Parse("FFB00005-0000-0000-0000-000000000005");
     private static readonly Guid TXN6 = Guid.Parse("FFB00006-0000-0000-0000-000000000006");
     private static readonly Guid TXN7 = Guid.Parse("FFB00007-0000-0000-0000-000000000007");
+    private static readonly Guid TXN8 = Guid.Parse("FFB00008-0000-0000-0000-000000000008");
 
     public static async Task SeedAsync(VTOSDbContext db)
     {
@@ -184,8 +185,12 @@ public static class DbInitializer
 
         // ── SchoolWallets (fixed IDs for transaction linking) ──────────────────
         db.SchoolWallets.AddRange(
-            new SchoolWallet { Id = WALLET1, SchoolID = SCH1, Balance = 2_685_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000234567", BankAccountName = "TRUONG THPT PHAN CHAU TRINH", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // Balance = sum of all OrderPayment - ProviderPayment - Refund
+            // WALLET1: +350K(TXN1) +555K(TXN2) +370K(TXN3) = 1,275,000
+            new SchoolWallet { Id = WALLET1, SchoolID = SCH1, Balance = 1_275_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000234567", BankAccountName = "TRUONG THPT PHAN CHAU TRINH", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // WALLET2: +475K(TXN4) +195K(TXN5) -195K(TXN6 ProviderPayment) = 475,000
             new SchoolWallet { Id = WALLET2, SchoolID = SCH2, Balance = 475_000, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678901234", BankAccountName = "TRUONG THPT TRAN PHU", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // WALLET3: +120K(TXN8 OrderPayment) -120K(TXN7 Refund) = 0
             new SchoolWallet { Id = WALLET3, SchoolID = SCH3, Balance = 0, BankCode = "BIDV", BankName = "BIDV", BankAccountNumber = "31410001234567", BankAccountName = "TRUONG THCS NGUYEN HUE", IsActive = true, CreatedAt = now, UpdatedAt = now }
         );
         await db.SaveChangesAsync();
@@ -370,7 +375,9 @@ public static class DbInitializer
             // TXN6: ProviderPayment — School pays Provider for ORD5 production ✅ Completed
             new PaymentTransaction { Id = TXN6, OrderID = ORD5, WalletID = WALLET2, Amount = 195_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.Other, TransactionType = TransactionType.ProviderPayment, Description = "Thanh toán NCC Sơn Trà — lô sản xuất quần tây", TransactionTimestamp = now.AddDays(-15), CreatedAt = now.AddDays(-15) },
             // TXN7: Refund — ORD8 refunded back to parent ✅ Completed
-            new PaymentTransaction { Id = TXN7, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.Refund, Description = "Hoàn tiền cho Phạm Thị Mai — sản phẩm lỗi", TransactionTimestamp = now.AddDays(-22), CreatedAt = now.AddDays(-22) }
+            new PaymentTransaction { Id = TXN7, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.Refund, Description = "Hoàn tiền cho Phạm Thị Mai — sản phẩm lỗi", TransactionTimestamp = now.AddDays(-22), CreatedAt = now.AddDays(-22) },
+            // TXN8: OrderPayment — ORD8 was paid BEFORE being refunded (→ funds SCH3 wallet, then refunded)
+            new PaymentTransaction { Id = TXN8, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Phạm Thị Mai thanh toán áo thể dục (sau đó hoàn tiền)", TransactionTimestamp = now.AddDays(-24), CreatedAt = now.AddDays(-24) }
         );
         await db.SaveChangesAsync();
 
