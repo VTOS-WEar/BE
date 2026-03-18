@@ -57,7 +57,7 @@ public class PaymentsController : ControllerBase
     //  PARENT — Pay Order
     // ═══════════════════════════════════════════════════════════════
 
-    /// <summary>Parent pays for an order. Money goes to SchoolWallet automatically.</summary>
+    /// <summary>Parent pays for an order. Money goes to School Wallet automatically.</summary>
     [HttpPost("orders/{orderId:guid}/pay")]
     [Authorize(Roles = "Parent")]
     [ProducesResponseType(StatusCodes.Status200OK)]

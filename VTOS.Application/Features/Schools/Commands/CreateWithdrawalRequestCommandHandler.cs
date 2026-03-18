@@ -37,8 +37,8 @@ public class CreateWithdrawalRequestCommandHandler : ICreateWithdrawalRequestCom
             return Result<WithdrawalRequestResponse>.Failure("User is not assigned to any school.", "SCHOOL_NOT_FOUND");
 
         // Step 2: Load school wallet
-        var wallet = await _db.Set<SchoolWallet>()
-            .FirstOrDefaultAsync(w => w.SchoolID == schoolUser.SchoolID.Value && w.IsActive, ct);
+        var wallet = await _db.Set<Wallet>()
+            .FirstOrDefaultAsync(w => w.OwnerID == schoolUser.SchoolID.Value && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
 
         if (wallet == null)
             return Result<WithdrawalRequestResponse>.Failure("School wallet not found or inactive.", "WALLET_NOT_FOUND");

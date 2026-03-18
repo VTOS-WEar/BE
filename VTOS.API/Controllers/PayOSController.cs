@@ -312,7 +312,7 @@ public class PayOSController : ControllerBase
     /// Receives payment confirmation from PayOS and updates:
     /// - PaymentTransaction status (Completed/Failed)
     /// - Order status (Paid)
-    /// - SchoolWallet balance (add payment amount)
+    /// - Wallet balance (add payment amount)
     /// - Product variants inventory
     /// 
     /// Only processes if:

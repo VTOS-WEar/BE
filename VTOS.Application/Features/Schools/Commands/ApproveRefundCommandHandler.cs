@@ -64,8 +64,8 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 return Result<RefundResponse>.Failure("This refund does not belong to your school.", "UNAUTHORIZED_REFUND_ACCESS");
 
             // Step 4: Load school wallet and check balance
-            var wallet = await _db.Set<SchoolWallet>()
-                .FirstOrDefaultAsync(w => w.SchoolID == schoolId && w.IsActive, ct);
+            var wallet = await _db.Set<Wallet>()
+                .FirstOrDefaultAsync(w => w.OwnerID == schoolId && w.OwnerType == WalletOwnerType.School && w.IsActive, ct);
 
             if (wallet == null)
                 return Result<RefundResponse>.Failure("School wallet not found or inactive.", "WALLET_NOT_FOUND");
@@ -120,7 +120,7 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
             await _db.SaveChangesAsync(ct);
 
             _logger.LogInformation(
-                "Refund approved: RefundId={RefundId}, Amount={Amount}, SchoolWallet={WalletId}, PayoutId={PayoutId}, PayoutTo={BankAccount}",
+                "Refund approved: RefundId={RefundId}, Amount={Amount}, Wallet={WalletId}, PayoutId={PayoutId}, PayoutTo={BankAccount}",
                 refund.Id, refund.RefundAmount, wallet.Id, payoutResult.Id, parentBank.AccountNumber);
 
             return Result<RefundResponse>.Success(new RefundResponse

@@ -29,19 +29,20 @@ public class UpdateWalletBankInfoCommandHandler : IUpdateWalletBankInfoCommandHa
         if (user == null || user.SchoolID == null)
             return Result<UpdateWalletBankInfoResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
-        var wallet = await _db.SchoolWallets.FirstOrDefaultAsync(w => w.SchoolID == user.SchoolID && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null)
         {
-            wallet = new Domain.Entities.SchoolWallet
+            wallet = new Domain.Entities.Wallet
             {
                 Id = Guid.NewGuid(),
-                SchoolID = user.SchoolID.Value,
+                OwnerID = user.SchoolID.Value,
+                OwnerType = Domain.Enums.WalletOwnerType.School,
                 Balance = 0,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            _db.SchoolWallets.Add(wallet);
+            _db.Wallets.Add(wallet);
         }
 
         wallet.BankCode = command.BankCode;

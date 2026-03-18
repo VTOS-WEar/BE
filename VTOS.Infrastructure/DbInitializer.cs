@@ -101,10 +101,12 @@ public static class DbInitializer
     private static readonly Guid CTR3 = Guid.Parse("FF100003-0000-0000-0000-000000000003");
     private static readonly Guid CTR4 = Guid.Parse("FF100004-0000-0000-0000-000000000004");
 
-    // SchoolWallets (need fixed IDs for PaymentTransaction.WalletID)
+    // Wallets (need fixed IDs for PaymentTransaction.WalletID)
     private static readonly Guid WALLET1 = Guid.Parse("FFA00001-0000-0000-0000-000000000001");
     private static readonly Guid WALLET2 = Guid.Parse("FFA00002-0000-0000-0000-000000000002");
     private static readonly Guid WALLET3 = Guid.Parse("FFA00003-0000-0000-0000-000000000003");
+    private static readonly Guid WALLET_PRV1 = Guid.Parse("FFA00004-0000-0000-0000-000000000004");
+    private static readonly Guid WALLET_PRV2 = Guid.Parse("FFA00005-0000-0000-0000-000000000005");
 
     // PaymentTransactions (need fixed IDs for Refund.PaymentID)
     private static readonly Guid TXN1 = Guid.Parse("FFB00001-0000-0000-0000-000000000001");
@@ -183,23 +185,28 @@ public static class DbInitializer
         );
         await db.SaveChangesAsync();
 
-        // ── SchoolWallets (fixed IDs for transaction linking) ──────────────────
-        db.SchoolWallets.AddRange(
-            // Balance = sum of all OrderPayment - ProviderPayment - Refund
-            // WALLET1: +350K(TXN1) +555K(TXN2) +370K(TXN3) = 1,275,000
-            new SchoolWallet { Id = WALLET1, SchoolID = SCH1, Balance = 1_275_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000234567", BankAccountName = "TRUONG THPT PHAN CHAU TRINH", IsActive = true, CreatedAt = now, UpdatedAt = now },
-            // WALLET2: +475K(TXN4) +195K(TXN5) -195K(TXN6 ProviderPayment) = 475,000
-            new SchoolWallet { Id = WALLET2, SchoolID = SCH2, Balance = 475_000, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678901234", BankAccountName = "TRUONG THPT TRAN PHU", IsActive = true, CreatedAt = now, UpdatedAt = now },
-            // WALLET3: +120K(TXN8 OrderPayment) -120K(TXN7 Refund) = 0
-            new SchoolWallet { Id = WALLET3, SchoolID = SCH3, Balance = 0, BankCode = "BIDV", BankName = "BIDV", BankAccountNumber = "31410001234567", BankAccountName = "TRUONG THCS NGUYEN HUE", IsActive = true, CreatedAt = now, UpdatedAt = now }
-        );
-        await db.SaveChangesAsync();
-
         // ── Providers (Da Nang garment companies) ──────────────────────────────
         db.Providers.AddRange(
             new Provider { Id = PRV1, ProviderName = "Công ty May Mặc Hoàng Gia", ContactPersonName = "Hoàng Minh Tuấn", Phone = "0905123456", Email = "hoanggia@email.com", Address = "Khu CN Hoà Khánh, Liên Chiểu, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false },
             new Provider { Id = PRV2, ProviderName = "Đồng Phục Sơn Trà", ContactPersonName = "Võ Thị Lan Anh", Phone = "0935789012", Email = "sontra@email.com", Address = "78 Ngô Quyền, Sơn Trà, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false },
             new Provider { Id = PRV3, ProviderName = "Xưởng May Thanh Khê", ContactPersonName = "Bùi Đình Phong", Phone = "0769456789", Email = "thanhkhe@email.com", Address = "215 Điện Biên Phủ, Thanh Khê, Đà Nẵng", Status = ProviderStatus.Active, IsDeleted = false }
+        );
+        await db.SaveChangesAsync();
+
+        // ── Wallets (both School + Provider) ──────────────────────────────────
+        db.Wallets.AddRange(
+            // School Wallets — Balance = sum of OrderPayment - ProviderPayment - Refund
+            // WALLET1: +350K(TXN1) +555K(TXN2) +370K(TXN3) = 1,275,000
+            new Wallet { Id = WALLET1, OwnerID = SCH1, OwnerType = WalletOwnerType.School, Balance = 1_275_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000234567", BankAccountName = "TRUONG THPT PHAN CHAU TRINH", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // WALLET2: +475K(TXN4) +195K(TXN5) -195K(TXN6 ProviderPayment) = 475,000
+            new Wallet { Id = WALLET2, OwnerID = SCH2, OwnerType = WalletOwnerType.School, Balance = 475_000, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678901234", BankAccountName = "TRUONG THPT TRAN PHU", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // WALLET3: +120K(TXN8 OrderPayment) -120K(TXN7 Refund) = 0
+            new Wallet { Id = WALLET3, OwnerID = SCH3, OwnerType = WalletOwnerType.School, Balance = 0, BankCode = "BIDV", BankName = "BIDV", BankAccountNumber = "31410001234567", BankAccountName = "TRUONG THCS NGUYEN HUE", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // Provider Wallets — receive money from School ProviderPayments
+            // WALLET_PRV1: +195K(TXN6 ProviderPayment received) = 195,000
+            new Wallet { Id = WALLET_PRV1, OwnerID = PRV1, OwnerType = WalletOwnerType.Provider, Balance = 195_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000567890", BankAccountName = "CONG TY MAY MAC HOANG GIA", IsActive = true, CreatedAt = now, UpdatedAt = now },
+            // WALLET_PRV2: no payments received yet = 0
+            new Wallet { Id = WALLET_PRV2, OwnerID = PRV2, OwnerType = WalletOwnerType.Provider, Balance = 0, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678905678", BankAccountName = "DONG PHUC SON TRA", IsActive = true, CreatedAt = now, UpdatedAt = now }
         );
         await db.SaveChangesAsync();
 

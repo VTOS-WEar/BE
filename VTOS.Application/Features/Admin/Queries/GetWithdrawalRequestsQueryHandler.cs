@@ -15,40 +15,41 @@ public class GetWithdrawalRequestsQueryHandler : IGetWithdrawalRequestsQueryHand
 
     public async Task<WithdrawalRequestListResponse> HandleAsync(GetWithdrawalRequestsQuery query, CancellationToken ct = default)
     {
-        var withdrawalsQuery = _db.Set<WalletWithdrawalRequest>()
-            .AsNoTracking()
-            .Include(w => w.Wallet)
-                .ThenInclude(wallet => wallet.School)
-            .AsQueryable();
+        // Manual join since Wallet nav properties (School/Provider) are ignored for polymorphic ownership
+        var baseQuery = from wr in _db.Set<WalletWithdrawalRequest>().AsNoTracking()
+                        join w in _db.Wallets.AsNoTracking() on wr.WalletID equals w.Id
+                        join s in _db.Schools.AsNoTracking() on w.OwnerID equals s.Id into schools
+                        from s in schools.DefaultIfEmpty()
+                        select new { wr, w, SchoolName = s != null ? s.SchoolName : "Unknown" };
 
         // Apply status filter
         if (!string.IsNullOrEmpty(query.Status))
         {
-            withdrawalsQuery = withdrawalsQuery.Where(w => w.Status == query.Status);
+            baseQuery = baseQuery.Where(x => x.wr.Status == query.Status);
         }
 
-        var totalCount = await withdrawalsQuery.CountAsync(ct);
+        var totalCount = await baseQuery.CountAsync(ct);
 
-        var items = await withdrawalsQuery
-            .OrderByDescending(w => w.RequestedAt)
+        var items = await baseQuery
+            .OrderByDescending(x => x.wr.RequestedAt)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(w => new WithdrawalRequestDto
+            .Select(x => new WithdrawalRequestDto
             {
-                WithdrawalRequestId = w.Id,
-                WalletId = w.WalletID,
-                SchoolId = w.Wallet.SchoolID,
-                SchoolName = w.Wallet.School.SchoolName,
-                Amount = w.Amount,
-                Status = w.Status,
-                BankCode = w.Wallet.BankCode,
-                BankName = w.Wallet.BankName,
-                BankAccountNumber = w.Wallet.BankAccountNumber,
-                BankAccountName = w.Wallet.BankAccountName,
-                RequestedAt = w.RequestedAt,
-                ApprovedAt = w.ApprovedAt,
-                PaidAt = w.PaidAt,
-                AdminNote = w.AdminNote
+                WithdrawalRequestId = x.wr.Id,
+                WalletId = x.wr.WalletID,
+                SchoolId = x.w.OwnerID,
+                SchoolName = x.SchoolName,
+                Amount = x.wr.Amount,
+                Status = x.wr.Status,
+                BankCode = x.w.BankCode,
+                BankName = x.w.BankName,
+                BankAccountNumber = x.w.BankAccountNumber,
+                BankAccountName = x.w.BankAccountName,
+                RequestedAt = x.wr.RequestedAt,
+                ApprovedAt = x.wr.ApprovedAt,
+                PaidAt = x.wr.PaidAt,
+                AdminNote = x.wr.AdminNote
             })
             .ToListAsync(ct);
 

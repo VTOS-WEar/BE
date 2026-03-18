@@ -4,16 +4,19 @@ using VTOS.Domain.Entities;
 
 namespace VTOS.Infrastructure.Persistence.Configurations;
 
-public class SchoolWalletConfiguration : IEntityTypeConfiguration<SchoolWallet>
+public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 {
-    public void Configure(EntityTypeBuilder<SchoolWallet> builder)
+    public void Configure(EntityTypeBuilder<Wallet> builder)
     {
-        builder.ToTable("SchoolWallet");
+        builder.ToTable("Wallets");
 
         builder.HasKey(w => w.Id);
         builder.Property(w => w.Id).HasColumnName("WalletID");
 
-        builder.Property(w => w.SchoolID)
+        builder.Property(w => w.OwnerID)
+            .IsRequired();
+
+        builder.Property(w => w.OwnerType)
             .IsRequired();
 
         builder.Property(w => w.Balance)
@@ -41,13 +44,12 @@ public class SchoolWalletConfiguration : IEntityTypeConfiguration<SchoolWallet>
         builder.Property(w => w.UpdatedAt)
             .IsRequired();
 
-        // Relationships
-        builder.HasOne(w => w.School)
-            .WithOne(s => s.Wallet)
-            .HasForeignKey<SchoolWallet>(w => w.SchoolID)
-            .OnDelete(DeleteBehavior.Restrict);
+        // Polymorphic ownership — NO FK constraints (OwnerID points to School OR Provider)
+        // Navigation properties are ignored in EF; use manual joins in queries
+        builder.Ignore(w => w.School);
+        builder.Ignore(w => w.Provider);
 
-        // Indexes
-        builder.HasIndex(w => w.SchoolID);
+        // Indexes — unique per owner
+        builder.HasIndex(w => new { w.OwnerID, w.OwnerType }).IsUnique();
     }
 }

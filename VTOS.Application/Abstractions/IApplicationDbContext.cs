@@ -40,7 +40,7 @@ public interface IApplicationDbContext
     DbSet<DeliveryRecord> DeliveryRecords { get; }
     DbSet<DistributionRecord> DistributionRecords { get; }
     DbSet<ChatMessage> ChatMessages { get; }
-    DbSet<SchoolWallet> SchoolWallets { get; }
+    DbSet<Wallet> Wallets { get; }
     DbSet<Invoice> Invoices { get; }
     DbSet<WalletWithdrawalRequest> WalletWithdrawalRequests { get; }
 

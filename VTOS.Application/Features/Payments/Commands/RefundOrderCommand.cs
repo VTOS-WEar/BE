@@ -54,7 +54,7 @@ public class RefundOrderCommandHandler : IRefundOrderCommandHandler
             return Result<RefundOrderResponse>.Failure("No payment found for this order.", "NO_PAYMENT");
 
         // Deduct from wallet
-        var wallet = await _db.SchoolWallets.FirstOrDefaultAsync(w => w.SchoolID == user.SchoolID && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null || wallet.Balance < order.TotalAmount)
             return Result<RefundOrderResponse>.Failure("Insufficient wallet balance for refund.", "INSUFFICIENT_BALANCE");
 

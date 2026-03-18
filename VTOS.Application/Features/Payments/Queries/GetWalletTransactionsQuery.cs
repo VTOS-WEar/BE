@@ -39,8 +39,8 @@ public class GetWalletTransactionsQueryHandler : IGetWalletTransactionsQueryHand
         if (user == null || user.SchoolID == null)
             return Result<WalletTransactionsResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
-        var wallet = await _db.SchoolWallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.SchoolID == user.SchoolID && w.IsActive, ct);
+        var wallet = await _db.Wallets.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null)
             return Result<WalletTransactionsResponse>.Success(new WalletTransactionsResponse(new(), 0));
 

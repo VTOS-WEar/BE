@@ -17,5 +17,5 @@ public class WalletWithdrawalRequest : BaseEntity
     public string? AdminNote { get; set; }
 
     // Navigation properties
-    public SchoolWallet Wallet { get; set; } = null!;
+    public Wallet Wallet { get; set; } = null!;
 }
