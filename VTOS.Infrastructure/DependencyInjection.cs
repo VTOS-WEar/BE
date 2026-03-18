@@ -403,6 +403,10 @@ public static class DependencyInjection
             VTOS.Application.Features.Payments.Queries.GetProviderRevenueQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderPaymentHistoryQueryHandler,
             VTOS.Application.Features.Payments.Queries.GetProviderPaymentHistoryQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetProviderWalletQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletTransactionsQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetProviderWalletTransactionsQueryHandler>();
 
         return services;
     }

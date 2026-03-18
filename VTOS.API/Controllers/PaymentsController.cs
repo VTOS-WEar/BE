@@ -26,6 +26,8 @@ public class PaymentsController : ControllerBase
     private readonly IGetParentPaymentHistoryQueryHandler _getParentPaymentsHandler;
     private readonly IGetProviderRevenueQueryHandler _getRevenueHandler;
     private readonly IGetProviderPaymentHistoryQueryHandler _getProviderPaymentsHandler;
+    private readonly IGetProviderWalletQueryHandler _getProviderWalletHandler;
+    private readonly IGetProviderWalletTransactionsQueryHandler _getProviderWalletTransactionsHandler;
 
     public PaymentsController(
         ICurrentUserService currentUser,
@@ -38,7 +40,9 @@ public class PaymentsController : ControllerBase
         IGetWalletTransactionsQueryHandler getTransactionsHandler,
         IGetParentPaymentHistoryQueryHandler getParentPaymentsHandler,
         IGetProviderRevenueQueryHandler getRevenueHandler,
-        IGetProviderPaymentHistoryQueryHandler getProviderPaymentsHandler)
+        IGetProviderPaymentHistoryQueryHandler getProviderPaymentsHandler,
+        IGetProviderWalletQueryHandler getProviderWalletHandler,
+        IGetProviderWalletTransactionsQueryHandler getProviderWalletTransactionsHandler)
     {
         _currentUser = currentUser;
         _payOrderHandler = payOrderHandler;
@@ -51,6 +55,8 @@ public class PaymentsController : ControllerBase
         _getParentPaymentsHandler = getParentPaymentsHandler;
         _getRevenueHandler = getRevenueHandler;
         _getProviderPaymentsHandler = getProviderPaymentsHandler;
+        _getProviderWalletHandler = getProviderWalletHandler;
+        _getProviderWalletTransactionsHandler = getProviderWalletTransactionsHandler;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -149,8 +155,43 @@ public class PaymentsController : ControllerBase
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  PROVIDER — Revenue & Invoices
+    //  PROVIDER — Wallet, Revenue & Invoices
     // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>Get provider wallet info (balance, bank info).</summary>
+    [HttpGet("provider/wallet")]
+    [Authorize(Roles = "Provider")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProviderWallet(CancellationToken ct)
+    {
+        var result = await _getProviderWalletHandler.HandleAsync(new GetProviderWalletQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get provider wallet transaction history.</summary>
+    [HttpGet("provider/wallet/transactions")]
+    [Authorize(Roles = "Provider")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProviderWalletTransactions([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    {
+        var result = await _getProviderWalletTransactionsHandler.HandleAsync(new GetProviderWalletTransactionsQuery(_currentUser.UserId, page, pageSize), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Update provider wallet bank information.</summary>
+    [HttpPut("provider/wallet/bank-info")]
+    [Authorize(Roles = "Provider")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateProviderWalletBankInfo([FromBody] UpdateBankInfoRequest request, CancellationToken ct)
+    {
+        var result = await _updateBankInfoHandler.HandleAsync(
+            new UpdateWalletBankInfoCommand(_currentUser.UserId, request.BankCode, request.BankName, request.AccountNumber, request.AccountName), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
 
     /// <summary>Provider revenue dashboard (total revenue, paid/pending orders).</summary>
     [HttpGet("provider/revenue")]

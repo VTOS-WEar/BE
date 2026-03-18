@@ -34,6 +34,23 @@ public class ApproveProviderRequestCommandHandler : IApproveProviderRequestComma
             provider.Status = ProviderStatus.Active;
             provider.RejectionReason = null; // Clear any previous rejection reason
             _context.Providers.Update(provider);
+
+            // Auto-create wallet for the provider if one doesn't exist
+            var existingWallet = await _context.Wallets
+                .AnyAsync(w => w.OwnerID == provider.Id && w.OwnerType == Domain.Enums.WalletOwnerType.Provider, cancellationToken);
+            if (!existingWallet)
+            {
+                _context.Wallets.Add(new Domain.Entities.Wallet
+                {
+                    Id = Guid.NewGuid(),
+                    OwnerID = provider.Id,
+                    OwnerType = Domain.Enums.WalletOwnerType.Provider,
+                    Balance = 0,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
         }
         else if (command.Action.ToUpper() == "REJECT")
         {

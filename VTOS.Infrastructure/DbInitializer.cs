@@ -117,6 +117,9 @@ public static class DbInitializer
     private static readonly Guid TXN6 = Guid.Parse("FFB00006-0000-0000-0000-000000000006");
     private static readonly Guid TXN7 = Guid.Parse("FFB00007-0000-0000-0000-000000000007");
     private static readonly Guid TXN8 = Guid.Parse("FFB00008-0000-0000-0000-000000000008");
+    private static readonly Guid TXN9 = Guid.Parse("FFB00009-0000-0000-0000-000000000009");
+    private static readonly Guid TXN10 = Guid.Parse("FFB00010-0000-0000-0000-000000000010");
+    private static readonly Guid TXN11 = Guid.Parse("FFB00011-0000-0000-0000-000000000011");
 
     public static async Task SeedAsync(VTOSDbContext db)
     {
@@ -205,8 +208,8 @@ public static class DbInitializer
             // Provider Wallets — receive money from School ProviderPayments
             // WALLET_PRV1: +195K(TXN6 ProviderPayment received) = 195,000
             new Wallet { Id = WALLET_PRV1, OwnerID = PRV1, OwnerType = WalletOwnerType.Provider, Balance = 195_000, BankCode = "VCB", BankName = "Vietcombank", BankAccountNumber = "0491000567890", BankAccountName = "CONG TY MAY MAC HOANG GIA", IsActive = true, CreatedAt = now, UpdatedAt = now },
-            // WALLET_PRV2: no payments received yet = 0
-            new Wallet { Id = WALLET_PRV2, OwnerID = PRV2, OwnerType = WalletOwnerType.Provider, Balance = 0, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678905678", BankAccountName = "DONG PHUC SON TRA", IsActive = true, CreatedAt = now, UpdatedAt = now }
+            // WALLET_PRV2: +130K(TXN10) +185K(TXN11) = 315,000
+            new Wallet { Id = WALLET_PRV2, OwnerID = PRV2, OwnerType = WalletOwnerType.Provider, Balance = 315_000, BankCode = "TCB", BankName = "Techcombank", BankAccountNumber = "19035678905678", BankAccountName = "DONG PHUC SON TRA", IsActive = true, CreatedAt = now, UpdatedAt = now }
         );
         await db.SaveChangesAsync();
 
@@ -384,7 +387,14 @@ public static class DbInitializer
             // TXN7: Refund — ORD8 refunded back to parent ✅ Completed
             new PaymentTransaction { Id = TXN7, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.Refund, Description = "Hoàn tiền cho Phạm Thị Mai — sản phẩm lỗi", TransactionTimestamp = now.AddDays(-22), CreatedAt = now.AddDays(-22) },
             // TXN8: OrderPayment — ORD8 was paid BEFORE being refunded (→ funds SCH3 wallet, then refunded)
-            new PaymentTransaction { Id = TXN8, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Phạm Thị Mai thanh toán áo thể dục (sau đó hoàn tiền)", TransactionTimestamp = now.AddDays(-24), CreatedAt = now.AddDays(-24) }
+            new PaymentTransaction { Id = TXN8, OrderID = ORD8, WalletID = WALLET3, Amount = 120_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.PayOS, TransactionType = TransactionType.OrderPayment, Description = "Phạm Thị Mai thanh toán áo thể dục (sau đó hoàn tiền)", TransactionTimestamp = now.AddDays(-24), CreatedAt = now.AddDays(-24) },
+            // ── Provider Wallet Transactions (TXN9-TXN11) ──────────────────────
+            // TXN9: ProviderPayment → WALLET_PRV1 (Hoàng Gia nhận tiền từ PCT cho lô áo sơ mi)
+            new PaymentTransaction { Id = TXN9, OrderID = ORD5, WalletID = WALLET_PRV1, Amount = 195_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.Other, TransactionType = TransactionType.ProviderPayment, Description = "Nhận thanh toán từ Trường THPT Trần Phú — lô quần tây", TransactionTimestamp = now.AddDays(-14), CreatedAt = now.AddDays(-14) },
+            // TXN10: ProviderPayment → WALLET_PRV2 (Sơn Trà nhận tiền từ TP cho lô quần tây)
+            new PaymentTransaction { Id = TXN10, OrderID = ORD6, WalletID = WALLET_PRV2, Amount = 130_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.Other, TransactionType = TransactionType.ProviderPayment, Description = "Nhận thanh toán từ Trường THPT Trần Phú — quần tây đã giao", TransactionTimestamp = now.AddDays(-10), CreatedAt = now.AddDays(-10) },
+            // TXN11: ProviderPayment → WALLET_PRV2 (thêm 1 khoản nữa cho Sơn Trà)
+            new PaymentTransaction { Id = TXN11, OrderID = ORD5, WalletID = WALLET_PRV2, Amount = 185_000, TransactionStatus = PaymentStatus.Completed, GatewayType = PaymentGatewayType.Other, TransactionType = TransactionType.ProviderPayment, Description = "Nhận thanh toán từ Trường THPT Trần Phú — áo khoác lô 2", TransactionTimestamp = now.AddDays(-7), CreatedAt = now.AddDays(-7) }
         );
         await db.SaveChangesAsync();
 

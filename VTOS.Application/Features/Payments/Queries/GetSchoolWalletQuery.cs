@@ -43,9 +43,19 @@ public class GetSchoolWalletQueryHandler : IGetSchoolWalletQueryHandler
 
         if (wallet == null)
         {
-            // Return empty wallet - it will be auto-created on first payment
-            return Result<WalletDto>.Success(new WalletDto(
-                Guid.Empty, 0, null, null, null, null, false, DateTime.UtcNow));
+            // Auto-create wallet for schools that were approved before wallet auto-creation was added
+            wallet = new Domain.Entities.Wallet
+            {
+                Id = Guid.NewGuid(),
+                OwnerID = user.SchoolID.Value,
+                OwnerType = Domain.Enums.WalletOwnerType.School,
+                Balance = 0,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.Wallets.Add(wallet);
+            await _db.SaveChangesAsync(ct);
         }
 
         return Result<WalletDto>.Success(new WalletDto(
