@@ -92,7 +92,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
 
         // Register Mappers
-        services.AddAutoMapper(typeof(ChildProfileMappingProfile).Assembly);
+        services.AddAutoMapper(cfg => { }, typeof(ChildProfileMappingProfile).Assembly);
 
         //View User List & Feedbacks
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
