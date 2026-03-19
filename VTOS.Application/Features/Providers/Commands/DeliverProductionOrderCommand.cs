@@ -32,14 +32,15 @@ public class DeliverProductionOrderCommandHandler : IDeliverProductionOrderComma
     {
         // Resolve provider
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<DeliverProductionOrderResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         // Get batch
         var batch = await _db.ProductionBatches
             .Include(b => b.DeliveryRecords)
             .FirstOrDefaultAsync(b => b.Id == command.BatchId
-                && b.ProviderID == user.ProviderID.Value
+                && b.ProviderID == providerMgr.ProviderID
                 && !b.IsDeleted, ct);
 
         if (batch == null)

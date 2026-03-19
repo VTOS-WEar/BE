@@ -20,19 +20,23 @@ public class GetContractsQueryHandler : IGetContractsQueryHandler
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
         if (user == null) return Result<List<ContractDto>>.Failure("User not found.", "NOT_FOUND");
 
+        var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         var q = ContractMapper.IncludeAll(_context.Contracts.AsQueryable());
 
         if (query.Role == "School")
         {
-            if (user.SchoolID == null)
+            if (schoolMgr == null)
                 return Result<List<ContractDto>>.Failure("User is not linked to a school.", "NOT_SCHOOL");
-            q = q.Where(c => c.SchoolID == user.SchoolID.Value);
+            q = q.Where(c => c.SchoolID == schoolMgr.SchoolID);
         }
+
         else if (query.Role == "Provider")
         {
-            if (user.ProviderID == null)
+            var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+            if (providerMgr == null)
                 return Result<List<ContractDto>>.Failure("User is not linked to a provider.", "NOT_PROVIDER");
-            q = q.Where(c => c.ProviderID == user.ProviderID.Value);
+            q = q.Where(c => c.ProviderID == providerMgr.ProviderID);
         }
 
         if (!string.IsNullOrWhiteSpace(query.StatusFilter))
@@ -61,14 +65,18 @@ public class GetContractDetailQueryHandler : IGetContractDetailQueryHandler
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
         if (user == null) return Result<ContractDto>.Failure("User not found.", "NOT_FOUND");
 
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         var q = ContractMapper.IncludeAll(_context.Contracts.AsQueryable())
             .Where(c => c.Id == query.ContractId);
 
         // Scope to role
-        if (query.Role == "School" && user.SchoolID != null)
-            q = q.Where(c => c.SchoolID == user.SchoolID.Value);
-        else if (query.Role == "Provider" && user.ProviderID != null)
-            q = q.Where(c => c.ProviderID == user.ProviderID.Value);
+        if (query.Role == "School" && schoolMgr?.SchoolID != null)
+            q = q.Where(c => c.SchoolID == schoolMgr.SchoolID);
+        else if (query.Role == "Provider" && providerMgr != null)
+            q = q.Where(c => c.ProviderID == providerMgr.ProviderID);
         else
             return Result<ContractDto>.Failure("User role not linked to entity.", "NOT_LINKED");
 

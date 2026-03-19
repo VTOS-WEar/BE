@@ -19,6 +19,7 @@ public class GetParentDetailQueryHandler : IGetParentDetailQueryHandler
     {
         var parent = await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.ParentProfile)
             .Include(u => u.ChildProfiles)
                 .ThenInclude(c => c.School)
             .FirstOrDefaultAsync(u => u.Id == query.ParentId && u.Role.RoleName == "Parent" && !u.IsDeleted, cancellationToken);
@@ -61,8 +62,8 @@ public class GetParentDetailQueryHandler : IGetParentDetailQueryHandler
             parent.Email,
             parent.Phone,
             parent.Avatar,
-            parent.DOB,
-            parent.Gender.ToString(),
+            parent.ParentProfile?.DOB,
+            (parent.ParentProfile?.Gender ?? Domain.Enums.Gender.Other).ToString(),
             parent.IsActive ? "Active" : "Banned",
             parent.CreatedAt,
             parent.LastLogin,

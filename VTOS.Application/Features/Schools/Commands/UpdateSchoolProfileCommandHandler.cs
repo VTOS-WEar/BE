@@ -32,9 +32,11 @@ public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHand
         if (user == null)
             return Result<SchoolProfileDto>.Failure("User not found.", "USER_NOT_FOUND");
 
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         School school;
 
-        if (user.SchoolID == null)
+        if (schoolMgr == null)
         {
             // === FIRST TIME: Create new School ===
             if (string.IsNullOrWhiteSpace(command.SchoolName))
@@ -54,14 +56,20 @@ public class UpdateSchoolProfileCommandHandler : IUpdateSchoolProfileCommandHand
 
             _db.Schools.Add(school);
 
-            // Link user to the new school
-            user.SchoolID = school.Id;
+            // Create SchoolManager to link user to the new school
+            var newSchoolMgr = new VTOS.Domain.Entities.SchoolManager
+            {
+                Id = Guid.NewGuid(),
+                UserID = user.Id,
+                SchoolID = school.Id
+            };
+            _db.SchoolManagers.Add(newSchoolMgr);
         }
         else
         {
             // === SUBSEQUENT: Update existing School ===
             school = (await _db.Schools
-                .FirstOrDefaultAsync(s => s.Id == user.SchoolID.Value, ct))!;
+                .FirstOrDefaultAsync(s => s.Id == schoolMgr.SchoolID, ct))!;
 
             if (school == null)
                 return Result<SchoolProfileDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");

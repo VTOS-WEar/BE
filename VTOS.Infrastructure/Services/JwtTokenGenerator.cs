@@ -20,7 +20,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _jwtSettings = jwtSettings.Value;
     }
 
-    public string GenerateToken(User user)
+    public string GenerateToken(User user, Guid? providerId = null, Guid? schoolId = null)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -34,8 +34,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        if (user.ProviderID.HasValue)
-            claims.Add(new Claim("providerId", user.ProviderID.Value.ToString()));
+        if (providerId.HasValue)
+            claims.Add(new Claim("providerId", providerId.Value.ToString()));
+        if (schoolId.HasValue)
+            claims.Add(new Claim("schoolId", schoolId.Value.ToString()));
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,

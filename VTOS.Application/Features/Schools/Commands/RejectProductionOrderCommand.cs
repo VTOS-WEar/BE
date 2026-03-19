@@ -25,13 +25,14 @@ public class RejectProductionOrderCommandHandler : IRejectProductionOrderCommand
             return Result<string>.Failure("Rejection reason is required.", "REASON_REQUIRED");
 
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<string>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var batch = await _db.ProductionBatches
             .Include(b => b.Campaign)
             .FirstOrDefaultAsync(b => b.Id == command.BatchId
-                && b.Campaign.SchoolID == user.SchoolID.Value
+                && b.Campaign.SchoolID == schoolMgr.SchoolID
                 && !b.IsDeleted, ct);
 
         if (batch == null)

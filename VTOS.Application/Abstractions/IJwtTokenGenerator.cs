@@ -12,7 +12,7 @@ public interface IJwtTokenGenerator
     /// </summary>
     /// <param name="user">The user to generate token for.</param>
     /// <returns>The JWT token string.</returns>
-    string GenerateToken(User user);
+    string GenerateToken(User user, Guid? providerId = null, Guid? schoolId = null);
     
     /// <summary>
     /// Gets the expiry time in minutes.

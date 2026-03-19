@@ -41,14 +41,15 @@ public class GetDeliveryStatusQueryHandler : IGetDeliveryStatusQueryHandler
     public async Task<Result<DeliveryStatusResponse>> HandleAsync(GetDeliveryStatusQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<DeliveryStatusResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var batch = await _db.ProductionBatches
             .AsNoTracking()
             .Include(b => b.DeliveryRecords)
             .FirstOrDefaultAsync(b => b.Id == query.BatchId
-                && b.ProviderID == user.ProviderID.Value
+                && b.ProviderID == providerMgr.ProviderID
                 && !b.IsDeleted, ct);
 
         if (batch == null)

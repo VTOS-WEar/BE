@@ -28,7 +28,9 @@ public class CreateVariantCommandHandler : ICreateVariantCommandHandler
         if (user == null)
             return Result<ProductVariantDto>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
             return Result<ProductVariantDto>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
 
         // Verify outfit belongs to this school
@@ -39,7 +41,7 @@ public class CreateVariantCommandHandler : ICreateVariantCommandHandler
         if (outfit == null)
             return Result<ProductVariantDto>.Failure("Outfit not found.", "OUTFIT_NOT_FOUND");
 
-        if (outfit.SchoolID != user.SchoolID.Value)
+        if (outfit.SchoolID != schoolMgr.SchoolID)
             return Result<ProductVariantDto>.Failure("You do not have permission to modify this outfit.", "OUTFIT_NOT_FOUND");
 
         // Check for duplicate size

@@ -24,11 +24,13 @@ public class GetProviderWalletTransactionsQueryHandler : IGetProviderWalletTrans
     public async Task<Result<WalletTransactionsResponse>> HandleAsync(GetProviderWalletTransactionsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null || user.ProviderID == null)
+        if (user == null)
             return Result<WalletTransactionsResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == user.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider && w.IsActive, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == providerMgr.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider && w.IsActive, ct);
         if (wallet == null)
             return Result<WalletTransactionsResponse>.Success(new WalletTransactionsResponse(new(), 0));
 

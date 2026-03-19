@@ -35,11 +35,13 @@ public class GetSchoolWalletQueryHandler : IGetSchoolWalletQueryHandler
     public async Task<Result<WalletDto>> HandleAsync(GetSchoolWalletQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<WalletDto>.Failure("Access denied.", "ACCESS_DENIED");
 
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == schoolMgr!.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
 
         if (wallet == null)
         {
@@ -47,7 +49,7 @@ public class GetSchoolWalletQueryHandler : IGetSchoolWalletQueryHandler
             wallet = new Domain.Entities.Wallet
             {
                 Id = Guid.NewGuid(),
-                OwnerID = user.SchoolID.Value,
+                OwnerID = schoolMgr.SchoolID,
                 OwnerType = Domain.Enums.WalletOwnerType.School,
                 Balance = 0,
                 IsActive = true,

@@ -29,10 +29,11 @@ public class GetProviderComplaintsQueryHandler : IGetProviderComplaintsQueryHand
     public async Task<Result<GetProviderComplaintsResponse>> HandleAsync(GetProviderComplaintsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<GetProviderComplaintsResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
-        var providerId = user.ProviderID.Value;
+        var providerId = providerMgr.ProviderID;
 
         var q = _db.Complaints.AsNoTracking()
             .Include(c => c.Campaign)

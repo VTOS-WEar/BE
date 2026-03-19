@@ -29,17 +29,22 @@ public class UpdateWalletBankInfoCommandHandler : IUpdateWalletBankInfoCommandHa
         if (user == null)
             return Result<UpdateWalletBankInfoResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+
         // Determine wallet owner: School or Provider
         Guid? ownerId = null;
         Domain.Enums.WalletOwnerType ownerType;
-        if (user.SchoolID != null)
+        if (schoolMgr?.SchoolID != null)
         {
-            ownerId = user.SchoolID;
+            ownerId = schoolMgr?.SchoolID;
             ownerType = Domain.Enums.WalletOwnerType.School;
         }
-        else if (user.ProviderID != null)
+        else if (providerMgr != null)
         {
-            ownerId = user.ProviderID;
+            ownerId = providerMgr?.ProviderID;
             ownerType = Domain.Enums.WalletOwnerType.Provider;
         }
         else

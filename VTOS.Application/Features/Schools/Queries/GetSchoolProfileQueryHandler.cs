@@ -24,12 +24,14 @@ public class GetSchoolProfileQueryHandler : IGetSchoolProfileQueryHandler
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
 
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<SchoolProfileDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
+
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
         var school = await _db.Schools
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == user.SchoolID.Value, ct);
+            .FirstOrDefaultAsync(s => s.Id == schoolMgr.SchoolID, ct);
 
         if (school == null)
             return Result<SchoolProfileDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");

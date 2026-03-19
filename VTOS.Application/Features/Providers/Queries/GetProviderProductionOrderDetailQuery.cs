@@ -37,7 +37,8 @@ public class GetProviderProductionOrderDetailQueryHandler : IGetProviderProducti
     public async Task<Result<ProviderProductionOrderDetailDto>> HandleAsync(GetProviderProductionOrderDetailQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<ProviderProductionOrderDetailDto>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var batch = await _db.ProductionBatches
@@ -45,7 +46,7 @@ public class GetProviderProductionOrderDetailQueryHandler : IGetProviderProducti
             .Include(b => b.Campaign).ThenInclude(c => c.School)
             .Include(b => b.Items).ThenInclude(i => i.Outfit)
             .FirstOrDefaultAsync(b => b.Id == query.BatchId
-                && b.ProviderID == user.ProviderID.Value
+                && b.ProviderID == providerMgr.ProviderID
                 && !b.IsDeleted, ct);
 
         if (batch == null)

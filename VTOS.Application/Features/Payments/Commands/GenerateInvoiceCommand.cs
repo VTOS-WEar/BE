@@ -26,7 +26,7 @@ public class GenerateInvoiceCommandHandler : IGenerateInvoiceCommandHandler
     public async Task<Result<GenerateInvoiceResponse>> HandleAsync(GenerateInvoiceCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user == null || user.ProviderID == null)
+        if (user == null)
             return Result<GenerateInvoiceResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
         var order = await _db.Orders.AsNoTracking()

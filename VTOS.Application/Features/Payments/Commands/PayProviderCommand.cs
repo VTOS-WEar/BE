@@ -29,8 +29,10 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
     {
         // 1. Verify school user
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<PayProviderResponse>.Failure("Access denied.", "ACCESS_DENIED");
+
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
         // 2. Find Order and verify it's from this school
         var order = await _db.Orders
@@ -43,7 +45,7 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
 
         var child = await _db.ChildProfiles.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == order.ChildProfileID, ct);
-        if (child == null || child.SchoolID != user.SchoolID)
+        if (child == null || child.SchoolID != schoolMgr?.SchoolID)
             return Result<PayProviderResponse>.Failure("Order does not belong to your school.", "ACCESS_DENIED");
 
         if (order.OrderStatus != OrderStatus.Delivered && order.OrderStatus != OrderStatus.Shipped)
@@ -53,7 +55,7 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
             return Result<PayProviderResponse>.Failure("Provider already paid for this order.", "ALREADY_PAID");
 
         // 3. Find wallet and check balance
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null || wallet.Balance < order.TotalAmount)
             return Result<PayProviderResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
 

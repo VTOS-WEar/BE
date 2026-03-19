@@ -26,7 +26,9 @@ public class DeleteVariantCommandHandler : IDeleteVariantCommandHandler
         if (user == null)
             return Result<bool>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
             return Result<bool>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
 
         // Verify outfit belongs to this school
@@ -37,7 +39,7 @@ public class DeleteVariantCommandHandler : IDeleteVariantCommandHandler
         if (outfit == null)
             return Result<bool>.Failure("Outfit not found.", "OUTFIT_NOT_FOUND");
 
-        if (outfit.SchoolID != user.SchoolID.Value)
+        if (outfit.SchoolID != schoolMgr.SchoolID)
             return Result<bool>.Failure("You do not have permission to modify this outfit.", "OUTFIT_NOT_FOUND");
 
         // Find the variant

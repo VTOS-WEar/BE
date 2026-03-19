@@ -50,14 +50,15 @@ public class GetCampaignDetailQueryHandler : IGetCampaignDetailQueryHandler
         try
         {
             var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-            if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+            if (schoolMgr?.SchoolID == null)
                 return Result<CampaignDetailDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
             var campaign = await _db.Campaigns
                 .AsNoTracking()
                 .Include(c => c.CampaignOutfits)
                     .ThenInclude(co => co.Outfit)
-                .FirstOrDefaultAsync(c => c.Id == query.CampaignId && c.SchoolID == user.SchoolID.Value, ct);
+                .FirstOrDefaultAsync(c => c.Id == query.CampaignId && c.SchoolID == schoolMgr.SchoolID, ct);
 
             if (campaign == null)
                 return Result<CampaignDetailDto>.Failure("Campaign not found.", "CAMPAIGN_NOT_FOUND");

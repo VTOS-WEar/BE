@@ -12,10 +12,12 @@ public class DeleteStudentCommandHandler : IDeleteStudentCommandHandler
     public async Task<Result<string>> HandleAsync(DeleteStudentCommand cmd, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cmd.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<string>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolId = schoolMgr.SchoolID;
 
         var child = await _db.ChildProfiles
             .FirstOrDefaultAsync(c => c.Id == cmd.StudentId && c.SchoolID == schoolId && !c.IsDeleted, ct);

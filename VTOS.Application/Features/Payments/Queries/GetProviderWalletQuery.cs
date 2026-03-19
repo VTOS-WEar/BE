@@ -24,11 +24,13 @@ public class GetProviderWalletQueryHandler : IGetProviderWalletQueryHandler
     public async Task<Result<WalletDto>> HandleAsync(GetProviderWalletQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null || user.ProviderID == null)
+        if (user == null)
             return Result<WalletDto>.Failure("Access denied.", "ACCESS_DENIED");
 
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == user.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider && w.IsActive, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == providerMgr!.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider && w.IsActive, ct);
 
         if (wallet == null)
         {
@@ -36,7 +38,7 @@ public class GetProviderWalletQueryHandler : IGetProviderWalletQueryHandler
             wallet = new Domain.Entities.Wallet
             {
                 Id = Guid.NewGuid(),
-                OwnerID = user.ProviderID.Value,
+                OwnerID = providerMgr.ProviderID,
                 OwnerType = Domain.Enums.WalletOwnerType.Provider,
                 Balance = 0,
                 IsActive = true,

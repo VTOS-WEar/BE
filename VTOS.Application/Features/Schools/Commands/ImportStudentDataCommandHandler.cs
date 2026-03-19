@@ -30,10 +30,12 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
 
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<ImportStudentResultDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolId = schoolMgr.SchoolID;
 
         // 2. Load existing Children for this school → HashSet for O(1) duplicate check
         var existingChildren = await _db.ChildProfiles

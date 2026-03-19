@@ -29,13 +29,15 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         if (user == null)
             return Result<OutfitDto>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
             return Result<OutfitDto>.Failure("School profile not set up yet. Please create your school profile first.", "SCHOOL_NOT_FOUND");
 
         var outfit = new Outfit
         {
             Id = Guid.NewGuid(),
-            SchoolID = user.SchoolID.Value,
+            SchoolID = schoolMgr.SchoolID,
             OutfitName = command.OutfitName,
             Description = command.Description,
             Price = command.Price,

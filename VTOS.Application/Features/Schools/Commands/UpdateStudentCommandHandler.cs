@@ -13,10 +13,12 @@ public class UpdateStudentCommandHandler : IUpdateStudentCommandHandler
     public async Task<Result<StudentDetailDto>> HandleAsync(UpdateStudentCommand cmd, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cmd.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<StudentDetailDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolId = schoolMgr.SchoolID;
 
         var child = await _db.ChildProfiles
             .Include(c => c.School)

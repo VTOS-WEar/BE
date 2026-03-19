@@ -23,14 +23,15 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
     public async Task<Result<Guid>> HandleAsync(ReportDefectCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<Guid>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var batch = await _db.ProductionBatches
             .AsNoTracking()
             .Include(b => b.Campaign)
             .FirstOrDefaultAsync(b => b.Id == command.BatchId
-                && b.Campaign.SchoolID == user.SchoolID.Value
+                && b.Campaign.SchoolID == schoolMgr.SchoolID
                 && !b.IsDeleted, ct);
 
         if (batch == null)
@@ -47,7 +48,7 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
             Id = Guid.NewGuid(),
             CampaignID = batch.CampaignID,
             BatchID = batch.Id,
-            SchoolID = user.SchoolID.Value,
+            SchoolID = schoolMgr.SchoolID,
             ProviderID = batch.ProviderID,
             Title = command.Title,
             Description = command.Description,

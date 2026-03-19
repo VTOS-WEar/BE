@@ -37,10 +37,12 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
     {
         // Resolve SchoolID from UserId
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<ContractDto>.Failure("User is not linked to a school.", "NOT_SCHOOL");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolId = schoolMgr.SchoolID;
         var req = command.Request;
 
         // Validate provider exists
@@ -119,10 +121,13 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
     {
         // Resolve ProviderID from UserId
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.ProviderID == null)
+        if (user == null)
+            return Result<ContractDto>.Failure("User not found.", "NOT_FOUND");
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr == null)
             return Result<ContractDto>.Failure("User is not linked to a provider.", "NOT_PROVIDER");
 
-        var providerId = user.ProviderID.Value;
+        var providerId = providerMgr.ProviderID;
 
         var contract = await ContractMapper.IncludeAll(_context.Contracts.AsQueryable())
             .FirstOrDefaultAsync(c => c.Id == command.ContractId && c.ProviderID == providerId, ct);
@@ -155,10 +160,13 @@ public class RejectContractCommandHandler : IRejectContractCommandHandler
     {
         // Resolve ProviderID from UserId
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.ProviderID == null)
+        if (user == null)
+            return Result<ContractDto>.Failure("User not found.", "NOT_FOUND");
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr == null)
             return Result<ContractDto>.Failure("User is not linked to a provider.", "NOT_PROVIDER");
 
-        var providerId = user.ProviderID.Value;
+        var providerId = providerMgr.ProviderID;
 
         var contract = await ContractMapper.IncludeAll(_context.Contracts.AsQueryable())
             .FirstOrDefaultAsync(c => c.Id == command.ContractId && c.ProviderID == providerId, ct);

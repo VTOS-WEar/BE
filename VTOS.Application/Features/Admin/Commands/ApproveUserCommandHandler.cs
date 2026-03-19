@@ -22,19 +22,26 @@ public class ApproveUserCommandHandler : IApproveUserCommandHandler
         if (user == null)
             return false;
 
+
+        var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
+
+
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
+
+
         user.IsActive = true;
 
         // Auto-create wallet for School manager
-        if (user.SchoolID != null)
+        if (schoolMgr?.SchoolID != null)
         {
             var existingWallet = await _context.Wallets
-                .AnyAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School, cancellationToken);
+                .AnyAsync(w => w.OwnerID == schoolMgr!.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School, cancellationToken);
             if (!existingWallet)
             {
                 _context.Wallets.Add(new Domain.Entities.Wallet
                 {
                     Id = Guid.NewGuid(),
-                    OwnerID = user.SchoolID.Value,
+                    OwnerID = schoolMgr.SchoolID,
                     OwnerType = Domain.Enums.WalletOwnerType.School,
                     Balance = 0,
                     IsActive = true,
@@ -44,16 +51,16 @@ public class ApproveUserCommandHandler : IApproveUserCommandHandler
             }
         }
         // Auto-create wallet for Provider manager
-        else if (user.ProviderID != null)
+        else if (providerMgr != null)
         {
             var existingWallet = await _context.Wallets
-                .AnyAsync(w => w.OwnerID == user.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider, cancellationToken);
+                .AnyAsync(w => w.OwnerID == providerMgr!.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider, cancellationToken);
             if (!existingWallet)
             {
                 _context.Wallets.Add(new Domain.Entities.Wallet
                 {
                     Id = Guid.NewGuid(),
-                    OwnerID = user.ProviderID.Value,
+                    OwnerID = providerMgr.ProviderID,
                     OwnerType = Domain.Enums.WalletOwnerType.Provider,
                     Balance = 0,
                     IsActive = true,

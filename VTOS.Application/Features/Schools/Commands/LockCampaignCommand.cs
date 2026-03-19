@@ -21,11 +21,12 @@ public class LockCampaignCommandHandler : ILockCampaignCommandHandler
     public async Task<Result<string>> HandleAsync(LockCampaignCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<string>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var campaign = await _db.Campaigns
-            .FirstOrDefaultAsync(c => c.Id == command.CampaignId && c.SchoolID == user.SchoolID.Value, ct);
+            .FirstOrDefaultAsync(c => c.Id == command.CampaignId && c.SchoolID == schoolMgr.SchoolID, ct);
 
         if (campaign == null)
             return Result<string>.Failure("Campaign not found.", "CAMPAIGN_NOT_FOUND");

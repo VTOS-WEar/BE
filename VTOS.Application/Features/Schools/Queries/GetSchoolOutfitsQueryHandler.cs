@@ -27,12 +27,14 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         if (user == null)
             return Result<OutfitListResponse>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
             return Result<OutfitListResponse>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
 
         var outfitsQuery = _db.Outfits
             .AsNoTracking()
-            .Where(o => o.SchoolID == user.SchoolID.Value && !o.IsDeleted);
+            .Where(o => o.SchoolID == schoolMgr.SchoolID && !o.IsDeleted);
 
         if (query.IsAvailable.HasValue)
             outfitsQuery = outfitsQuery.Where(o => o.IsAvailable == query.IsAvailable.Value);

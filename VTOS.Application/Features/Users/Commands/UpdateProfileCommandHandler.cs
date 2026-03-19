@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +24,7 @@ namespace VTOS.Application.Features.Users.Commands
 
         public async Task<Result<UpdateProfileResponse>> HandleAsync(UpdateProfileCommand command, CancellationToken cancellationToken = default)
         {
-            var user = await _context.Users.Include(x=>x.Role).FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
+            var user = await _context.Users.Include(x=>x.Role).Include(x => x.ParentProfile).FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
 
             if (user == null)
                 return Result<UpdateProfileResponse>.Failure("User not found","USER_NOT_FOUND");
@@ -37,15 +37,25 @@ namespace VTOS.Application.Features.Users.Commands
                 isUpdated = true;
             }
 
-            if (command.DOB.HasValue && command.DOB != user.DOB)
+            if (command.DOB.HasValue && command.DOB != user.ParentProfile?.DOB)
             {
-                user.DOB = command.DOB;
+                if (user.ParentProfile == null)
+                {
+                    user.ParentProfile = new ParentProfile { Id = Guid.NewGuid(), UserID = user.Id, Gender = Gender.Other };
+                    _context.ParentProfiles.Add(user.ParentProfile);
+                }
+                user.ParentProfile.DOB = command.DOB;
                 isUpdated = true;
             }
 
-            if (command.Gender.HasValue && command.Gender != user.Gender)
+            if (command.Gender.HasValue && command.Gender != user.ParentProfile?.Gender)
             {
-                user.Gender = command.Gender.Value;
+                if (user.ParentProfile == null)
+                {
+                    user.ParentProfile = new ParentProfile { Id = Guid.NewGuid(), UserID = user.Id };
+                    _context.ParentProfiles.Add(user.ParentProfile);
+                }
+                user.ParentProfile.Gender = command.Gender.Value;
                 isUpdated = true;
             }
 
@@ -62,36 +72,21 @@ namespace VTOS.Application.Features.Users.Commands
                 user.Email = command.Email;
                 isUpdated = true;
             }
+
+            var dob = user.ParentProfile?.DOB ?? DateTime.Now.AddYears(-18);
+            var gender = (user.ParentProfile?.Gender ?? Gender.Other).ToString();
+
             if (!isUpdated)
                 return Result<UpdateProfileResponse>.Success(new UpdateProfileResponse(
-                    user.Id,
-                    user.Email,
-                    user.FullName,
-                    user.Phone ?? string.Empty,
-                    user.DOB ?? DateTime.Now.AddYears(-18),
-                    user.Gender.ToString(),
-                    user.Role.RoleName,
-                    user.IsActive,
-                    user.IsDeleted,
-                    user.CreatedAt,
-                    user.LastLogin ?? DateTime.MinValue
-                    )
-                );
+                    user.Id, user.Email, user.FullName, user.Phone ?? string.Empty,
+                    dob, gender, user.Role.RoleName, user.IsActive, user.IsDeleted,
+                    user.CreatedAt, user.LastLogin ?? DateTime.MinValue));
+
             await _context.SaveChangesAsync(cancellationToken);
             return Result<UpdateProfileResponse>.Success(new UpdateProfileResponse(
-                   user.Id,
-                   user.Email,
-                   user.FullName,
-                   user.Phone ?? string.Empty,
-                   user.DOB ?? DateTime.Now.AddYears(-18),
-                   user.Gender.ToString(),
-                   user.Role.RoleName,
-                   user.IsActive,
-                   user.IsDeleted,
-                   user.CreatedAt,
-                   user.LastLogin ?? DateTime.MinValue
-                   )
-               );
+                   user.Id, user.Email, user.FullName, user.Phone ?? string.Empty,
+                   dob, gender, user.Role.RoleName, user.IsActive, user.IsDeleted,
+                   user.CreatedAt, user.LastLogin ?? DateTime.MinValue));
         }
     }
 }

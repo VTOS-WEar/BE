@@ -39,10 +39,11 @@ public class GetProviderProductionOrderListQueryHandler : IGetProviderProduction
     public async Task<Result<GetProviderProductionOrderListResponse>> HandleAsync(GetProviderProductionOrderListQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<GetProviderProductionOrderListResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
-        var providerId = user.ProviderID.Value;
+        var providerId = providerMgr.ProviderID;
 
         var q = _db.ProductionBatches.AsNoTracking()
             .Include(b => b.Campaign).ThenInclude(c => c.School)
