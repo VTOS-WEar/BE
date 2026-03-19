@@ -23,6 +23,10 @@ public class BodygramService : IBodygramService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    // Track current credential index for fallback strategy (sequential)
+    private static int _currentCredentialIndex = 0;
+    private static readonly object _credentialLock = new();
+
     public BodygramService(
         HttpClient httpClient,
         IOptions<BodygramSettings> options,
@@ -34,7 +38,7 @@ public class BodygramService : IBodygramService
     }
 
     /// <summary>
-    /// Creates a new body scan in Bodygram with photo data
+    /// Creates a new body scan in Bodygram with photo data (with fallback credentials on 402/429)
     /// </summary>
     public async Task<BodygramScanResponse> CreateScanAsync(CreateScanRequest request, CancellationToken cancellationToken = default)
     {
@@ -42,21 +46,54 @@ public class BodygramService : IBodygramService
         {
             _logger.LogInformation("Creating Bodygram scan with custom ID: {CustomScanId}", request.CustomScanId);
 
-            var url = $"{_settings.BaseUrl}/orgs/{_settings.OrganizationId}/scans";
-            var httpRequest = CreatePostRequestWithBody(url, request);
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            int maxRetries = GetAvailableCredentials().Count;
+            HttpResponseMessage response = null;
             
-            if (!response.IsSuccessStatusCode)
+            for (int attempt = 0; attempt < maxRetries; attempt++)
             {
-                await HandleErrorResponseAsync(response, "Bodygram scan creation", cancellationToken);
+                var credential = GetCurrentCredential();
+                var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans";
+                var httpRequest = CreatePostRequestWithBody(url, request, credential);
+
+                response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+                
+                // Success - return response
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var scanResponse = DeserializeResponse<BodygramScanResponse>(jsonResponse);
+                    _logger.LogInformation("Bodygram scan created successfully with ID: {ScanId}", scanResponse?.Entry?.Id);
+                    return scanResponse;
+                }
+
+                // 402 Payment Required or 429 Too Many Requests - try next credential
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired || 
+                    response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("Bodygram API returned {StatusCode} ({Reason}). Attempting fallback credential {Attempt}/{MaxRetries}", 
+                        response.StatusCode, response.ReasonPhrase, attempt + 1, maxRetries);
+
+                    if (attempt < maxRetries - 1)
+                    {
+                        TryNextCredential();
+                        continue;
+                    }
+                    // If this was last attempt, fall through to error handling
+                }
+                else
+                {
+                    // Other errors - don't retry, handle immediately
+                    await HandleErrorResponseAsync(response, "Bodygram scan creation", cancellationToken);
+                }
             }
 
-            var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-            var scanResponse = DeserializeResponse<BodygramScanResponse>(jsonResponse);
+            // If we get here, all credentials have been exhausted for 402/429, or unknown error
+            if (response != null)
+            {
+                await HandleErrorResponseAsync(response, "Bodygram scan creation - all credentials exhausted", cancellationToken);
+            }
 
-            _logger.LogInformation("Bodygram scan created successfully with ID: {ScanId}", scanResponse?.Entry?.Id);
-            return scanResponse;
+            throw new HttpRequestException("Bodygram API: All available credentials exhausted");
         }
         catch (Exception ex)
         {
@@ -134,8 +171,9 @@ public class BodygramService : IBodygramService
     /// </summary>
     private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url)
     {
+        var credential = GetCurrentCredential();
         var request = new HttpRequestMessage(method, url);
-        request.Headers.Add("Authorization", _settings.ApiKey);
+        request.Headers.Add("Authorization", credential.ApiKey);
         return request;
     }
 
@@ -144,12 +182,21 @@ public class BodygramService : IBodygramService
     /// </summary>
     private HttpRequestMessage CreatePostRequestWithBody<T>(string url, T requestData)
     {
+        var credential = GetCurrentCredential();
+        return CreatePostRequestWithBody(url, requestData, credential);
+    }
+
+    /// <summary>
+    /// Helper: Create POST request with specific credential
+    /// </summary>
+    private HttpRequestMessage CreatePostRequestWithBody<T>(string url, T requestData, BodygramCredential credential)
+    {
         var jsonContent = JsonSerializer.Serialize(requestData, JsonOptions);
         var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
         };
-        request.Headers.Add("Authorization", _settings.ApiKey);
+        request.Headers.Add("Authorization", credential.ApiKey);
         return request;
     }
 
@@ -179,5 +226,68 @@ public class BodygramService : IBodygramService
     private T DeserializeResponse<T>(string jsonResponse) where T : new()
     {
         return JsonSerializer.Deserialize<T>(jsonResponse, JsonOptions) ?? new T();
+    }
+
+    /// <summary>
+    /// Helper: Get current credential (with fallback to legacy settings)
+    /// </summary>
+    private BodygramCredential GetCurrentCredential()
+    {
+        lock (_credentialLock)
+        {
+            var credentials = GetAvailableCredentials();
+            if (credentials.Count == 0)
+            {
+                // Backward compatibility: use legacy ApiKey/OrganizationId
+                return new BodygramCredential
+                {
+                    ApiKey = _settings.ApiKey,
+                    OrganizationId = _settings.OrganizationId
+                };
+            }
+            return credentials[_currentCredentialIndex];
+        }
+    }
+
+    /// <summary>
+    /// Helper: Try to move to next available credential
+    /// </summary>
+    private bool TryNextCredential()
+    {
+        lock (_credentialLock)
+        {
+            var credentials = GetAvailableCredentials();
+            if (_currentCredentialIndex < credentials.Count - 1)
+            {
+                _currentCredentialIndex++;
+                var nextCredential = credentials[_currentCredentialIndex];
+                _logger.LogInformation("Credential fallback: Now using credential pair {Index}/{Total}", 
+                    _currentCredentialIndex + 1, credentials.Count);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Helper: Get list of available credentials
+    /// </summary>
+    private List<BodygramCredential> GetAvailableCredentials()
+    {
+        if (_settings.Credentials?.Count > 0)
+        {
+            return _settings.Credentials;
+        }
+
+        // Fallback: create list from legacy settings if no credentials configured
+        if (!string.IsNullOrEmpty(_settings.ApiKey) && !string.IsNullOrEmpty(_settings.OrganizationId))
+        {
+            return new List<BodygramCredential>
+            {
+                new() { ApiKey = _settings.ApiKey, OrganizationId = _settings.OrganizationId }
+            };
+        }
+
+        return new List<BodygramCredential>();
     }
 }
