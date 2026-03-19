@@ -15,10 +15,12 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
     {
         // 1. Resolve school
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == cmd.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<StudentDetailDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolId = schoolMgr.SchoolID;
 
         // 2. Validate
         if (string.IsNullOrWhiteSpace(cmd.FullName))

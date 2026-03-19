@@ -28,7 +28,9 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
         if (user == null)
             return Result<OutfitDto>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
             return Result<OutfitDto>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
 
         var outfit = await _db.Outfits
@@ -38,7 +40,7 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
             return Result<OutfitDto>.Failure("Outfit not found.", "OUTFIT_NOT_FOUND");
 
         // Security: ensure the outfit belongs to this school
-        if (outfit.SchoolID != user.SchoolID.Value)
+        if (outfit.SchoolID != schoolMgr.SchoolID)
             return Result<OutfitDto>.Failure("You do not have permission to update this outfit.", "OUTFIT_NOT_FOUND");
 
         // Partial update — only apply non-null fields

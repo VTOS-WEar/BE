@@ -22,7 +22,8 @@ public class ConfirmDeliveryCommandHandler : IConfirmDeliveryCommandHandler
     {
         // Resolve school
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<string>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         // Get batch via campaign's school
@@ -30,7 +31,7 @@ public class ConfirmDeliveryCommandHandler : IConfirmDeliveryCommandHandler
             .Include(b => b.Campaign)
             .Include(b => b.DeliveryRecords)
             .FirstOrDefaultAsync(b => b.Id == command.BatchId
-                && b.Campaign.SchoolID == user.SchoolID.Value
+                && b.Campaign.SchoolID == schoolMgr.SchoolID
                 && !b.IsDeleted, ct);
 
         if (batch == null)
@@ -76,7 +77,7 @@ public class ConfirmDeliveryCommandHandler : IConfirmDeliveryCommandHandler
                 Id = Guid.NewGuid(),
                 CampaignID = batch.CampaignID,
                 BatchID = batch.Id,
-                SchoolID = user.SchoolID.Value,
+                SchoolID = schoolMgr.SchoolID,
                 ProviderID = batch.ProviderID,
                 Title = $"Defective uniforms in delivery ({defective} items)",
                 Description = command.DefectNote,

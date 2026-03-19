@@ -22,12 +22,13 @@ public class AcceptProductionOrderCommandHandler : IAcceptProductionOrderCommand
     public async Task<Result<string>> HandleAsync(AcceptProductionOrderCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<string>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var batch = await _db.ProductionBatches
             .FirstOrDefaultAsync(b => b.Id == command.BatchId
-                && b.ProviderID == user.ProviderID.Value
+                && b.ProviderID == providerMgr.ProviderID
                 && !b.IsDeleted, ct);
 
         if (batch == null)

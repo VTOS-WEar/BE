@@ -35,11 +35,13 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
         if (user == null)
             return Result<PublishCampaignResponseDto>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
             return Result<PublishCampaignResponseDto>.Failure(
                 "School profile not set up yet. Please create your school profile first.", "SCHOOL_NOT_FOUND");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolId = schoolMgr.SchoolID;
 
         // 2. Validate date range (SRS 44.E1)
         if (command.EndDate <= command.StartDate)

@@ -38,10 +38,11 @@ public class GetProductionOrderListQueryHandler : IGetProductionOrderListQueryHa
     public async Task<Result<GetProductionOrderListResponse>> HandleAsync(GetProductionOrderListQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<GetProductionOrderListResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolId = schoolMgr.SchoolID;
 
         var q = _db.ProductionBatches.AsNoTracking()
             .Include(b => b.Campaign)

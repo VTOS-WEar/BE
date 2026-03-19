@@ -16,10 +16,12 @@ public class GetSchoolGradesQueryHandler : IGetSchoolGradesQueryHandler
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
 
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<IReadOnlyList<string>>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolId = schoolMgr.SchoolID;
 
         var grades = await _db.ChildProfiles
             .AsNoTracking()

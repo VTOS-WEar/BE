@@ -40,10 +40,11 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
             if (schoolUser.Role?.RoleName != "School")
                 return Result<RefundResponse>.Failure("Only school managers can approve refunds.", "FORBIDDEN");
 
-            if (schoolUser.SchoolID == null)
+            var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == schoolUser.Id, ct);
+            if (schoolMgr == null)
                 return Result<RefundResponse>.Failure("User is not assigned to any school.", "SCHOOL_NOT_FOUND");
 
-            var schoolId = schoolUser.SchoolID.Value;
+            var schoolId = schoolMgr.SchoolID;
 
             // Step 2: Load refund with related payment → order → childProfile
             var refund = await _db.Refunds

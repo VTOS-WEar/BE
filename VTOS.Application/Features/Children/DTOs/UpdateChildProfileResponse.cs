@@ -18,5 +18,3 @@ public record UpdateChildProfileResponse(
     bool IsStandardSize
 );
 
-
-

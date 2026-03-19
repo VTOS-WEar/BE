@@ -35,12 +35,13 @@ public class GetProductionOrderQuantityQueryHandler : IGetProductionOrderQuantit
     public async Task<Result<ProductionOrderQuantityDto>> HandleAsync(GetProductionOrderQuantityQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<ProductionOrderQuantityDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var batch = await _db.ProductionBatches.AsNoTracking()
             .Include(b => b.Items).ThenInclude(i => i.Outfit)
-            .FirstOrDefaultAsync(b => b.Id == query.BatchId && b.Campaign.SchoolID == user.SchoolID.Value && !b.IsDeleted, ct);
+            .FirstOrDefaultAsync(b => b.Id == query.BatchId && b.Campaign.SchoolID == schoolMgr.SchoolID && !b.IsDeleted, ct);
 
         if (batch == null)
             return Result<ProductionOrderQuantityDto>.Failure("Production order not found.", "BATCH_NOT_FOUND");

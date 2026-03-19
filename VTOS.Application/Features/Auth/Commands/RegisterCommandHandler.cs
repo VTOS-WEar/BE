@@ -95,13 +95,32 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             FullName = command.FullName,
             Phone = null, // Phone collected after first login
             RoleID = role.Id,
-            ProviderID = providerEntity?.Id,
             IsActive = false, // INACTIVE until email verified
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Users.Add(user);
+
+        // Create role-specific profile
+        if (roleName == "Provider" && providerEntity != null)
+        {
+            _context.ProviderManagers.Add(new ProviderManager
+            {
+                Id = Guid.NewGuid(),
+                UserID = user.Id,
+                ProviderID = providerEntity.Id
+            });
+        }
+        else if (roleName == "Parent")
+        {
+            _context.ParentProfiles.Add(new ParentProfile
+            {
+                Id = Guid.NewGuid(),
+                UserID = user.Id,
+                Gender = Domain.Enums.Gender.Other
+            });
+        }
 
         // Generate OTP and create verification record
         var otpCode = OTPGenerator.Generate();

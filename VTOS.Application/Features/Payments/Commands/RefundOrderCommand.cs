@@ -28,8 +28,10 @@ public class RefundOrderCommandHandler : IRefundOrderCommandHandler
     public async Task<Result<RefundOrderResponse>> HandleAsync(RefundOrderCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<RefundOrderResponse>.Failure("Access denied.", "ACCESS_DENIED");
+
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
         var order = await _db.Orders
             .Include(o => o.ChildProfile)
@@ -41,7 +43,7 @@ public class RefundOrderCommandHandler : IRefundOrderCommandHandler
 
         var child = await _db.ChildProfiles.AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == order.ChildProfileID, ct);
-        if (child == null || child.SchoolID != user.SchoolID)
+        if (child == null || child.SchoolID != schoolMgr?.SchoolID)
             return Result<RefundOrderResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
         if (order.OrderStatus == OrderStatus.Pending || order.OrderStatus == OrderStatus.Cancelled || order.OrderStatus == OrderStatus.Refunded)
@@ -54,7 +56,7 @@ public class RefundOrderCommandHandler : IRefundOrderCommandHandler
             return Result<RefundOrderResponse>.Failure("No payment found for this order.", "NO_PAYMENT");
 
         // Deduct from wallet
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null || wallet.Balance < order.TotalAmount)
             return Result<RefundOrderResponse>.Failure("Insufficient wallet balance for refund.", "INSUFFICIENT_BALANCE");
 

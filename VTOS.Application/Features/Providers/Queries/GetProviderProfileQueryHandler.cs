@@ -18,16 +18,16 @@ public class GetProviderProfileQueryHandler : IGetProviderProfileQueryHandler
         GetProviderProfileQuery query, CancellationToken ct = default)
     {
         var user = await _context.Users
-            .Include(u => u.Provider)
+            .Include(u => u.ProviderManager)
             .FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
 
         if (user == null)
             return Result<ProviderProfileDto>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.Provider == null)
+        if (user.ProviderManager?.Provider == null)
             return Result<ProviderProfileDto>.Failure("No provider linked to this user.", "NO_PROVIDER");
 
-        var p = user.Provider;
+        var p = user.ProviderManager?.Provider;
         return Result<ProviderProfileDto>.Success(new ProviderProfileDto(
             p.Id,
             p.ProviderName,

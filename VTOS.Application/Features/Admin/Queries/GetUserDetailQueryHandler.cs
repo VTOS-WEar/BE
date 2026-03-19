@@ -20,7 +20,9 @@ public class GetUserDetailQueryHandler : IGetUserDetailQueryHandler
     {
         var user = await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.School)
+            .Include(u => u.ParentProfile)
+            .Include(u => u.SchoolManager)
+                .ThenInclude(sm => sm!.School)
             .Include(u => u.ChildProfiles)
             .FirstOrDefaultAsync(u => u.Id == query.UserId && !u.IsDeleted, cancellationToken);
 
@@ -37,12 +39,12 @@ public class GetUserDetailQueryHandler : IGetUserDetailQueryHandler
             user.Email,
             user.FullName,
             user.Phone,
-            user.DOB,
-            user.Gender.ToString(),
+            user.ParentProfile?.DOB,
+            (user.ParentProfile?.Gender ?? Domain.Enums.Gender.Other).ToString(),
             user.Avatar,
             user.Role.RoleName,
-            user.SchoolID,
-            user.School?.SchoolName,
+            user.SchoolManager?.SchoolID,
+            user.SchoolManager?.School?.SchoolName,
             user.IsActive,
             user.CreatedAt,
             user.LastLogin,

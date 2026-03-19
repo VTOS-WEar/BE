@@ -21,11 +21,12 @@ public class GetProductionOrderItemsQueryHandler : IGetProductionOrderItemsQuery
     public async Task<Result<IReadOnlyList<ProductionBatchItemDto>>> HandleAsync(GetProductionOrderItemsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<IReadOnlyList<ProductionBatchItemDto>>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var batchExists = await _db.ProductionBatches.AsNoTracking()
-            .AnyAsync(b => b.Id == query.BatchId && b.Campaign.SchoolID == user.SchoolID.Value && !b.IsDeleted, ct);
+            .AnyAsync(b => b.Id == query.BatchId && b.Campaign.SchoolID == schoolMgr.SchoolID && !b.IsDeleted, ct);
         if (!batchExists)
             return Result<IReadOnlyList<ProductionBatchItemDto>>.Failure("Production order not found.", "BATCH_NOT_FOUND");
 

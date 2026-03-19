@@ -28,10 +28,11 @@ public class GetSchoolRefundsQueryHandler : IGetSchoolRefundsQueryHandler
         if (schoolUser.Role?.RoleName != "School")
             return Result<SchoolRefundListResponse>.Failure("Only school managers can view refund requests.", "FORBIDDEN");
 
-        if (schoolUser.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == schoolUser.Id, ct);
+        if (schoolMgr == null)
             return Result<SchoolRefundListResponse>.Failure("User is not assigned to any school.", "SCHOOL_NOT_FOUND");
 
-        var schoolId = schoolUser.SchoolID.Value;
+        var schoolId = schoolMgr.SchoolID;
 
         // Step 2: Query refunds belonging to this school
         var refundsQuery = _db.Refunds

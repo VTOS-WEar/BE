@@ -137,7 +137,6 @@ public static class DbInitializer
                     Email = "admin@vtos.com",
                     PasswordHash = adminHash,
                     Phone = "0905000099",
-                    Gender = Gender.Male,
                     RoleID = adminRole.Id,
                     IsActive = true,
                     IsDeleted = false,
@@ -216,17 +215,41 @@ public static class DbInitializer
         // ── Users ─────────────────────────────────────────────────────────────
         db.Users.AddRange(
             // School managers
-            new User { Id = USR_SCH1, FullName = "Nguyễn Thị Thanh Hà", Email = "school1@vtos.com", PasswordHash = hash, Phone = "0905112233", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, SchoolID = SCH1, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_SCH2, FullName = "Trần Văn Minh", Email = "school2@vtos.com", PasswordHash = hash, Phone = "0935445566", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, SchoolID = SCH2, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_SCH3, FullName = "Lê Thị Bích Ngọc", Email = "school3@vtos.com", PasswordHash = hash, Phone = "0769778899", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, SchoolID = SCH3, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_SCH1, FullName = "Nguyễn Thị Thanh Hà", Email = "school1@vtos.com", PasswordHash = hash, Phone = "0905112233", Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_SCH2, FullName = "Trần Văn Minh", Email = "school2@vtos.com", PasswordHash = hash, Phone = "0935445566", Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_SCH3, FullName = "Lê Thị Bích Ngọc", Email = "school3@vtos.com", PasswordHash = hash, Phone = "0769778899", Avatar = "avatar.jpg", RoleID = ROLE_SCHOOL, IsActive = true, IsDeleted = false, CreatedAt = now },
             // Parents
-            new User { Id = USR_P0, FullName = "Trần Thị Hương", Email = "parent0@vtos.com", PasswordHash = hash, Phone = "0905101010", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_P1, FullName = "Lê Văn Đức", Email = "parent1@vtos.com", PasswordHash = hash, Phone = "0935202020", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_P2, FullName = "Phạm Thị Mai", Email = "parent2@vtos.com", PasswordHash = hash, Phone = "0769303030", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_P3, FullName = "Ngô Quang Hải", Email = "parent3@vtos.com", PasswordHash = hash, Phone = "0905404040", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_P0, FullName = "Trần Thị Hương", Email = "parent0@vtos.com", PasswordHash = hash, Phone = "0905101010", Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_P1, FullName = "Lê Văn Đức", Email = "parent1@vtos.com", PasswordHash = hash, Phone = "0935202020", Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_P2, FullName = "Phạm Thị Mai", Email = "parent2@vtos.com", PasswordHash = hash, Phone = "0769303030", Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_P3, FullName = "Ngô Quang Hải", Email = "parent3@vtos.com", PasswordHash = hash, Phone = "0905404040", Avatar = "avatar.jpg", RoleID = ROLE_PARENT, IsActive = true, IsDeleted = false, CreatedAt = now },
             // Providers
-            new User { Id = USR_PRV1, FullName = "Hoàng Minh Tuấn", Email = "provider1@vtos.com", PasswordHash = hash, Phone = "0905123456", Gender = Gender.Male, Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, ProviderID = PRV1, IsActive = true, IsDeleted = false, CreatedAt = now },
-            new User { Id = USR_PRV2, FullName = "Võ Thị Lan Anh", Email = "provider2@vtos.com", PasswordHash = hash, Phone = "0935789012", Gender = Gender.Female, Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, ProviderID = PRV2, IsActive = true, IsDeleted = false, CreatedAt = now }
+            new User { Id = USR_PRV1, FullName = "Hoàng Minh Tuấn", Email = "provider1@vtos.com", PasswordHash = hash, Phone = "0905123456", Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, IsActive = true, IsDeleted = false, CreatedAt = now },
+            new User { Id = USR_PRV2, FullName = "Võ Thị Lan Anh", Email = "provider2@vtos.com", PasswordHash = hash, Phone = "0935789012", Avatar = "avatar.jpg", RoleID = ROLE_PROVIDER, IsActive = true, IsDeleted = false, CreatedAt = now }
+        );
+        await db.SaveChangesAsync();
+
+        // ── ParentProfiles (parent-specific: DOB, Gender) ────────────────────
+        db.ParentProfiles.AddRange(
+            new ParentProfile { Id = Guid.NewGuid(), UserID = USR_P0, DOB = new DateTime(1985, 3, 15), Gender = Gender.Female },
+            new ParentProfile { Id = Guid.NewGuid(), UserID = USR_P1, DOB = new DateTime(1982, 7, 22), Gender = Gender.Male },
+            new ParentProfile { Id = Guid.NewGuid(), UserID = USR_P2, DOB = new DateTime(1990, 11, 8), Gender = Gender.Female },
+            new ParentProfile { Id = Guid.NewGuid(), UserID = USR_P3, DOB = new DateTime(1988, 5, 30), Gender = Gender.Male }
+        );
+        await db.SaveChangesAsync();
+
+        // ── SchoolManagers (link user → school) ──────────────────────────────
+        db.SchoolManagers.AddRange(
+            new SchoolManager { Id = Guid.NewGuid(), UserID = USR_SCH1, SchoolID = SCH1 },
+            new SchoolManager { Id = Guid.NewGuid(), UserID = USR_SCH2, SchoolID = SCH2 },
+            new SchoolManager { Id = Guid.NewGuid(), UserID = USR_SCH3, SchoolID = SCH3 }
+        );
+        await db.SaveChangesAsync();
+
+        // ── ProviderManagers (link user → provider) ──────────────────────────
+        db.ProviderManagers.AddRange(
+            new ProviderManager { Id = Guid.NewGuid(), UserID = USR_PRV1, ProviderID = PRV1 },
+            new ProviderManager { Id = Guid.NewGuid(), UserID = USR_PRV2, ProviderID = PRV2 }
         );
         await db.SaveChangesAsync();
 

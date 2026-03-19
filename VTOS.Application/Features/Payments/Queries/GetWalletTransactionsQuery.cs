@@ -36,11 +36,13 @@ public class GetWalletTransactionsQueryHandler : IGetWalletTransactionsQueryHand
     public async Task<Result<WalletTransactionsResponse>> HandleAsync(GetWalletTransactionsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<WalletTransactionsResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null)
             return Result<WalletTransactionsResponse>.Success(new WalletTransactionsResponse(new(), 0));
 

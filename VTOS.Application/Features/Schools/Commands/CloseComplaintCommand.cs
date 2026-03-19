@@ -22,11 +22,12 @@ public class CloseComplaintCommandHandler : ICloseComplaintCommandHandler
     public async Task<Result<string>> HandleAsync(CloseComplaintCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<string>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var complaint = await _db.Complaints
-            .FirstOrDefaultAsync(c => c.Id == command.ComplaintId && c.SchoolID == user.SchoolID.Value, ct);
+            .FirstOrDefaultAsync(c => c.Id == command.ComplaintId && c.SchoolID == schoolMgr.SchoolID, ct);
 
         if (complaint == null)
             return Result<string>.Failure("Complaint not found.", "COMPLAINT_NOT_FOUND");

@@ -67,15 +67,21 @@ public class GetChatMessagesQueryHandler : IGetChatMessagesQueryHandler
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null) return false;
 
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var schoolId = schoolMgr?.SchoolID;
+        var providerId = providerMgr?.ProviderID;
+
         if (channelType == ChatChannelType.Complaint)
         {
             return await _db.Complaints.AsNoTracking().AnyAsync(c =>
-                c.Id == channelId && (c.SchoolID == user.SchoolID || c.ProviderID == user.ProviderID), ct);
+                c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
         else if (channelType == ChatChannelType.Contract)
         {
             return await _db.Contracts.AsNoTracking().AnyAsync(c =>
-                c.Id == channelId && (c.SchoolID == user.SchoolID || c.ProviderID == user.ProviderID), ct);
+                c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
 
         return false;

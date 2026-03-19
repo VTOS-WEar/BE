@@ -36,12 +36,15 @@ public class GetProviderPaymentHistoryQueryHandler : IGetProviderPaymentHistoryQ
     public async Task<Result<ProviderPaymentHistoryResponse>> HandleAsync(GetProviderPaymentHistoryQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null || user.ProviderID == null)
+        if (user == null)
             return Result<ProviderPaymentHistoryResponse>.Failure("Access denied.", "ACCESS_DENIED");
+
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        var providerId = providerMgr?.ProviderID;
 
         // Get campaigns for this provider
         var campaignIds = await _db.CampaignOutfits.AsNoTracking()
-            .Where(co => co.ProviderID == user.ProviderID)
+            .Where(co => co.ProviderID == providerId)
             .Select(co => co.CampaignID)
             .Distinct()
             .ToListAsync(ct);

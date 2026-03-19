@@ -38,7 +38,8 @@ public class GetVerifyQuantityQueryHandler : IGetVerifyQuantityQueryHandler
     public async Task<Result<VerifyQuantityResponse>> HandleAsync(GetVerifyQuantityQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<VerifyQuantityResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var batch = await _db.ProductionBatches
@@ -47,7 +48,7 @@ public class GetVerifyQuantityQueryHandler : IGetVerifyQuantityQueryHandler
             .Include(b => b.Items).ThenInclude(i => i.Outfit)
             .Include(b => b.DeliveryRecords)
             .FirstOrDefaultAsync(b => b.Id == query.BatchId
-                && b.Campaign.SchoolID == user.SchoolID.Value
+                && b.Campaign.SchoolID == schoolMgr.SchoolID
                 && !b.IsDeleted, ct);
 
         if (batch == null)

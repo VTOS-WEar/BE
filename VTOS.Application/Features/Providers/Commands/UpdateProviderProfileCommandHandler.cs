@@ -18,16 +18,16 @@ public class UpdateProviderProfileCommandHandler : IUpdateProviderProfileCommand
         UpdateProviderProfileCommand command, CancellationToken ct = default)
     {
         var user = await _context.Users
-            .Include(u => u.Provider)
+            .Include(u => u.ProviderManager)
             .FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
 
         if (user == null)
             return Result<ProviderProfileDto>.Failure("User not found.", "USER_NOT_FOUND");
 
-        if (user.Provider == null)
+        if (user.ProviderManager?.Provider == null)
             return Result<ProviderProfileDto>.Failure("No provider linked to this user.", "NO_PROVIDER");
 
-        var p = user.Provider;
+        var p = user.ProviderManager?.Provider;
 
         // Partial update — only overwrite non-null fields
         if (command.ProviderName != null) p.ProviderName = command.ProviderName;

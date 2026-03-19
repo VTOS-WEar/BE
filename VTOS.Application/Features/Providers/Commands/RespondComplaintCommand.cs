@@ -26,11 +26,12 @@ public class RespondComplaintCommandHandler : IRespondComplaintCommandHandler
     public async Task<Result<string>> HandleAsync(RespondComplaintCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user?.ProviderID == null)
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr?.ProviderID == null)
             return Result<string>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var complaint = await _db.Complaints
-            .FirstOrDefaultAsync(c => c.Id == command.ComplaintId && c.ProviderID == user.ProviderID.Value, ct);
+            .FirstOrDefaultAsync(c => c.Id == command.ComplaintId && c.ProviderID == providerMgr.ProviderID, ct);
 
         if (complaint == null)
             return Result<string>.Failure("Complaint not found.", "COMPLAINT_NOT_FOUND");

@@ -33,12 +33,13 @@ public class CreateWithdrawalRequestCommandHandler : ICreateWithdrawalRequestCom
         if (schoolUser.Role?.RoleName != "School")
             return Result<WithdrawalRequestResponse>.Failure("Only school managers can create withdrawal requests.", "FORBIDDEN");
 
-        if (schoolUser.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == schoolUser.Id, ct);
+        if (schoolMgr == null)
             return Result<WithdrawalRequestResponse>.Failure("User is not assigned to any school.", "SCHOOL_NOT_FOUND");
 
         // Step 2: Load school wallet
         var wallet = await _db.Set<Wallet>()
-            .FirstOrDefaultAsync(w => w.OwnerID == schoolUser.SchoolID.Value && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
 
         if (wallet == null)
             return Result<WithdrawalRequestResponse>.Failure("School wallet not found or inactive.", "WALLET_NOT_FOUND");

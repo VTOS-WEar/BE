@@ -69,8 +69,16 @@ public class LoginQueryHandler : ILoginQueryHandler
         user.LastLogin = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
 
+        // Look up role-specific manager IDs
+        Guid? providerId = null;
+        Guid? schoolId = null;
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
+        if (providerMgr != null) providerId = providerMgr.ProviderID;
+        var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
+        if (schoolMgr != null) schoolId = schoolMgr.SchoolID;
+
         // Generate JWT token
-        var token = _jwtTokenGenerator.GenerateToken(user);
+        var token = _jwtTokenGenerator.GenerateToken(user, providerId, schoolId);
         var expiresIn = _jwtTokenGenerator.GetExpiryMinutes() * 60; // Convert to seconds
 
         return Result<LoginResponse>.Success(new LoginResponse(
@@ -82,7 +90,7 @@ public class LoginQueryHandler : ILoginQueryHandler
                 user.FullName,
                 user.Role.RoleName,
                 user.Phone,
-                user.ProviderID
+                providerId
             )
         ));
     }

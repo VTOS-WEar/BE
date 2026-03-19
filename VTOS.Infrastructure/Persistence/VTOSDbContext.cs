@@ -13,6 +13,9 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     // User & Organization Management
     public DbSet<Role> Roles { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<ParentProfile> ParentProfiles { get; set; }
+    public DbSet<SchoolManager> SchoolManagers { get; set; }
+    public DbSet<ProviderManager> ProviderManagers { get; set; }
     public DbSet<School> Schools { get; set; }
     public DbSet<ChildProfile> ChildProfiles { get; set; }
     public DbSet<EmailVerification> EmailVerifications { get; set; }

@@ -25,6 +25,7 @@ public class GetProfileQueryHandler : IGetProfileQueryHandler
         // Find user by id
         var user = await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.ParentProfile)
             .FirstOrDefaultAsync(u => u.Id == query.Id, cancellationToken);
 
         if (user == null)
@@ -47,8 +48,8 @@ public class GetProfileQueryHandler : IGetProfileQueryHandler
             user.Email,
             user.FullName,
             user.Phone ?? string.Empty,
-            user.DOB ?? DateTime.Now.AddYears(-18),
-            user.Gender.ToString(),
+            user.ParentProfile?.DOB ?? DateTime.Now.AddYears(-18),
+            (user.ParentProfile?.Gender ?? Domain.Enums.Gender.Other).ToString(),
             user.Role.RoleName,
             user.IsActive,
             user.IsDeleted,

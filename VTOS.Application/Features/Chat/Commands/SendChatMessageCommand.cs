@@ -36,7 +36,12 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
         if (user == null)
             return Result<SendChatMessageResponse>.Failure("User not found.", "USER_NOT_FOUND");
 
-        var hasAccess = await VerifyAccessAsync(user, command.ChannelType, command.ChannelId, ct);
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+
+        var hasAccess = await VerifyAccessAsync(schoolMgr, providerMgr, command.ChannelType, command.ChannelId, ct);
         if (!hasAccess)
             return Result<SendChatMessageResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
@@ -64,17 +69,23 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
             new SendChatMessageResponse(message.Id, message.SenderName, message.SentAt));
     }
 
-    private async Task<bool> VerifyAccessAsync(User user, ChatChannelType channelType, Guid channelId, CancellationToken ct)
+    private async Task<bool> VerifyAccessAsync(
+        VTOS.Domain.Entities.SchoolManager? schoolMgr,
+        VTOS.Domain.Entities.ProviderManager? providerMgr,
+        ChatChannelType channelType, Guid channelId, CancellationToken ct)
     {
+        var schoolId = schoolMgr?.SchoolID;
+        var providerId = providerMgr?.ProviderID;
+
         if (channelType == ChatChannelType.Complaint)
         {
             return await _db.Complaints.AsNoTracking().AnyAsync(c =>
-                c.Id == channelId && (c.SchoolID == user.SchoolID || c.ProviderID == user.ProviderID), ct);
+                c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
         else if (channelType == ChatChannelType.Contract)
         {
             return await _db.Contracts.AsNoTracking().AnyAsync(c =>
-                c.Id == channelId && (c.SchoolID == user.SchoolID || c.ProviderID == user.ProviderID), ct);
+                c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
 
         return false;

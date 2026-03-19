@@ -44,10 +44,11 @@ public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQuery
     public async Task<Result<GetProductionComplaintsResponse>> HandleAsync(GetProductionComplaintsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user?.SchoolID == null)
+        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr?.SchoolID == null)
             return Result<GetProductionComplaintsResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
-        var schoolId = user.SchoolID.Value;
+        var schoolId = schoolMgr.SchoolID;
 
         var q = _db.Complaints.AsNoTracking()
             .Include(c => c.Campaign)
