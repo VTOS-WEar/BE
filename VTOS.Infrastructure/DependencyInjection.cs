@@ -24,6 +24,8 @@ using VTOS.Application.Features.Children.Queries;
 using VTOS.Infrastructure.ExternalServices.PayOS;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.Queries;
+using VTOS.Infrastructure.Bodygram;
+
 namespace VTOS.Infrastructure;
 
 public static class DependencyInjection
@@ -63,6 +65,9 @@ public static class DependencyInjection
         // Register Frontend Settings
         services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
 
+        // Bodygram Service Settings
+        services.Configure<BodygramSettings>(configuration.GetSection(BodygramSettings.SectionName));
+
         // Register Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -76,6 +81,9 @@ public static class DependencyInjection
 
         //Register PayOS Service
         services.AddHttpClient<IPayOSService, PayOSService>();
+
+        //Register Bodygram Service
+        services.AddHttpClient<IBodygramService, BodygramService>();
 
         // Register Handlers
         services.AddScoped<IRegisterCommandHandler, RegisterCommandHandler>();
@@ -407,6 +415,8 @@ public static class DependencyInjection
             VTOS.Application.Features.Payments.Queries.GetProviderWalletQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletTransactionsQueryHandler,
             VTOS.Application.Features.Payments.Queries.GetProviderWalletTransactionsQueryHandler>();
+
+        
 
         return services;
     }
