@@ -92,7 +92,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
 
         // Register Mappers
-        services.AddAutoMapper(typeof(ChildProfileMappingProfile).Assembly);
+        services.AddAutoMapper(cfg => { }, typeof(ChildProfileMappingProfile).Assembly);
 
         //View User List & Feedbacks
         services.AddScoped<IGetAllUsersQueryHandler, GetAllUsersQueryHandler>();
@@ -121,6 +121,7 @@ public static class DependencyInjection
 
         // Public Module Handlers (UC 3.3.2, 3.3.3, 3.3.4, 3.3.5)
         services.AddScoped<GetSchoolsQueryHandler>();
+        services.AddScoped<Application.Features.Public.Queries.GetCategoriesQueryHandler>();
         services.AddScoped<Application.Features.Admin.Queries.GetCategoriesQueryHandler>();
         services.AddScoped<GetOutfitDetailQueryHandler>();
         services.AddScoped<GetSchoolDetailQueryHandler>();
@@ -402,6 +403,10 @@ public static class DependencyInjection
             VTOS.Application.Features.Payments.Queries.GetProviderRevenueQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderPaymentHistoryQueryHandler,
             VTOS.Application.Features.Payments.Queries.GetProviderPaymentHistoryQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetProviderWalletQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletTransactionsQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetProviderWalletTransactionsQueryHandler>();
 
         return services;
     }

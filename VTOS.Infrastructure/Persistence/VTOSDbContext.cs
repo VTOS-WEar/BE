@@ -37,7 +37,7 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<Refund> Refunds { get; set; }
-    public DbSet<SchoolWallet> SchoolWallets { get; set; }
+    public DbSet<Wallet> Wallets { get; set; }
     public DbSet<WalletWithdrawalRequest> WalletWithdrawalRequests { get; set; }
     public DbSet<ParentBankAccount> ParentBankAccounts { get; set; }
 

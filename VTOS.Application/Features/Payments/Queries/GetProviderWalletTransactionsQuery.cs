@@ -1,46 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
-using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Payments.Queries;
 
-// ── GetWalletTransactionsQuery ──────────────────────────────────────
-public record GetWalletTransactionsQuery(Guid UserId, int Page = 1, int PageSize = 20);
+// ── GetProviderWalletTransactionsQuery ──────────────────────────────
+public record GetProviderWalletTransactionsQuery(Guid UserId, int Page = 1, int PageSize = 20);
 
-public record WalletTransactionDto(
-    Guid PaymentId,
-    string TransactionType,
-    decimal Amount,
-    string Status,
-    string? Description,
-    DateTime Timestamp
-);
-
-public record WalletTransactionsResponse(List<WalletTransactionDto> Items, int Total);
-
-public interface IGetWalletTransactionsQueryHandler
+public interface IGetProviderWalletTransactionsQueryHandler
 {
-    Task<Result<WalletTransactionsResponse>> HandleAsync(GetWalletTransactionsQuery query, CancellationToken ct = default);
+    Task<Result<WalletTransactionsResponse>> HandleAsync(GetProviderWalletTransactionsQuery query, CancellationToken ct = default);
 }
 
-public class GetWalletTransactionsQueryHandler : IGetWalletTransactionsQueryHandler
+public class GetProviderWalletTransactionsQueryHandler : IGetProviderWalletTransactionsQueryHandler
 {
     private readonly IApplicationDbContext _db;
 
-    public GetWalletTransactionsQueryHandler(IApplicationDbContext db)
+    public GetProviderWalletTransactionsQueryHandler(IApplicationDbContext db)
     {
         _db = db;
     }
 
-    public async Task<Result<WalletTransactionsResponse>> HandleAsync(GetWalletTransactionsQuery query, CancellationToken ct = default)
+    public async Task<Result<WalletTransactionsResponse>> HandleAsync(GetProviderWalletTransactionsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null || user.ProviderID == null)
             return Result<WalletTransactionsResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == user.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider && w.IsActive, ct);
         if (wallet == null)
             return Result<WalletTransactionsResponse>.Success(new WalletTransactionsResponse(new(), 0));
 

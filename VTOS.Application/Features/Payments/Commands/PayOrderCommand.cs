@@ -6,7 +6,7 @@ using VTOS.Domain.Enums;
 namespace VTOS.Application.Features.Payments.Commands;
 
 // ── PayOrderCommand ─────────────────────────────────────────────────
-// Parent pays for their Order → money goes into SchoolWallet automatically
+// Parent pays for their Order → money goes into School Wallet automatically
 public record PayOrderCommand(Guid UserId, Guid OrderId);
 
 public record PayOrderResponse(Guid PaymentId, decimal Amount, string Status);
@@ -49,22 +49,23 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
         if (order.OrderStatus != OrderStatus.Pending)
             return Result<PayOrderResponse>.Failure("Order is not in Pending status.", "INVALID_STATUS");
 
-        // 2. Find SchoolWallet for this order's school (via child profile -> school)
+        // 2. Find Wallet for this order's school (via child profile -> school)
         var schoolId = child.SchoolID;
-        var wallet = await _db.SchoolWallets.FirstOrDefaultAsync(w => w.SchoolID == schoolId && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolId && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null)
         {
             // Auto-create wallet if not exists
-            wallet = new Domain.Entities.SchoolWallet
+            wallet = new Domain.Entities.Wallet
             {
                 Id = Guid.NewGuid(),
-                SchoolID = schoolId,
+                OwnerID = schoolId,
+                OwnerType = Domain.Enums.WalletOwnerType.School,
                 Balance = 0,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            _db.SchoolWallets.Add(wallet);
+            _db.Wallets.Add(wallet);
         }
 
         // 3. Create PaymentTransaction + fund wallet

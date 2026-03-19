@@ -1,14 +1,17 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
 /// <summary>
-/// Represents a school's wallet for managing funds and payments.
-/// Maps to the SchoolWallet table in the database.
+/// Represents a wallet for managing funds and payments.
+/// Can belong to either a School or a Provider (determined by OwnerType).
+/// Maps to the Wallets table in the database.
 /// </summary>
-public class SchoolWallet : BaseEntity
+public class Wallet : BaseEntity
 {
-    public Guid SchoolID { get; set; }
+    public Guid OwnerID { get; set; }
+    public WalletOwnerType OwnerType { get; set; }
     public decimal Balance { get; set; }
     public string? BankCode { get; set; }
     public string? BankName { get; set; }
@@ -19,7 +22,8 @@ public class SchoolWallet : BaseEntity
     public DateTime UpdatedAt { get; set; }
 
     // Navigation properties
-    public School School { get; set; } = null!;
+    public School? School { get; set; }
+    public Provider? Provider { get; set; }
     public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
     public ICollection<WalletWithdrawalRequest> WithdrawalRequests { get; set; } = new List<WalletWithdrawalRequest>();
 }

@@ -96,11 +96,11 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             var paymentLink = paymentLinkResult.PaymentLink!;
             var orderCode = paymentLinkResult.OrderCode;
 
-            // Step 6.5: Get SchoolWallet ID if campaign is specified
+            // Step 6.5: Get Wallet ID if campaign is specified
             Guid? schoolWalletId = null;
             if (command.CampaignId.HasValue && command.CampaignId != Guid.Empty)
             {
-                schoolWalletId = await GetSchoolWalletIdFromCampaignAsync(command.CampaignId.Value, cancellationToken);
+                schoolWalletId = await GetWalletIdFromCampaignAsync(command.CampaignId.Value, cancellationToken);
             }
 
             // Step 7: Create payment transaction
@@ -347,29 +347,31 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     }
 
     /// <summary>
-    /// Get SchoolWallet ID from Campaign
+    /// Get Wallet ID from Campaign
     /// </summary>
-    private async Task<Guid?> GetSchoolWalletIdFromCampaignAsync(Guid campaignId, CancellationToken cancellationToken)
+    private async Task<Guid?> GetWalletIdFromCampaignAsync(Guid campaignId, CancellationToken cancellationToken)
     {
         try
         {
-            var schoolWallet = await _context.Campaigns
-                .Where(c => c.Id == campaignId)
-                .Select(c => c.School.Wallet!.Id)
-                .FirstOrDefaultAsync(cancellationToken);
+            var walletId = await (
+                from c in _context.Campaigns
+                join w in _context.Wallets on c.SchoolID equals w.OwnerID
+                where c.Id == campaignId && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive
+                select w.Id
+            ).FirstOrDefaultAsync(cancellationToken);
 
-            if (schoolWallet != Guid.Empty)
+            if (walletId != Guid.Empty)
             {
-                _logger.LogDebug("Retrieved SchoolWallet {WalletId} from Campaign {CampaignId}", schoolWallet, campaignId);
-                return schoolWallet;
+                _logger.LogDebug("Retrieved Wallet {WalletId} from Campaign {CampaignId}", walletId, campaignId);
+                return walletId;
             }
 
-            _logger.LogWarning("No SchoolWallet found for Campaign {CampaignId}", campaignId);
+            _logger.LogWarning("No Wallet found for Campaign {CampaignId}", campaignId);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving SchoolWallet from Campaign {CampaignId}", campaignId);
+            _logger.LogError(ex, "Error retrieving Wallet from Campaign {CampaignId}", campaignId);
             return null;
         }
     }

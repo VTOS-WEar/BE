@@ -28,4 +28,5 @@ public class Provider : BaseEntity
     public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
     public ICollection<ProductionBatch> ProductionBatches { get; set; } = new List<ProductionBatch>();
     public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
+    public Wallet? Wallet { get; set; }
 }

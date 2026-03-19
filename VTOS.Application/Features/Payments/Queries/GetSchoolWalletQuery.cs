@@ -7,7 +7,7 @@ namespace VTOS.Application.Features.Payments.Queries;
 // ── GetSchoolWalletQuery ────────────────────────────────────────────
 public record GetSchoolWalletQuery(Guid UserId);
 
-public record SchoolWalletDto(
+public record WalletDto(
     Guid WalletId,
     decimal Balance,
     string? BankCode,
@@ -20,7 +20,7 @@ public record SchoolWalletDto(
 
 public interface IGetSchoolWalletQueryHandler
 {
-    Task<Result<SchoolWalletDto>> HandleAsync(GetSchoolWalletQuery query, CancellationToken ct = default);
+    Task<Result<WalletDto>> HandleAsync(GetSchoolWalletQuery query, CancellationToken ct = default);
 }
 
 public class GetSchoolWalletQueryHandler : IGetSchoolWalletQueryHandler
@@ -32,23 +32,33 @@ public class GetSchoolWalletQueryHandler : IGetSchoolWalletQueryHandler
         _db = db;
     }
 
-    public async Task<Result<SchoolWalletDto>> HandleAsync(GetSchoolWalletQuery query, CancellationToken ct = default)
+    public async Task<Result<WalletDto>> HandleAsync(GetSchoolWalletQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
         if (user == null || user.SchoolID == null)
-            return Result<SchoolWalletDto>.Failure("Access denied.", "ACCESS_DENIED");
+            return Result<WalletDto>.Failure("Access denied.", "ACCESS_DENIED");
 
-        var wallet = await _db.SchoolWallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.SchoolID == user.SchoolID && w.IsActive, ct);
+        var wallet = await _db.Wallets.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
 
         if (wallet == null)
         {
-            // Return empty wallet - it will be auto-created on first payment
-            return Result<SchoolWalletDto>.Success(new SchoolWalletDto(
-                Guid.Empty, 0, null, null, null, null, false, DateTime.UtcNow));
+            // Auto-create wallet for schools that were approved before wallet auto-creation was added
+            wallet = new Domain.Entities.Wallet
+            {
+                Id = Guid.NewGuid(),
+                OwnerID = user.SchoolID.Value,
+                OwnerType = Domain.Enums.WalletOwnerType.School,
+                Balance = 0,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.Wallets.Add(wallet);
+            await _db.SaveChangesAsync(ct);
         }
 
-        return Result<SchoolWalletDto>.Success(new SchoolWalletDto(
+        return Result<WalletDto>.Success(new WalletDto(
             wallet.Id, wallet.Balance,
             wallet.BankCode, wallet.BankName,
             wallet.BankAccountNumber, wallet.BankAccountName,

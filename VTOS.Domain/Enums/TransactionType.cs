@@ -2,7 +2,7 @@ namespace VTOS.Domain.Enums;
 
 public enum TransactionType
 {
-    OrderPayment = 1,    // Parent pays for Order → auto-fund SchoolWallet
+    OrderPayment = 1,    // Parent pays for Order → auto-fund School Wallet
     ProviderPayment = 2, // School pays Provider from wallet
     Refund = 3           // Refund to Parent → wallet balance decreases
 }

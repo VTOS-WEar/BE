@@ -26,22 +26,41 @@ public class UpdateWalletBankInfoCommandHandler : IUpdateWalletBankInfoCommandHa
     public async Task<Result<UpdateWalletBankInfoResponse>> HandleAsync(UpdateWalletBankInfoCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
-        if (user == null || user.SchoolID == null)
+        if (user == null)
             return Result<UpdateWalletBankInfoResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
-        var wallet = await _db.SchoolWallets.FirstOrDefaultAsync(w => w.SchoolID == user.SchoolID && w.IsActive, ct);
+        // Determine wallet owner: School or Provider
+        Guid? ownerId = null;
+        Domain.Enums.WalletOwnerType ownerType;
+        if (user.SchoolID != null)
+        {
+            ownerId = user.SchoolID;
+            ownerType = Domain.Enums.WalletOwnerType.School;
+        }
+        else if (user.ProviderID != null)
+        {
+            ownerId = user.ProviderID;
+            ownerType = Domain.Enums.WalletOwnerType.Provider;
+        }
+        else
+        {
+            return Result<UpdateWalletBankInfoResponse>.Failure("Access denied.", "ACCESS_DENIED");
+        }
+
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == ownerId && w.OwnerType == ownerType && w.IsActive, ct);
         if (wallet == null)
         {
-            wallet = new Domain.Entities.SchoolWallet
+            wallet = new Domain.Entities.Wallet
             {
                 Id = Guid.NewGuid(),
-                SchoolID = user.SchoolID.Value,
+                OwnerID = ownerId.Value,
+                OwnerType = ownerType,
                 Balance = 0,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            _db.SchoolWallets.Add(wallet);
+            _db.Wallets.Add(wallet);
         }
 
         wallet.BankCode = command.BankCode;

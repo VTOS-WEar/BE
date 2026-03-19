@@ -53,7 +53,7 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
             return Result<PayProviderResponse>.Failure("Provider already paid for this order.", "ALREADY_PAID");
 
         // 3. Find wallet and check balance
-        var wallet = await _db.SchoolWallets.FirstOrDefaultAsync(w => w.SchoolID == user.SchoolID && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == user.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
         if (wallet == null || wallet.Balance < order.TotalAmount)
             return Result<PayProviderResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
 

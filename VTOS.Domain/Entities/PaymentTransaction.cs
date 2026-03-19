@@ -19,7 +19,7 @@ public class PaymentTransaction : AuditableEntity
 
     // Navigation properties
     public Order? Order { get; set; }
-    public SchoolWallet? Wallet { get; set; }
+    public Wallet? Wallet { get; set; }
     public ICollection<Refund> Refunds { get; set; } = new List<Refund>();
 }
 
