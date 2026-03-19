@@ -30,14 +30,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Phone)
             .HasMaxLength(30);
-            
-        builder.Property(u => u.DOB)
-            .HasColumnType("date");
-
-        builder.Property(u => u.Gender)
-            .IsRequired()
-            .HasConversion<string>()
-            .HasMaxLength(20);
 
         builder.Property(u => u.Avatar)
             .HasMaxLength(500);
@@ -75,9 +67,20 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(cp => cp.ParentUserID)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(u => u.Provider)
-            .WithMany()
-            .HasForeignKey(u => u.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
+        // 1:0..1 profile relationships
+        builder.HasOne(u => u.ParentProfile)
+            .WithOne(p => p.User)
+            .HasForeignKey<ParentProfile>(p => p.UserID)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(u => u.SchoolManager)
+            .WithOne(s => s.User)
+            .HasForeignKey<SchoolManager>(s => s.UserID)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(u => u.ProviderManager)
+            .WithOne(p => p.User)
+            .HasForeignKey<ProviderManager>(p => p.UserID)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -43,6 +43,9 @@ public interface IApplicationDbContext
     DbSet<Wallet> Wallets { get; }
     DbSet<Invoice> Invoices { get; }
     DbSet<WalletWithdrawalRequest> WalletWithdrawalRequests { get; }
+    DbSet<ParentProfile> ParentProfiles { get; }
+    DbSet<SchoolManager> SchoolManagers { get; }
+    DbSet<ProviderManager> ProviderManagers { get; }
 
     DbSet<T> Set<T>() where T : class;
     
