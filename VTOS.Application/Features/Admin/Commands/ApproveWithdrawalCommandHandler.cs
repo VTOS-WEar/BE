@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Common.Models;
+using VTOS.Application.Common.Models.PayOSDTOs;
 using VTOS.Application.Features.Schools.Commands;
 using VTOS.Domain.Entities;
 

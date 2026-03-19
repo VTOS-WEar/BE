@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
-using VTOS.Application.Common.Models;
+using VTOS.Application.Common.Models.PayOSDTOs;
 
 namespace VTOS.Infrastructure.ExternalServices.PayOS;
 

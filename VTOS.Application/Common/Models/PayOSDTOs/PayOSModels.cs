@@ -1,4 +1,4 @@
-namespace VTOS.Application.Common.Models;
+namespace VTOS.Application.Common.Models.PayOSDTOs;
 
 public class CreatePaymentLinkRequest
 {

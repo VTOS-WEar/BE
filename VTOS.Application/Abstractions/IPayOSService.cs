@@ -1,4 +1,4 @@
-using VTOS.Application.Common.Models;
+using VTOS.Application.Common.Models.PayOSDTOs;
 
 namespace VTOS.Application.Abstractions;
 

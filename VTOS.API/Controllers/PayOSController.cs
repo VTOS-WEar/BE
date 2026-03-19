@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
-using VTOS.Application.Common.Models;
+using VTOS.Application.Common.Models.PayOSDTOs;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.DTOs;
 
