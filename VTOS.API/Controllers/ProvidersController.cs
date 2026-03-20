@@ -41,6 +41,8 @@ public class ProvidersController : ControllerBase
     private readonly IGetProviderComplaintsQueryHandler _getProviderComplaintsHandler;
     private readonly IGetProviderComplaintDetailQueryHandler _getProviderComplaintDetailHandler;
     private readonly IRespondComplaintCommandHandler _respondComplaintHandler;
+    // Phase 5 — Distribution overview
+    private readonly Application.Features.Distribution.IGetProviderDistributionOverviewHandler _distributionOverviewHandler;
 
     public ProvidersController(
         ICurrentUserService currentUser,
@@ -62,7 +64,8 @@ public class ProvidersController : ControllerBase
         // Phase 5
         IGetProviderComplaintsQueryHandler getProviderComplaintsHandler,
         IGetProviderComplaintDetailQueryHandler getProviderComplaintDetailHandler,
-        IRespondComplaintCommandHandler respondComplaintHandler)
+        IRespondComplaintCommandHandler respondComplaintHandler,
+        Application.Features.Distribution.IGetProviderDistributionOverviewHandler distributionOverviewHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -81,6 +84,7 @@ public class ProvidersController : ControllerBase
         _getProviderComplaintsHandler = getProviderComplaintsHandler;
         _getProviderComplaintDetailHandler = getProviderComplaintDetailHandler;
         _respondComplaintHandler = respondComplaintHandler;
+        _distributionOverviewHandler = distributionOverviewHandler;
     }
 
     // ──────── Profile ────────
@@ -311,6 +315,18 @@ public class ProvidersController : ControllerBase
             new RespondComplaintCommand(_currentUser.UserId, id, request.Response, request.MarkResolved), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { message = result.Value });
+    }
+
+    // ──────── Distribution Overview (Phase 5) ────────
+
+    /// <summary>View distribution overview for a production order (read-only).</summary>
+    [HttpGet("me/production-orders/{batchId:guid}/distribution-overview")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDistributionOverview(Guid batchId, CancellationToken ct)
+    {
+        var result = await _distributionOverviewHandler.HandleAsync(_currentUser.UserId, batchId, ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
     }
 }
 
