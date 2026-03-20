@@ -24,11 +24,13 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly ILogger<PaymentWebhookHandler> _logger;
+    private readonly IEmailService _emailService;
 
-    public PaymentWebhookHandler(IApplicationDbContext context, ILogger<PaymentWebhookHandler> logger)
+    public PaymentWebhookHandler(IApplicationDbContext context, ILogger<PaymentWebhookHandler> logger, IEmailService emailService)
     {
         _context = context;
         _logger = logger;
+        _emailService = emailService;
     }
 
     public async Task<Result<PaymentWebhookProcessResponse>> HandleWebhookAsync(
@@ -49,6 +51,11 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
                 .Include(pt => pt.Order)
                     .ThenInclude(o => o.OrderItems)
                         .ThenInclude(oi => oi.ProductVariant)
+                .Include(pt => pt.Order)
+                    .ThenInclude(o => o.ChildProfile)
+                        .ThenInclude(cp => cp.ParentUser)
+                .Include(pt => pt.Order)
+                    .ThenInclude(o => o.Campaign)
                 .Include(pt => pt.Wallet)
                 .FirstOrDefaultAsync(pt => pt.PaymentLinkId == webhook.Data.PaymentLinkId, cancellationToken);
 
@@ -145,6 +152,24 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
 
             // Step 5: Save all changes
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Step 6: Send order confirmation email (fire-and-forget, don't block webhook response)
+            try
+            {
+                var parent = order.ChildProfile?.ParentUser;
+                if (parent != null && !string.IsNullOrEmpty(parent.Email))
+                {
+                    var orderCode = order.Id.ToString()[..8].ToUpper();
+                    var campaignName = order.Campaign?.CampaignName ?? "N/A";
+                    await _emailService.SendOrderConfirmationEmailAsync(
+                        parent.Email, parent.FullName, orderCode,
+                        order.TotalAmount, campaignName, cancellationToken);
+                }
+            }
+            catch (Exception emailEx)
+            {
+                _logger.LogWarning(emailEx, "Failed to send order confirmation email for Order {OrderId}", order.Id);
+            }
 
             _logger.LogInformation("Payment webhook processed successfully: TransactionId={TransactionId}, OrderId={OrderId}", 
                 paymentTransaction.Id, order.Id);
