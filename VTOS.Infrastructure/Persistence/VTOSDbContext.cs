@@ -59,9 +59,16 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     // Delivery & Distribution (Phase 4)
     public DbSet<DeliveryRecord> DeliveryRecords { get; set; }
     public DbSet<DistributionRecord> DistributionRecords { get; set; }
+    public DbSet<DistributionSchedule> DistributionSchedules { get; set; }
 
     // Chat (Phase 5)
     public DbSet<ChatMessage> ChatMessages { get; set; }
+
+    // Account Requests (System Improvements - Phase 01)
+    public DbSet<AccountRequest> AccountRequests { get; set; }
+
+    // Notification tracking (System Improvements - Phase 02)
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
