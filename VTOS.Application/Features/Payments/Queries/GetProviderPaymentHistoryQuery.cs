@@ -35,30 +35,24 @@ public class GetProviderPaymentHistoryQueryHandler : IGetProviderPaymentHistoryQ
 
     public async Task<Result<ProviderPaymentHistoryResponse>> HandleAsync(GetProviderPaymentHistoryQuery query, CancellationToken ct = default)
     {
-        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null)
+        // 1. Find provider via ProviderManager
+        var providerMgr = await _db.ProviderManagers.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserID == query.UserId, ct);
+        if (providerMgr == null)
             return Result<ProviderPaymentHistoryResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
-        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
-        var providerId = providerMgr?.ProviderID;
+        // 2. Find provider's wallet
+        var wallet = await _db.Wallets.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.OwnerID == providerMgr.ProviderID
+                                   && w.OwnerType == WalletOwnerType.Provider, ct);
 
-        // Get campaigns for this provider
-        var campaignIds = await _db.CampaignOutfits.AsNoTracking()
-            .Where(co => co.ProviderID == providerId)
-            .Select(co => co.CampaignID)
-            .Distinct()
-            .ToListAsync(ct);
+        if (wallet == null)
+            return Result<ProviderPaymentHistoryResponse>.Success(new ProviderPaymentHistoryResponse(new List<ProviderPaymentDto>(), 0));
 
-        // Get orders from those campaigns
-        var orderIds = await _db.Orders.AsNoTracking()
-            .Where(o => o.CampaignID != null && campaignIds.Contains(o.CampaignID.Value))
-            .Select(o => o.Id)
-            .ToListAsync(ct);
-
-        // Get ProviderPayment transactions for those orders
+        // 3. Query ProviderPayment transactions by WalletID (single source of truth)
         var q = _db.PaymentTransactions.AsNoTracking()
-            .Where(pt => pt.OrderID != null && orderIds.Contains(pt.OrderID.Value)
-                && pt.TransactionType == TransactionType.ProviderPayment)
+            .Where(pt => pt.WalletID == wallet.Id
+                      && pt.TransactionType == TransactionType.ProviderPayment)
             .OrderByDescending(pt => pt.TransactionTimestamp);
 
         var total = await q.CountAsync(ct);

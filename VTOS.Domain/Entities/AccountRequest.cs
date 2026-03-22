@@ -12,6 +12,7 @@ public class AccountRequest : BaseEntity
     public string OrganizationName { get; set; } = string.Empty;
     public string ContactEmail { get; set; } = string.Empty;
     public string ContactPhone { get; set; } = string.Empty;
+    public string? ContactPersonName { get; set; }
     public AccountRequestType Type { get; set; }
     public string? Description { get; set; }
     public string? Address { get; set; }

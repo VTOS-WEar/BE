@@ -19,6 +19,7 @@ public class GetProviderProfileQueryHandler : IGetProviderProfileQueryHandler
     {
         var user = await _context.Users
             .Include(u => u.ProviderManager)
+                .ThenInclude(pm => pm!.Provider)
             .FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
 
         if (user == null)

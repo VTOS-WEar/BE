@@ -15,6 +15,7 @@ internal static class AccountRequestMapper
         r.OrganizationName,
         r.ContactEmail,
         r.ContactPhone,
+        r.ContactPersonName,
         r.Type.ToString(),
         r.Description,
         r.Address,
@@ -32,6 +33,7 @@ internal static class AccountRequestMapper
         r.OrganizationName,
         r.ContactEmail,
         r.ContactPhone,
+        r.ContactPersonName,
         r.Type.ToString(),
         r.Status.ToString(),
         r.CreatedAt,
@@ -79,6 +81,7 @@ public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHa
             Type = (AccountRequestType)req.Type,
             Description = req.Description?.Trim(),
             Address = req.Address?.Trim(),
+            ContactPersonName = req.ContactPersonName?.Trim(),
             Status = AccountRequestStatus.Pending,
             CreatedAt = DateTime.UtcNow,
         };
@@ -154,7 +157,7 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
             Id = Guid.NewGuid(),
             Email = email,
             PasswordHash = _passwordHasher.HashPassword(tempPassword),
-            FullName = req.FullName.Trim(),
+            FullName = req.FullName?.Trim() ?? accountRequest.ContactPersonName ?? "User",
             Phone = req.Phone?.Trim(),
             RoleID = role.Id,
             IsActive = true,  // Active immediately (no OTP needed — admin-created)

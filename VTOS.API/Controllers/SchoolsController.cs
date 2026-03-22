@@ -816,6 +816,7 @@ public class SchoolsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
         // First get school ID from current user
@@ -823,7 +824,7 @@ public class SchoolsController : ControllerBase
         if (!profileResult.IsSuccess)
             return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
 
-        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status);
+        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status, search);
         var result = await _getOrdersHandler.HandleAsync(query, ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });

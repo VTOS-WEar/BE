@@ -5,6 +5,7 @@ public record AccountRequestListItemDto(
     string OrganizationName,
     string ContactEmail,
     string ContactPhone,
+    string? ContactPersonName,
     string Type,
     string Status,
     DateTime CreatedAt,
@@ -16,6 +17,7 @@ public record AccountRequestDetailDto(
     string OrganizationName,
     string ContactEmail,
     string ContactPhone,
+    string? ContactPersonName,
     string Type,
     string? Description,
     string? Address,
@@ -32,6 +34,7 @@ public record SubmitAccountRequestDto(
     string OrganizationName,
     string ContactEmail,
     string ContactPhone,
+    string? ContactPersonName,
     int Type,         // 1=School, 2=Provider
     string? Description,
     string? Address
