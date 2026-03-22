@@ -19,6 +19,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set image name to lowercase
+        run: echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -32,8 +35,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ github.sha }}
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -46,7 +49,7 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull latest image
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
 
             # Stop and remove old container
             docker stop vtos-backend 2>/dev/null || true
@@ -75,7 +78,7 @@ jobs:
               -e PayOSSettings__PayoutApiKey="${{ secrets.PAYOS_PAYOUT_API_KEY }}" \
               -e PayOSSettings__PayoutChecksumKey="${{ secrets.PAYOS_PAYOUT_CHECKSUM_KEY }}" \
               -e PaymentSettings__ReturnBaseUrl="${{ secrets.FRONTEND_URL }}" \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
 
             # Clean up old images
             docker image prune -f
