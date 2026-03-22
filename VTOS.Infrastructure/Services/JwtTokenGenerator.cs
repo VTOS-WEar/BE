@@ -51,4 +51,58 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     }
 
     public int GetExpiryMinutes() => _jwtSettings.ExpiryMinutes;
+
+    public string GenerateTwoFactorToken(Guid userId)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new Claim("purpose", "2fa"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(5), // 5 min TTL
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public Guid? ValidateTwoFactorToken(string token)
+    {
+        try
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+            var handler = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidIssuer = _jwtSettings.Issuer,
+                ValidAudience = _jwtSettings.Audience,
+                IssuerSigningKey = securityKey,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+
+            var purposeClaim = principal.FindFirst("purpose")?.Value;
+            if (purposeClaim != "2fa") return null;
+
+            var subClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                        ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(subClaim, out var userId)) return userId;
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

@@ -88,6 +88,17 @@ public static class DependencyInjection
         services.AddScoped<RequestChangePasswordOTPCommandHandler>();
         services.AddScoped<ChangePasswordCommandHandler>();
 
+        // Two-Factor Authentication
+        services.AddScoped<ITotpService, VTOS.Infrastructure.ExternalServices.TwoFactor.TotpService>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.ISetup2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Setup2FACommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IConfirm2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Confirm2FACommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IDisable2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Disable2FACommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IVerify2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Verify2FACommandHandler>();
+
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
 

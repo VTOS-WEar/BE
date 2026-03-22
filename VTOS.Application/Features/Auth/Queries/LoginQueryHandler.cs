@@ -7,13 +7,19 @@ namespace VTOS.Application.Features.Auth.Queries;
 
 /// <summary>
 /// Handler for user login query.
-/// Checks if user email is verified before allowing login.
+/// Checks email verification, 2FA status, and role-based 2FA requirements.
 /// </summary>
 public class LoginQueryHandler : ILoginQueryHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+
+    // Roles that MUST have 2FA enabled
+    private static readonly HashSet<string> MandatoryTwoFactorRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Admin", "School", "Provider"
+    };
 
     public LoginQueryHandler(
         IApplicationDbContext context,
@@ -65,33 +71,66 @@ public class LoginQueryHandler : ILoginQueryHandler
                 "INVALID_CREDENTIALS");
         }
 
-        // Update last login
+        // ── 2FA Check ────────────────────────────────────────────────
+        var roleName = user.Role.RoleName;
+        var isMandatoryRole = MandatoryTwoFactorRoles.Contains(roleName);
+
+        // Case 1: 2FA is enabled → require TOTP verification
+        if (user.IsTwoFactorEnabled)
+        {
+            var tempToken = _jwtTokenGenerator.GenerateTwoFactorToken(user.Id);
+            var userDto = new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone);
+            return Result<LoginResponse>.Success(new LoginResponse(
+                "", 0, userDto,
+                RequiresTwoFactor: true,
+                TwoFactorToken: tempToken
+            ));
+        }
+
+        // Case 2: Role requires 2FA but not yet set up → force setup
+        if (isMandatoryRole && !user.IsTwoFactorEnabled)
+        {
+            // Update last login so they can access the setup endpoint
+            user.LastLogin = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Still generate a real token (they need to be authenticated to set up 2FA)
+            Guid? providerId = null;
+            Guid? schoolId = null;
+            var provMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
+            if (provMgr != null) providerId = provMgr.ProviderID;
+            var schMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
+            if (schMgr != null) schoolId = schMgr.SchoolID;
+
+            var token = _jwtTokenGenerator.GenerateToken(user, providerId, schoolId);
+            var expiresIn = _jwtTokenGenerator.GetExpiryMinutes() * 60;
+            var userDto = new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, providerId);
+            return Result<LoginResponse>.Success(new LoginResponse(
+                token, expiresIn, userDto,
+                RequiresTwoFactorSetup: true
+            ));
+        }
+
+        // Case 3: No 2FA required (Parent without 2FA) → normal login
         user.LastLogin = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
 
         // Look up role-specific manager IDs
-        Guid? providerId = null;
-        Guid? schoolId = null;
+        Guid? pid = null;
+        Guid? sid = null;
         var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
-        if (providerMgr != null) providerId = providerMgr.ProviderID;
+        if (providerMgr != null) pid = providerMgr.ProviderID;
         var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
-        if (schoolMgr != null) schoolId = schoolMgr.SchoolID;
+        if (schoolMgr != null) sid = schoolMgr.SchoolID;
 
         // Generate JWT token
-        var token = _jwtTokenGenerator.GenerateToken(user, providerId, schoolId);
-        var expiresIn = _jwtTokenGenerator.GetExpiryMinutes() * 60; // Convert to seconds
+        var jwtToken = _jwtTokenGenerator.GenerateToken(user, pid, sid);
+        var jwtExpiry = _jwtTokenGenerator.GetExpiryMinutes() * 60;
 
         return Result<LoginResponse>.Success(new LoginResponse(
-            token,
-            expiresIn,
-            new UserDto(
-                user.Id,
-                user.Email,
-                user.FullName,
-                user.Role.RoleName,
-                user.Phone,
-                providerId
-            )
+            jwtToken,
+            jwtExpiry,
+            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, pid)
         ));
     }
 }
