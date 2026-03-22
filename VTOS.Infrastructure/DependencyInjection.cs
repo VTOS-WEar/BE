@@ -33,11 +33,23 @@ public static class DependencyInjection
         // Add In-Memory Cache (reduces DB load for public endpoints)
         services.AddMemoryCache();
 
-        // Add DbContext
+        // Add DbContext — supports SQL Server (dev) and PostgreSQL (prod)
+        var dbProvider = configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
         services.AddDbContext<VTOSDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName)));
+        {
+            if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+            {
+                options.UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName));
+            }
+            else
+            {
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName));
+            }
+        });
 
         // Register DbContext as IApplicationDbContext
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<VTOSDbContext>());

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -6,7 +7,6 @@ using VTOS.Infrastructure;
 using VTOS.Infrastructure.Hubs;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
-//For using Data Seeders for testing - Delete if neccessary
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -112,13 +112,19 @@ using (var scope = app.Services.CreateScope())
 
 
 // Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Support reverse proxy (Nginx) forwarded headers
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 
 // Enable CORS - must be before Authentication/Authorization
 app.UseCors("AllowFrontend");
