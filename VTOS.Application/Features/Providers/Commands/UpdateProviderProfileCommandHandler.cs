@@ -19,6 +19,7 @@ public class UpdateProviderProfileCommandHandler : IUpdateProviderProfileCommand
     {
         var user = await _context.Users
             .Include(u => u.ProviderManager)
+                .ThenInclude(pm => pm!.Provider)
             .FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
 
         if (user == null)

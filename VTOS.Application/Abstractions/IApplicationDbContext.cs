@@ -39,6 +39,7 @@ public interface IApplicationDbContext
     DbSet<ContractItem> ContractItems { get; }
     DbSet<DeliveryRecord> DeliveryRecords { get; }
     DbSet<DistributionRecord> DistributionRecords { get; }
+    DbSet<DistributionSchedule> DistributionSchedules { get; }
     DbSet<ChatMessage> ChatMessages { get; }
     DbSet<Wallet> Wallets { get; }
     DbSet<Invoice> Invoices { get; }
@@ -46,6 +47,8 @@ public interface IApplicationDbContext
     DbSet<ParentProfile> ParentProfiles { get; }
     DbSet<SchoolManager> SchoolManagers { get; }
     DbSet<ProviderManager> ProviderManagers { get; }
+    DbSet<AccountRequest> AccountRequests { get; }
+    DbSet<NotificationLog> NotificationLogs { get; }
 
     DbSet<T> Set<T>() where T : class;
     

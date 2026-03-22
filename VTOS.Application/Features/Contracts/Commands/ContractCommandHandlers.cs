@@ -113,8 +113,13 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
 public class ApproveContractCommandHandler : IApproveContractCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly IEmailService _emailService;
 
-    public ApproveContractCommandHandler(IApplicationDbContext context) => _context = context;
+    public ApproveContractCommandHandler(IApplicationDbContext context, IEmailService emailService)
+    {
+        _context = context;
+        _emailService = emailService;
+    }
 
     public async Task<Result<ContractDto>> HandleAsync(
         ApproveContractCommand command, CancellationToken ct = default)
@@ -144,6 +149,25 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
         contract.ApprovedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
 
+        // Send email notification to the School about contract approval
+        try
+        {
+            var schoolMgr = await _context.SchoolManagers.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.SchoolID == contract.SchoolID, ct);
+            if (schoolMgr != null)
+            {
+                var schoolUser = await _context.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == schoolMgr.UserID, ct);
+                if (schoolUser != null)
+                {
+                    await _emailService.SendContractReplyNotificationAsync(
+                        schoolUser.Email, schoolUser.FullName,
+                        contract.ContractName, "Approved", user.FullName, ct);
+                }
+            }
+        }
+        catch { /* Email failure should not block the response */ }
+
         return Result<ContractDto>.Success(ContractMapper.MapToDto(contract));
     }
 }
@@ -152,8 +176,13 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
 public class RejectContractCommandHandler : IRejectContractCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly IEmailService _emailService;
 
-    public RejectContractCommandHandler(IApplicationDbContext context) => _context = context;
+    public RejectContractCommandHandler(IApplicationDbContext context, IEmailService emailService)
+    {
+        _context = context;
+        _emailService = emailService;
+    }
 
     public async Task<Result<ContractDto>> HandleAsync(
         RejectContractCommand command, CancellationToken ct = default)
@@ -183,6 +212,25 @@ public class RejectContractCommandHandler : IRejectContractCommandHandler
         contract.RejectedAt = DateTime.UtcNow;
         contract.RejectionReason = command.Reason;
         await _context.SaveChangesAsync(ct);
+
+        // Send email notification to the School about contract rejection
+        try
+        {
+            var schoolMgr = await _context.SchoolManagers.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.SchoolID == contract.SchoolID, ct);
+            if (schoolMgr != null)
+            {
+                var schoolUser = await _context.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == schoolMgr.UserID, ct);
+                if (schoolUser != null)
+                {
+                    await _emailService.SendContractReplyNotificationAsync(
+                        schoolUser.Email, schoolUser.FullName,
+                        contract.ContractName, "Rejected", user.FullName, ct);
+                }
+            }
+        }
+        catch { /* Email failure should not block the response */ }
 
         return Result<ContractDto>.Success(ContractMapper.MapToDto(contract));
     }

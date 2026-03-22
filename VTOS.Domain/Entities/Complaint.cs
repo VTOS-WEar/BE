@@ -20,6 +20,7 @@ public class Complaint : AuditableEntity
     public string? Response { get; set; }
     public DateTime? RespondedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
+    public string? ProofImageUrls { get; set; }  // JSON array of image URLs
 
     // Navigation properties
     public Campaign Campaign { get; set; } = null!;

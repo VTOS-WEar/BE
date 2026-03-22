@@ -93,6 +93,10 @@ public class SchoolsController : ControllerBase
     // Phase 5 — Complaints
     private readonly IGetComplaintDetailQueryHandler _getComplaintDetailHandler;
     private readonly ICloseComplaintCommandHandler _closeComplaintHandler;
+    // Phase 5 — Distribution Scheduling
+    private readonly Application.Features.Distribution.ICreateDistributionScheduleHandler _createScheduleHandler;
+    private readonly Application.Features.Distribution.IGetDistributionSchedulesHandler _getSchedulesHandler;
+    private readonly Application.Features.Distribution.IUpdateDistributionScheduleHandler _updateScheduleHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -158,7 +162,10 @@ public class SchoolsController : ControllerBase
         IGetSchoolDeliveryStatusQueryHandler getSchoolDeliveryStatusHandler,
         // Phase 5
         IGetComplaintDetailQueryHandler getComplaintDetailHandler,
-        ICloseComplaintCommandHandler closeComplaintHandler)
+        ICloseComplaintCommandHandler closeComplaintHandler,
+        Application.Features.Distribution.ICreateDistributionScheduleHandler createScheduleHandler,
+        Application.Features.Distribution.IGetDistributionSchedulesHandler getSchedulesHandler,
+        Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -221,6 +228,9 @@ public class SchoolsController : ControllerBase
         _getSchoolDeliveryStatusHandler = getSchoolDeliveryStatusHandler;
         _getComplaintDetailHandler = getComplaintDetailHandler;
         _closeComplaintHandler = closeComplaintHandler;
+        _createScheduleHandler = createScheduleHandler;
+        _getSchedulesHandler = getSchedulesHandler;
+        _updateScheduleHandler = updateScheduleHandler;
     }
 
 
@@ -806,6 +816,7 @@ public class SchoolsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
         // First get school ID from current user
@@ -813,7 +824,7 @@ public class SchoolsController : ControllerBase
         if (!profileResult.IsSuccess)
             return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
 
-        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status);
+        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status, search);
         var result = await _getOrdersHandler.HandleAsync(query, ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -1296,7 +1307,7 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> ReportDefect(Guid batchId, [FromBody] ReportDefectRequest request, CancellationToken ct)
     {
         var result = await _reportDefectHandler.HandleAsync(
-            new ReportDefectCommand(_currentUser.UserId, batchId, request.Title, request.Description), ct);
+            new ReportDefectCommand(_currentUser.UserId, batchId, request.Title, request.Description, request.ProofImageUrls), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { complaintId = result.Value });
@@ -1327,6 +1338,42 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
+
+    // ──────── Distribution Scheduling (Phase 5) ────────
+
+    /// <summary>Create a distribution schedule for a batch.</summary>
+    [HttpPost("me/production-orders/{batchId:guid}/schedules")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateDistributionSchedule(Guid batchId, [FromBody] CreateScheduleRequest req, CancellationToken ct)
+    {
+        var result = await _createScheduleHandler.HandleAsync(
+            new Application.Features.Distribution.CreateDistributionScheduleCommand(
+                _currentUser.UserId, batchId, req.ScheduledDate, req.Method, req.TimeSlot, req.Note), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return StatusCode(StatusCodes.Status201Created, new { scheduleId = result.Value });
+    }
+
+    /// <summary>Get distribution schedules for a batch.</summary>
+    [HttpGet("me/production-orders/{batchId:guid}/schedules")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDistributionSchedules(Guid batchId, CancellationToken ct)
+    {
+        var result = await _getSchedulesHandler.HandleAsync(_currentUser.UserId, batchId, ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Update a distribution schedule.</summary>
+    [HttpPut("me/production-orders/schedules/{scheduleId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateDistributionSchedule(Guid scheduleId, [FromBody] UpdateScheduleRequest req, CancellationToken ct)
+    {
+        var result = await _updateScheduleHandler.HandleAsync(_currentUser.UserId,
+            new Application.Features.Distribution.UpdateDistributionScheduleCommand(
+                scheduleId, req.ScheduledDate, req.Method, req.TimeSlot, req.Note, req.Status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
 }
 
 /// <summary>Request body for creating a withdrawal request.</summary>
@@ -1346,7 +1393,13 @@ public record RejectProductionOrderRequest(string Reason);
 public record ConfirmDeliveryRequest(int AcceptedQuantity, int? DefectiveQuantity, string? DefectNote);
 
 /// <summary>Request body for reporting defective uniforms.</summary>
-public record ReportDefectRequest(string Title, string Description);
+public record ReportDefectRequest(string Title, string Description, List<string>? ProofImageUrls);
+
+/// <summary>Request body for creating a distribution schedule.</summary>
+public record CreateScheduleRequest(DateTime ScheduledDate, string Method, string TimeSlot, string? Note);
+
+/// <summary>Request body for updating a distribution schedule.</summary>
+public record UpdateScheduleRequest(DateTime? ScheduledDate, string? Method, string? TimeSlot, string? Note, string? Status);
 
 /// <summary>Request body for distributing orders.</summary>
 public record DistributeOrdersRequest(

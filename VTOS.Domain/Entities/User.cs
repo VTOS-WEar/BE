@@ -26,6 +26,11 @@ public class User : BaseEntity
     public string? PasswordResetToken { get; set; }
     public DateTime? PasswordResetTokenExpiry { get; set; }
 
+    // Two-Factor Authentication (TOTP)
+    public bool IsTwoFactorEnabled { get; set; }
+    public string? TwoFactorSecret { get; set; }
+    public string? RecoveryCodes { get; set; }
+
     // Navigation properties
     public Role Role { get; set; } = null!;
 

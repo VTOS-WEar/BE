@@ -41,19 +41,26 @@ public class RegisterCommandHandler : IRegisterCommandHandler
                 "EMAIL_EXISTS");
         }
 
-        // Determine role (default: "Parent", allowed: "Parent", "School", "Provider")
-        var allowedRoles = new[] { "Parent", "School", "Provider" };
+        // Only allow Parent self-registration
+        // School and Provider must contact us via the partnership form (AccountRequest)
         var roleName = string.IsNullOrWhiteSpace(command.RoleName) ? "Parent" : command.RoleName.Trim();
 
-        if (!allowedRoles.Contains(roleName, StringComparer.OrdinalIgnoreCase))
+        if (roleName.Equals("School", StringComparison.OrdinalIgnoreCase) ||
+            roleName.Equals("Provider", StringComparison.OrdinalIgnoreCase))
         {
             return Result<RegisterResponse>.Failure(
-                $"Invalid role '{roleName}'. Allowed roles: Parent, School, Provider.",
+                "Self-registration is not available for School and Provider accounts. Please use the Contact Partnership form to request an account.",
+                "SELF_REGISTRATION_DISABLED");
+        }
+
+        if (!roleName.Equals("Parent", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<RegisterResponse>.Failure(
+                $"Invalid role '{roleName}'. Only Parent registration is allowed.",
                 "INVALID_ROLE");
         }
 
-        // Normalize role name
-        roleName = allowedRoles.First(r => r.Equals(roleName, StringComparison.OrdinalIgnoreCase));
+        roleName = "Parent";
 
         var role = await _context.Roles
             .FirstOrDefaultAsync(r => r.RoleName == roleName, cancellationToken);

@@ -38,6 +38,16 @@ public class GetSchoolOrdersQueryHandler : IGetSchoolOrdersQueryHandler
             ordersQuery = ordersQuery.Where(o => o.OrderStatus == status);
         }
 
+        // Apply search filter (parent name or child name)
+        if (!string.IsNullOrEmpty(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            ordersQuery = ordersQuery.Where(o =>
+                o.ChildProfile.FullName.ToLower().Contains(search) ||
+                o.ChildProfile.ParentUser.FullName.ToLower().Contains(search)
+            );
+        }
+
         var totalCount = await ordersQuery.CountAsync(ct);
 
         var orders = await ordersQuery

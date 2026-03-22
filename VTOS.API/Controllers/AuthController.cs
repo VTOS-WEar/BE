@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using VTOS.Application.Features.Auth.Commands;
+using VTOS.Application.Features.Auth.Commands.TwoFactor;
 using VTOS.Application.Features.Auth.DTOs;
 using VTOS.Application.Features.Auth.Queries;
 
@@ -26,6 +27,11 @@ public class AuthController : ControllerBase
     private readonly IValidator<ForgotPasswordCommand> _forgotPasswordValidator;
     private readonly IValidator<ResetPasswordCommand> _resetPasswordValidator;
     private readonly IValidator<ChangePasswordCommand> _changePasswordValidator;
+    // 2FA
+    private readonly ISetup2FACommandHandler _setup2FAHandler;
+    private readonly IConfirm2FACommandHandler _confirm2FAHandler;
+    private readonly IDisable2FACommandHandler _disable2FAHandler;
+    private readonly IVerify2FACommandHandler _verify2FAHandler;
 
     public AuthController(
         IRegisterCommandHandler registerHandler,
@@ -41,7 +47,11 @@ public class AuthController : ControllerBase
         IValidator<LoginQuery> loginValidator,
         IValidator<ForgotPasswordCommand> forgotPasswordValidator,
         IValidator<ResetPasswordCommand> resetPasswordValidator,
-        IValidator<ChangePasswordCommand> changePasswordValidator)
+        IValidator<ChangePasswordCommand> changePasswordValidator,
+        ISetup2FACommandHandler setup2FAHandler,
+        IConfirm2FACommandHandler confirm2FAHandler,
+        IDisable2FACommandHandler disable2FAHandler,
+        IVerify2FACommandHandler verify2FAHandler)
     {
         _registerHandler = registerHandler;
         _loginHandler = loginHandler;
@@ -57,6 +67,10 @@ public class AuthController : ControllerBase
         _forgotPasswordValidator = forgotPasswordValidator;
         _resetPasswordValidator = resetPasswordValidator;
         _changePasswordValidator = changePasswordValidator;
+        _setup2FAHandler = setup2FAHandler;
+        _confirm2FAHandler = confirm2FAHandler;
+        _disable2FAHandler = disable2FAHandler;
+        _verify2FAHandler = verify2FAHandler;
     }
 
     /// <summary>
@@ -133,7 +147,8 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// Login with email and password.
-    /// Requires email verification.
+    /// If 2FA is enabled, returns a temp token instead of JWT.
+    /// If role requires 2FA but not set up, returns requiresTwoFactorSetup flag.
     /// </summary>
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
@@ -162,6 +177,90 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result.Value);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  TWO-FACTOR AUTHENTICATION
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Verify 2FA code during login (step 2).
+    /// Accepts TOTP code from authenticator app or a recovery code.
+    /// </summary>
+    [HttpPost("verify-2fa")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Verify2FA([FromBody] Verify2FARequest request, CancellationToken ct)
+    {
+        var command = new Verify2FACommand(request.TwoFactorToken, request.Code);
+        var result = await _verify2FAHandler.HandleAsync(command, ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Initiate 2FA setup. Returns QR code URI and manual key.
+    /// Requires authentication.
+    /// </summary>
+    [Authorize]
+    [HttpPost("2fa/setup")]
+    [ProducesResponseType(typeof(Setup2FAResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Setup2FA(CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid token" });
+
+        var result = await _setup2FAHandler.HandleAsync(new Setup2FACommand(userId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Confirm 2FA setup with first TOTP code from authenticator.
+    /// Returns recovery codes on success.
+    /// </summary>
+    [Authorize]
+    [HttpPost("2fa/confirm")]
+    [ProducesResponseType(typeof(Confirm2FAResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Confirm2FA([FromBody] Confirm2FACodeRequest request, CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid token" });
+
+        var result = await _confirm2FAHandler.HandleAsync(new Confirm2FACommand(userId, request.Code), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Disable 2FA. Requires current TOTP code for security.
+    /// </summary>
+    [Authorize]
+    [HttpPost("2fa/disable")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Disable2FA([FromBody] Confirm2FACodeRequest request, CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Invalid token" });
+
+        var result = await _disable2FAHandler.HandleAsync(new Disable2FACommand(userId, request.Code), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(new { message = result.Value });
     }
 
     /// <summary>
@@ -321,4 +420,5 @@ public class AuthController : ControllerBase
 public record VerifyEmailRequest(string Email, string OTPCode);
 public record ResendOTPRequest(string Email);
 public record VerifyPhoneRequest(string Phone);
-
+public record Verify2FARequest(string TwoFactorToken, string Code);
+public record Confirm2FACodeRequest(string Code);

@@ -88,6 +88,17 @@ public static class DependencyInjection
         services.AddScoped<RequestChangePasswordOTPCommandHandler>();
         services.AddScoped<ChangePasswordCommandHandler>();
 
+        // Two-Factor Authentication
+        services.AddScoped<ITotpService, VTOS.Infrastructure.ExternalServices.TwoFactor.TotpService>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.ISetup2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Setup2FACommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IConfirm2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Confirm2FACommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IDisable2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Disable2FACommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IVerify2FACommandHandler,
+            VTOS.Application.Features.Auth.Commands.TwoFactor.Verify2FACommandHandler>();
+
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
 
@@ -140,6 +151,28 @@ public static class DependencyInjection
 
         // Background Jobs
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
+        services.AddHostedService<BackgroundJobs.PaymentDeadlineReminderJob>();
+        services.AddHostedService<BackgroundJobs.CampaignDeadlineReminderJob>();
+
+        // Phase 04: Admin UI Revamp
+        services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAdminCashFlowQueryHandler,
+            VTOS.Application.Features.Admin.Queries.GetAdminCashFlowQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAllTransactionsQueryHandler,
+            VTOS.Application.Features.Admin.Queries.GetAllTransactionsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAllComplaintsQueryHandler,
+            VTOS.Application.Features.Admin.Queries.GetAllComplaintsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Admin.Commands.IAdminInterventionCommandHandler,
+            VTOS.Application.Features.Admin.Commands.AdminInterventionCommandHandler>();
+
+        // Phase 05: Distribution Flow Improvements
+        services.AddScoped<VTOS.Application.Features.Distribution.ICreateDistributionScheduleHandler,
+            VTOS.Application.Features.Distribution.CreateDistributionScheduleHandler>();
+        services.AddScoped<VTOS.Application.Features.Distribution.IGetDistributionSchedulesHandler,
+            VTOS.Application.Features.Distribution.GetDistributionSchedulesHandler>();
+        services.AddScoped<VTOS.Application.Features.Distribution.IUpdateDistributionScheduleHandler,
+            VTOS.Application.Features.Distribution.UpdateDistributionScheduleHandler>();
+        services.AddScoped<VTOS.Application.Features.Distribution.IGetProviderDistributionOverviewHandler,
+            VTOS.Application.Features.Distribution.GetProviderDistributionOverviewHandler>();
 
         // Refund Module Handler
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IApproveRefundCommandHandler,
@@ -407,6 +440,18 @@ public static class DependencyInjection
             VTOS.Application.Features.Payments.Queries.GetProviderWalletQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletTransactionsQueryHandler,
             VTOS.Application.Features.Payments.Queries.GetProviderWalletTransactionsQueryHandler>();
+
+        // Account Requests Module (System Improvements - Phase 01)
+        services.AddScoped<VTOS.Application.Features.AccountRequests.Commands.ISubmitAccountRequestCommandHandler,
+            VTOS.Application.Features.AccountRequests.Commands.SubmitAccountRequestCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.AccountRequests.Commands.ICreateAccountForRequestCommandHandler,
+            VTOS.Application.Features.AccountRequests.Commands.CreateAccountForRequestCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.AccountRequests.Commands.IRejectAccountRequestCommandHandler,
+            VTOS.Application.Features.AccountRequests.Commands.RejectAccountRequestCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.AccountRequests.Queries.IGetAccountRequestsQueryHandler,
+            VTOS.Application.Features.AccountRequests.Queries.GetAccountRequestsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.AccountRequests.Queries.IGetAccountRequestDetailQueryHandler,
+            VTOS.Application.Features.AccountRequests.Queries.GetAccountRequestDetailQueryHandler>();
 
         return services;
     }

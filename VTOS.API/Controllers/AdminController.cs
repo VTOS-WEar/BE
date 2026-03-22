@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Features.Admin.Commands;
 using VTOS.Application.Features.Admin.Queries;
@@ -59,6 +59,12 @@ public class AdminController : ControllerBase
     // Payment Monitoring (3.15.1)
     private readonly MonitorPaymentTransactionsQueryHandler _monitorPaymentTransactionsHandler;
 
+    // Phase 04: Admin UI Revamp
+    private readonly IGetAdminCashFlowQueryHandler _cashFlowHandler;
+    private readonly IGetAllTransactionsQueryHandler _allTransactionsHandler;
+    private readonly IGetAllComplaintsQueryHandler _allComplaintsHandler;
+    private readonly IAdminInterventionCommandHandler _interventionHandler;
+
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
         IGetAllFeedbacksQueryHandler feedbacksHandler,
@@ -90,7 +96,11 @@ public class AdminController : ControllerBase
         ConfigureDefaultSizeChartCommandHandler configureDefaultSizeChartHandler,
         ConfigurePaymentMethodCommandHandler configurePaymentMethodHandler,
         ConfigureAITryOnSettingsCommandHandler configureAITryOnSettingsHandler,
-        MonitorPaymentTransactionsQueryHandler monitorPaymentTransactionsHandler)
+        MonitorPaymentTransactionsQueryHandler monitorPaymentTransactionsHandler,
+        IGetAdminCashFlowQueryHandler cashFlowHandler,
+        IGetAllTransactionsQueryHandler allTransactionsHandler,
+        IGetAllComplaintsQueryHandler allComplaintsHandler,
+        IAdminInterventionCommandHandler interventionHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
@@ -128,6 +138,11 @@ public class AdminController : ControllerBase
         _configureAITryOnSettingsHandler = configureAITryOnSettingsHandler;
 
         _monitorPaymentTransactionsHandler = monitorPaymentTransactionsHandler;
+
+        _cashFlowHandler = cashFlowHandler;
+        _allTransactionsHandler = allTransactionsHandler;
+        _allComplaintsHandler = allComplaintsHandler;
+        _interventionHandler = interventionHandler;
     }
 
     [HttpGet("users")]
@@ -570,6 +585,49 @@ public class AdminController : ControllerBase
             new MonitorPaymentTransactionsQuery(dateFrom, dateTo, status, paymentGateway, page, pageSize), ct);
         return Ok(result);
     }
+
+    // ── Phase 04: Admin UI Revamp ──
+
+    [HttpGet("cash-flow")]
+    public async Task<IActionResult> GetCashFlow([FromQuery] int days = 30, CancellationToken ct = default)
+    {
+        var result = await _cashFlowHandler.HandleAsync(days, ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error });
+        return Ok(result.Value);
+    }
+
+    [HttpGet("transactions")]
+    public async Task<IActionResult> GetAllTransactions(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] Domain.Enums.TransactionType? type = null,
+        [FromQuery] Domain.Enums.PaymentStatus? status = null,
+        [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null,
+        CancellationToken ct = default)
+    {
+        var result = await _allTransactionsHandler.HandleAsync(page, pageSize, type, status, from, to, ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error });
+        return Ok(result.Value);
+    }
+
+    [HttpGet("complaints")]
+    public async Task<IActionResult> GetAllComplaints(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] Domain.Enums.ComplaintStatus? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _allComplaintsHandler.HandleAsync(page, pageSize, status, ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error });
+        return Ok(result.Value);
+    }
+
+    [HttpPost("complaints/{id}/intervene")]
+    public async Task<IActionResult> InterveneComplaint(Guid id, [FromBody] AdminInterventionRequest req, CancellationToken ct = default)
+    {
+        var result = await _interventionHandler.HandleAsync(
+            new Application.Features.Admin.Commands.AdminInterventionCommand(id, req.Note, req.Action), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error });
+        return Ok(new { message = result.Value });
+    }
 }
 
 
@@ -608,4 +666,9 @@ public record ConfigureAITryOnSettingsRequest(
     string? ModelVersion = null,
     string? ImageResolution = null,
     int? MaxUploadFileSizeMB = null
+);
+
+public record AdminInterventionRequest(
+    string Note,
+    string? Action
 );

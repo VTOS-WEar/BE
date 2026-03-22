@@ -13,6 +13,7 @@ public record ParentPaymentDto(
     Guid OrderId,
     decimal Amount,
     string Status,
+    string OrderStatus,
     DateTime Timestamp
 );
 
@@ -51,18 +52,20 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
 
         var q = _db.PaymentTransactions.AsNoTracking()
             .Where(pt => pt.OrderID != null && orderIds.Contains(pt.OrderID.Value) && pt.TransactionType == TransactionType.OrderPayment)
-            .OrderByDescending(pt => pt.TransactionTimestamp);
+            .Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o })
+            .OrderByDescending(x => x.pt.TransactionTimestamp);
 
         var total = await q.CountAsync(ct);
         var items = await q
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(pt => new ParentPaymentDto(
-                pt.Id,
-                pt.OrderID!.Value,
-                pt.Amount,
-                pt.TransactionStatus.ToString(),
-                pt.TransactionTimestamp
+            .Select(x => new ParentPaymentDto(
+                x.pt.Id,
+                x.pt.OrderID!.Value,
+                x.pt.Amount,
+                x.pt.TransactionStatus.ToString(),
+                x.o.OrderStatus.ToString(),
+                x.pt.TransactionTimestamp
             ))
             .ToListAsync(ct);
 

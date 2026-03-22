@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Entities;
@@ -7,7 +8,7 @@ using VTOS.Domain.Enums;
 namespace VTOS.Application.Features.Schools.Commands;
 
 /// <summary>School reports defective uniforms (creates a Complaint linked to the batch).</summary>
-public record ReportDefectCommand(Guid UserId, Guid BatchId, string Title, string Description);
+public record ReportDefectCommand(Guid UserId, Guid BatchId, string Title, string Description, List<string>? ProofImageUrls);
 
 public interface IReportDefectCommandHandler
 {
@@ -43,6 +44,10 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
         if (string.IsNullOrWhiteSpace(command.Description))
             return Result<Guid>.Failure("Description is required.", "DESCRIPTION_REQUIRED");
 
+        // Require at least 1 proof image
+        if (command.ProofImageUrls == null || !command.ProofImageUrls.Any())
+            return Result<Guid>.Failure("At least one proof image is required.", "PROOF_REQUIRED");
+
         var complaint = new Complaint
         {
             Id = Guid.NewGuid(),
@@ -52,6 +57,7 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
             ProviderID = batch.ProviderID,
             Title = command.Title,
             Description = command.Description,
+            ProofImageUrls = JsonSerializer.Serialize(command.ProofImageUrls),
             Status = ComplaintStatus.Open,
             CreatedAt = DateTime.UtcNow
         };

@@ -31,36 +31,65 @@ public class GetProviderRevenueQueryHandler : IGetProviderRevenueQueryHandler
 
     public async Task<Result<ProviderRevenueDto>> HandleAsync(GetProviderRevenueQuery query, CancellationToken ct = default)
     {
-        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
-        if (user == null)
+        // 1. Find the provider linked to this user
+        var providerMgr = await _db.ProviderManagers.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserID == query.UserId, ct);
+        if (providerMgr == null)
             return Result<ProviderRevenueDto>.Failure("Access denied.", "ACCESS_DENIED");
 
-        var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
-        var providerId = providerMgr?.ProviderID;
+        var providerId = providerMgr.ProviderID;
 
-        // Get all campaigns assigned to this provider
+        // 2. Find provider's wallet
+        var wallet = await _db.Wallets.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.OwnerID == providerId
+                                   && w.OwnerType == WalletOwnerType.Provider, ct);
+
+        // 3. Revenue from PaymentTransactions (single source of truth, matches Wallet)
+        decimal totalRevenue = 0;
+        int totalPaidOrders = 0;
+        var paidOrderIds = new HashSet<Guid>();
+
+        if (wallet != null)
+        {
+            // Get all completed ProviderPayment transactions for this wallet
+            var providerPayments = await _db.PaymentTransactions.AsNoTracking()
+                .Where(pt => pt.WalletID == wallet.Id
+                          && pt.TransactionType == TransactionType.ProviderPayment
+                          && pt.TransactionStatus == PaymentStatus.Completed)
+                .ToListAsync(ct);
+
+            totalRevenue = providerPayments.Sum(pt => pt.Amount);
+            paidOrderIds = providerPayments
+                .Where(pt => pt.OrderID.HasValue)
+                .Select(pt => pt.OrderID!.Value)
+                .ToHashSet();
+            totalPaidOrders = paidOrderIds.Count;
+        }
+
+        // 4. Pending = orders assigned to this provider that are active but NOT yet paid
         var campaignIds = await _db.CampaignOutfits.AsNoTracking()
             .Where(co => co.ProviderID == providerId)
             .Select(co => co.CampaignID)
             .Distinct()
             .ToListAsync(ct);
 
-        // Get all orders from those campaigns
-        var orders = await _db.Orders.AsNoTracking()
-            .Where(o => o.CampaignID != null && campaignIds.Contains(o.CampaignID.Value))
+        var pendingOrders = await _db.Orders.AsNoTracking()
+            .Where(o => o.CampaignID != null
+                      && campaignIds.Contains(o.CampaignID.Value)
+                      && (o.OrderStatus == OrderStatus.Paid
+                       || o.OrderStatus == OrderStatus.Confirmed
+                       || o.OrderStatus == OrderStatus.Processed
+                       || o.OrderStatus == OrderStatus.Shipped
+                       || o.OrderStatus == OrderStatus.Delivered)
+                      && !paidOrderIds.Contains(o.Id))
             .ToListAsync(ct);
 
-        var paidOrders = orders.Where(o => o.IsProviderPaid).ToList();
-        var pendingOrders = orders.Where(o =>
-            (o.OrderStatus == OrderStatus.Paid || o.OrderStatus == OrderStatus.Confirmed ||
-             o.OrderStatus == OrderStatus.Processed || o.OrderStatus == OrderStatus.Shipped ||
-             o.OrderStatus == OrderStatus.Delivered) && !o.IsProviderPaid).ToList();
-
         return Result<ProviderRevenueDto>.Success(new ProviderRevenueDto(
-            TotalRevenue: paidOrders.Sum(o => o.TotalAmount),
-            TotalPaidOrders: paidOrders.Count,
+            TotalRevenue: totalRevenue,
+            TotalPaidOrders: totalPaidOrders,
             TotalPendingOrders: pendingOrders.Count,
             PendingAmount: pendingOrders.Sum(o => o.TotalAmount)
         ));
     }
 }
+
