@@ -13,6 +13,7 @@ using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Application.Features.Users.Commands;
 using VTOS.Application.Features.Users.Queries;
+using VTOS.Infrastructure.ExternalServices.Google;
 using VTOS.Infrastructure.ExternalServices.ImageStorage;
 using VTOS.Infrastructure.ExternalServices.TryOn;
 using VTOS.Infrastructure.Persistence;
@@ -110,6 +111,11 @@ public static class DependencyInjection
             VTOS.Application.Features.Auth.Commands.TwoFactor.Disable2FACommandHandler>();
         services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IVerify2FACommandHandler,
             VTOS.Application.Features.Auth.Commands.TwoFactor.Verify2FACommandHandler>();
+
+        // Google OAuth
+        services.AddHttpClient<IGoogleTokenValidator, GoogleTokenValidator>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.IGoogleLoginCommandHandler,
+            VTOS.Application.Features.Auth.Commands.GoogleLoginCommandHandler>();
 
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();

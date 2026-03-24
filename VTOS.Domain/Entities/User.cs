@@ -26,6 +26,10 @@ public class User : BaseEntity
     public string? PasswordResetToken { get; set; }
     public DateTime? PasswordResetTokenExpiry { get; set; }
 
+    // External Auth (Google OAuth)
+    public string? GoogleId { get; set; }
+    public string AuthProvider { get; set; } = "Local";
+
     // Two-Factor Authentication (TOTP)
     public bool IsTwoFactorEnabled { get; set; }
     public string? TwoFactorSecret { get; set; }
