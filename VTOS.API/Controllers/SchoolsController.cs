@@ -278,7 +278,7 @@ public class SchoolsController : ControllerBase
 
     /// <summary>
     /// UC-42: Upload school logo image.
-    /// Uploads to ImgBB and saves the returned URL to LogoURL.
+    /// Uploads to MinIO and saves the returned URL to LogoURL.
     /// </summary>
     [HttpPost("me/logo")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -296,9 +296,9 @@ public class SchoolsController : ControllerBase
         if (!allowed.Contains(file.ContentType))
             return BadRequest(new { error = "Invalid image type. Use JPEG, PNG, WebP, or GIF.", code = "INVALID_TYPE" });
 
-        // Upload to ImgBB
+        // Upload to MinIO
         using var stream = file.OpenReadStream();
-        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, ct);
+        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, "schools", ct);
 
         // Save URL to school profile
         var command = new UpdateSchoolProfileCommand(
@@ -616,7 +616,7 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = "Invalid image type. Use JPEG, PNG, or WebP.", code = "INVALID_TYPE" });
 
         using var stream = file.OpenReadStream();
-        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, ct);
+        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, "outfits", ct);
 
         return Ok(new { imageUrl });
     }

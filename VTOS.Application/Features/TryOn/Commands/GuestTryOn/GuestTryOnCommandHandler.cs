@@ -88,6 +88,7 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
             humanImageUrl = await _imageUploadService.UploadAsync(
                 stream, 
                 command.Photo.FileName, 
+                "tryon",
                 cancellationToken);
 
             _logger.LogDebug("Human photo uploaded: {Url}", humanImageUrl);

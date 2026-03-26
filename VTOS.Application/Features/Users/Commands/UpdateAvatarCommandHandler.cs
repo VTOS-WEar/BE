@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Users.DTOs;
@@ -33,6 +33,7 @@ public class UpdateAvatarCommandHandler : IUpdateAvatarCommandHandler
             avatarUrl = await _imageUploadService.UploadAsync(
                 stream,
                 command.Avatar.FileName,
+                "avatars",
                 cancellationToken
             );
         }

@@ -64,7 +64,7 @@ public static class DependencyInjection
         // Register TryOn Settings (UC-60)
         services.Configure<VirtualTryOnSettings>(configuration.GetSection(VirtualTryOnSettings.SectionName));
         services.Configure<TryOnSettings>(configuration.GetSection(TryOnSettings.SectionName));
-        services.Configure<ImgBBSettings>(configuration.GetSection(ImgBBSettings.SectionName));
+        services.Configure<MinioSettings>(configuration.GetSection(MinioSettings.SectionName));
 
 
         // Register PayOS Settings
@@ -85,7 +85,7 @@ public static class DependencyInjection
 
         // Register TryOn Services with HttpClient (UC-60)
         services.AddHttpClient<IVirtualTryOnService, VirtualTryOnService>();
-        services.AddHttpClient<IImageUploadService, ImgBBImageService>();
+        services.AddSingleton<IImageUploadService, MinioImageService>();
 
         //Register PayOS Service
         services.AddHttpClient<IPayOSService, PayOSService>();
