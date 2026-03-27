@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common.Settings;
 using VTOS.Application.Features.Admin.Queries;
@@ -64,6 +66,8 @@ public static class DependencyInjection
         // Register TryOn Settings (UC-60)
         services.Configure<VirtualTryOnSettings>(configuration.GetSection(VirtualTryOnSettings.SectionName));
         services.Configure<TryOnSettings>(configuration.GetSection(TryOnSettings.SectionName));
+        services.Configure<GeminiTryOnSettings>(configuration.GetSection(GeminiTryOnSettings.SectionName));
+        services.Configure<TryOnProviderSettings>(configuration.GetSection(TryOnProviderSettings.SectionName));
         services.Configure<MinioSettings>(configuration.GetSection(MinioSettings.SectionName));
 
 
@@ -84,7 +88,20 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // Register TryOn Services with HttpClient (UC-60)
-        services.AddHttpClient<IVirtualTryOnService, VirtualTryOnService>();
+        // Register both concrete services
+        services.AddHttpClient<VirtualTryOnService>();
+        services.AddHttpClient<GeminiTryOnService>();
+        // Register selector as the IVirtualTryOnService implementation
+        services.AddScoped<IVirtualTryOnService>(sp =>
+        {
+            var selector = new TryOnServiceSelector(
+                sp.GetRequiredService<VirtualTryOnService>(),
+                sp.GetRequiredService<GeminiTryOnService>(),
+                sp.GetRequiredService<IOptions<TryOnProviderSettings>>(),
+                sp.GetRequiredService<ILogger<TryOnServiceSelector>>()
+            );
+            return selector;
+        });
         services.AddSingleton<IImageUploadService, MinioImageService>();
 
         //Register PayOS Service
@@ -311,6 +328,10 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Admin.Commands.IApproveWithdrawalCommandHandler,
             VTOS.Application.Features.Admin.Commands.ApproveWithdrawalCommandHandler>();
 
+        // Admin Module - Reject Withdrawal
+        services.AddScoped<VTOS.Application.Features.Admin.Commands.IRejectWithdrawalCommandHandler,
+            VTOS.Application.Features.Admin.Commands.RejectWithdrawalCommandHandler>();
+
         // Parent Module - Bank Account
         services.AddScoped<VTOS.Application.Features.Users.Commands.IAddParentBankAccountCommandHandler,
             VTOS.Application.Features.Users.Commands.AddParentBankAccountCommandHandler>();
@@ -322,6 +343,10 @@ public static class DependencyInjection
         // Admin Module - Get Withdrawal Requests
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
+
+        // Provider Module - Withdrawal Request
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ICreateProviderWithdrawalRequestCommandHandler,
+            VTOS.Application.Features.Providers.Commands.CreateProviderWithdrawalRequestCommandHandler>();
 
         // Provider Module - Profile
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProfileQueryHandler,
@@ -470,6 +495,10 @@ public static class DependencyInjection
             VTOS.Application.Features.AccountRequests.Queries.GetAccountRequestsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.AccountRequests.Queries.IGetAccountRequestDetailQueryHandler,
             VTOS.Application.Features.AccountRequests.Queries.GetAccountRequestDetailQueryHandler>();
+
+        // In-App Notification Service
+        services.AddScoped<VTOS.Application.Features.Notifications.INotificationService,
+            VTOS.Application.Features.Notifications.NotificationService>();
 
         return services;
     }

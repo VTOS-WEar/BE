@@ -70,6 +70,9 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     // Notification tracking (System Improvements - Phase 02)
     public DbSet<NotificationLog> NotificationLogs { get; set; }
 
+    // In-App Notifications
+    public DbSet<InAppNotification> InAppNotifications { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
