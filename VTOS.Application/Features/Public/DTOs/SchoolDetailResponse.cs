@@ -5,7 +5,9 @@ public record SchoolCampaignDto(
     string CampaignName,
     DateTime StartDate,
     DateTime EndDate,
-    string Status
+    string Status,
+    string? Description,
+    int OutfitCount
 );
 
 public record SchoolDetailResponse(
