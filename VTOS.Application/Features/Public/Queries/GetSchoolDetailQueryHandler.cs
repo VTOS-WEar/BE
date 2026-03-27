@@ -45,7 +45,9 @@ public class GetSchoolDetailQueryHandler
                         c.CampaignName,
                         c.StartDate,
                         c.EndDate,
-                        c.Status.ToString()
+                        c.Status.ToString(),
+                        c.Description,
+                        c.CampaignOutfits.Count()
                     ))
                     .ToList()
             ))

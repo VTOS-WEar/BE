@@ -37,7 +37,11 @@ public class GetSchoolsQueryHandler
                 s.SchoolName,
                 s.LogoURL,
                 s.ContactInfo,
-                s.Outfits.Count(o => o.IsAvailable)
+                s.Outfits.Count(o => o.IsAvailable),
+                s.Level,
+                s.Outfits.SelectMany(o => o.Feedbacks).Any()
+                    ? s.Outfits.SelectMany(o => o.Feedbacks).Average(f => (double?)f.Rating)
+                    : null
             ))
             .ToListAsync(ct);
 
