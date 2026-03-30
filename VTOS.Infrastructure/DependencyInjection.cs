@@ -418,6 +418,10 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractDetailQueryHandler,
             VTOS.Application.Features.Contracts.Queries.GetContractDetailQueryHandler>();
 
+        // Contract-based Provider Resolution (for Campaign creation)
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetContractedProvidersForOutfitsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetContractedProvidersForOutfitsQueryHandler>();
+
         // Admin Module - User Management (UC 3.2.8, 3.2.11)
         services.AddScoped<IGetUserDetailQueryHandler, GetUserDetailQueryHandler>();
         services.AddScoped<IGetUserReportQueryHandler, GetUserReportQueryHandler>();

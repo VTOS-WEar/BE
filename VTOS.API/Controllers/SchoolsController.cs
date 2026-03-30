@@ -97,6 +97,7 @@ public class SchoolsController : ControllerBase
     private readonly Application.Features.Distribution.ICreateDistributionScheduleHandler _createScheduleHandler;
     private readonly Application.Features.Distribution.IGetDistributionSchedulesHandler _getSchedulesHandler;
     private readonly Application.Features.Distribution.IUpdateDistributionScheduleHandler _updateScheduleHandler;
+    private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -165,7 +166,8 @@ public class SchoolsController : ControllerBase
         ICloseComplaintCommandHandler closeComplaintHandler,
         Application.Features.Distribution.ICreateDistributionScheduleHandler createScheduleHandler,
         Application.Features.Distribution.IGetDistributionSchedulesHandler getSchedulesHandler,
-        Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler)
+        Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler,
+        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -231,6 +233,7 @@ public class SchoolsController : ControllerBase
         _createScheduleHandler = createScheduleHandler;
         _getSchedulesHandler = getSchedulesHandler;
         _updateScheduleHandler = updateScheduleHandler;
+        _getContractedProvidersHandler = getContractedProvidersHandler;
     }
 
 
@@ -764,6 +767,22 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> GetProviders(CancellationToken ct)
     {
         var result = await _getProvidersHandler.HandleAsync(new GetProvidersQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get contracted providers grouped by outfit for campaign creation.
+    /// Only returns providers with Approved contracts covering each outfit.
+    /// </summary>
+    [HttpGet("me/contracts/providers-for-outfits")]
+    [ProducesResponseType(typeof(GetContractedProvidersForOutfitsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetContractedProvidersForOutfits(CancellationToken ct)
+    {
+        var result = await _getContractedProvidersHandler.HandleAsync(
+            new GetContractedProvidersForOutfitsQuery(_currentUser.UserId), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
