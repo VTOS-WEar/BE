@@ -18,10 +18,30 @@ public class GeminiTryOnSettings
     public string Model { get; set; } = "gemini-3.1-flash-image-preview";
     
     /// <summary>
-    /// Custom prompt for try-on generation. User will provide this later.
-    /// Supports placeholders: {human} and {garment} for image descriptions.
+    /// Custom prompt for try-on generation.
+    /// Can be overridden via appsettings or environment variable GeminiTryOn__Prompt.
     /// </summary>
-    public string Prompt { get; set; } = "Using the two provided images, take the uniform from the first image and make the person in the second image wear it. Generate a realistic virtual try-on result preserving the person's body shape, pose, and background.";
+    public string Prompt { get; set; } = @"Using the two provided images, take the uniform from the first image and make the person in the second image wear it.
+
+Change only the clothing on the person in the second image.
+Keep everything else in the second image exactly the same.
+
+Strictly preserve the exact body shape, body size, and visible person scale in frame from the second image:
+same shoulder width, chest width, waist position, hip width, torso length, arm thickness, hand size, leg proportions, neck length, and the same distance to the camera.
+
+Do not make the person slimmer, wider, taller, shorter, larger in frame, smaller in frame, closer to the camera, or farther from the camera.
+
+Preserve the exact pose, face, identity, hairstyle, hands, skin tone, crop, framing, zoom, perspective, camera angle, aspect ratio, background, surrounding objects, lighting, shadows, and original color mood from the second image.
+
+Only replace the outfit with the uniform from the first image.
+Adapt the uniform naturally to the existing body shape of the person in the second image without changing the outer body silhouette, except for minimal natural fabric thickness and folds.
+
+Keep the uniform details accurate:
+garment cut, collar shape, neckline, sleeve shape, cuff shape, hemline, seams, trim, stripe placement, logo placement, badge placement, embroidery, text, pattern, and fabric texture.
+
+Keep the background and scene colors unchanged.
+The final result should be photorealistic, sharp, clean, and high-detail, with crisp garment edges, realistic fabric folds, and preserved fine details.
+Do not change the input aspect ratio.";
 }
 
 /// <summary>
