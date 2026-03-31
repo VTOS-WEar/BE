@@ -250,6 +250,8 @@ public static class DependencyInjection
             VTOS.Application.Features.Schools.Queries.GetSchoolGradesQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetImportHistoryQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetImportHistoryQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetImportStatusQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetImportStatusQueryHandler>();
 
         // School Module - Outfit CRUD
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolOutfitsQueryHandler,

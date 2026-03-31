@@ -67,6 +67,7 @@ public class SchoolsController : ControllerBase
     private readonly IImageUploadService _imageUploadService;
     private readonly IGetSchoolGradesQueryHandler _getGradesHandler;
     private readonly IGetImportHistoryQueryHandler _getImportHistoryHandler;
+    private readonly IGetImportStatusQueryHandler _getImportStatusHandler;
     private readonly IGetSchoolOutfitsQueryHandler _getOutfitsHandler;
     private readonly ICreateOutfitCommandHandler _createOutfitHandler;
     private readonly IUpdateOutfitCommandHandler _updateOutfitHandler;
@@ -138,6 +139,7 @@ public class SchoolsController : ControllerBase
         IImageUploadService imageUploadService,
         IGetSchoolGradesQueryHandler getGradesHandler,
         IGetImportHistoryQueryHandler getImportHistoryHandler,
+        IGetImportStatusQueryHandler getImportStatusHandler,
         IGetSchoolOutfitsQueryHandler getOutfitsHandler,
         ICreateOutfitCommandHandler createOutfitHandler,
         IUpdateOutfitCommandHandler updateOutfitHandler,
@@ -206,6 +208,7 @@ public class SchoolsController : ControllerBase
         _imageUploadService = imageUploadService;
         _getGradesHandler = getGradesHandler;
         _getImportHistoryHandler = getImportHistoryHandler;
+        _getImportStatusHandler = getImportStatusHandler;
         _getOutfitsHandler = getOutfitsHandler;
         _createOutfitHandler = createOutfitHandler;
         _updateOutfitHandler = updateOutfitHandler;
@@ -457,21 +460,21 @@ public class SchoolsController : ControllerBase
     }
 
     /// <summary>
-    /// UC-43: Import student data from a .csv or .xlsx file.
+    /// UC-43: Import student data from a .xlsx file.
     /// </summary>
-    /// <param name="file">.csv or .xlsx file (max 5MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Grade, Gender, Parent Phone Number.</param>
+    /// <param name="file">.xlsx file (max 20MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Grade, Gender, Parent Phone Number.</param>
     [HttpPost("me/students/import")]
     [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [RequestSizeLimit(5 * 1024 * 1024)] // 5MB
+    [RequestSizeLimit(20 * 1024 * 1024)] // 20MB
     public async Task<IActionResult> ImportStudents(IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
 
         var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-        if (extension != ".csv" && extension != ".xlsx")
-            return BadRequest(new { error = "Only .csv and .xlsx files are supported.", code = "INVALID_FILE_TYPE" });
+        if (extension != ".xlsx")
+            return BadRequest(new { error = "Only .xlsx files are supported.", code = "INVALID_FILE_TYPE" });
 
         // Parse rows in the controller (where ClosedXML is available)
         IReadOnlyList<string[]> rows;
@@ -518,6 +521,19 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> GetImportHistory([FromQuery] int limit = 10, CancellationToken ct = default)
     {
         var result = await _getImportHistoryHandler.HandleAsync(new GetImportHistoryQuery(_currentUser.UserId, limit), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get import status for the current semester (banner visibility).
+    /// </summary>
+    [HttpGet("me/students/import/status")]
+    [ProducesResponseType(typeof(ImportStatusDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetImportStatus(CancellationToken ct)
+    {
+        var result = await _getImportStatusHandler.HandleAsync(new GetImportStatusQuery(_currentUser.UserId), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
