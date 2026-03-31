@@ -21,7 +21,7 @@ public class GeminiTryOnSettings
     /// Custom prompt for try-on generation. User will provide this later.
     /// Supports placeholders: {human} and {garment} for image descriptions.
     /// </summary>
-    public string Prompt { get; set; } = "Apply the garment in the second image onto the person in the first image. Generate a realistic virtual try-on result preserving the person's body shape, pose, and background.";
+    public string Prompt { get; set; } = "Using the two provided images, take the uniform from the first image and make the person in the second image wear it. Generate a realistic virtual try-on result preserving the person's body shape, pose, and background.";
 }
 
 /// <summary>
@@ -78,7 +78,7 @@ public class GeminiTryOnService : IVirtualTryOnService
                                 inline_data = new
                                 {
                                     mime_type = "image/jpeg",
-                                    data = humanBase64
+                                    data = garmentBase64
                                 }
                             },
                             new
@@ -86,7 +86,7 @@ public class GeminiTryOnService : IVirtualTryOnService
                                 inline_data = new
                                 {
                                     mime_type = "image/jpeg",
-                                    data = garmentBase64
+                                    data = humanBase64
                                 }
                             }
                         }
