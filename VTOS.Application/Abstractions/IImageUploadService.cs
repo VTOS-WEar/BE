@@ -10,7 +10,8 @@ public interface IImageUploadService
     /// </summary>
     /// <param name="imageStream">The image stream to upload</param>
     /// <param name="fileName">Original file name</param>
+    /// <param name="folder">Optional subfolder (e.g., "schools", "avatars", "tryon")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Public URL of the uploaded image</returns>
-    Task<string> UploadAsync(Stream imageStream, string fileName, CancellationToken cancellationToken = default);
+    Task<string> UploadAsync(Stream imageStream, string fileName, string? folder = null, CancellationToken cancellationToken = default);
 }

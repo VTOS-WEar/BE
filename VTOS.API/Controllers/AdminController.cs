@@ -17,6 +17,7 @@ public class AdminController : ControllerBase
     private readonly ISuspendUserCommandHandler _suspendHandler;
     private readonly IRemoveFeedbackCommandHandler _removeFeedbackHandler;
     private readonly IApproveWithdrawalCommandHandler _approveWithdrawalHandler;
+    private readonly IRejectWithdrawalCommandHandler _rejectWithdrawalHandler;
     private readonly IGetWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
 
     // New handlers for user management (3.2.8, 3.2.11)
@@ -72,6 +73,7 @@ public class AdminController : ControllerBase
         ISuspendUserCommandHandler suspendHandler,
         IRemoveFeedbackCommandHandler removeFeedbackHandler,
         IApproveWithdrawalCommandHandler approveWithdrawalHandler,
+        IRejectWithdrawalCommandHandler rejectWithdrawalHandler,
         IGetWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler,
         IGetUserDetailQueryHandler getUserDetailHandler,
         IGetUserReportQueryHandler getUserReportHandler,
@@ -108,6 +110,7 @@ public class AdminController : ControllerBase
         _suspendHandler = suspendHandler;
         _removeFeedbackHandler = removeFeedbackHandler;
         _approveWithdrawalHandler = approveWithdrawalHandler;
+        _rejectWithdrawalHandler = rejectWithdrawalHandler;
         _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
         
         _getUserDetailHandler = getUserDetailHandler;
@@ -218,6 +221,26 @@ public class AdminController : ControllerBase
     {
         var result = await _approveWithdrawalHandler.HandleAsync(
             new ApproveWithdrawalCommand(id, request.AdminNote), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode is "WITHDRAWAL_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
+    }
+
+    // ✅ Reject Withdrawal Request
+    [HttpPost("withdrawals/{id}/reject")]
+    public async Task<IActionResult> RejectWithdrawal(
+        Guid id,
+        [FromBody] RejectWithdrawalRequest request,
+        CancellationToken ct)
+    {
+        var result = await _rejectWithdrawalHandler.HandleAsync(
+            new RejectWithdrawalCommand(id, request.AdminNote), ct);
 
         if (!result.IsSuccess)
         {
@@ -632,6 +655,7 @@ public class AdminController : ControllerBase
 
 
 public record ApproveWithdrawalRequest(string? AdminNote);
+public record RejectWithdrawalRequest(string? AdminNote);
 
 public record ApproveOrRejectRequest(
     string Action,

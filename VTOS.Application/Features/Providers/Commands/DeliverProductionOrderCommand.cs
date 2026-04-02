@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Features.Notifications;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -25,8 +26,13 @@ public record DeliverProductionOrderResponse(
 public class DeliverProductionOrderCommandHandler : IDeliverProductionOrderCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public DeliverProductionOrderCommandHandler(IApplicationDbContext db) => _db = db;
+    public DeliverProductionOrderCommandHandler(IApplicationDbContext db, INotificationService notificationService)
+    {
+        _db = db;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<DeliverProductionOrderResponse>> HandleAsync(DeliverProductionOrderCommand command, CancellationToken ct = default)
     {
@@ -89,6 +95,23 @@ public class DeliverProductionOrderCommandHandler : IDeliverProductionOrderComma
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Notify school about delivery
+        try
+        {
+            var campaign = await _db.Campaigns.AsNoTracking().FirstOrDefaultAsync(c => c.Id == batch.CampaignID, ct);
+            if (campaign != null)
+            {
+                var title = isFullyDelivered ? "✅ Giao hàng hoàn tất" : "📦 Giao hàng từ NCC";
+                var msg = isFullyDelivered
+                    ? $"Đơn {batch.BatchName} đã giao đủ {batch.TotalQuantity} sản phẩm."
+                    : $"NCC giao {command.Quantity} sản phẩm ({batch.BatchName}). Còn lại: {batch.TotalQuantity - newTotal}.";
+                await _notificationService.NotifySchoolAsync(campaign.SchoolID,
+                    title, msg, "Delivery", batch.Id, "ProductionBatch",
+                    "/school/production-orders", ct);
+            }
+        }
+        catch { /* Don't fail */ }
 
         return Result<DeliverProductionOrderResponse>.Success(new DeliverProductionOrderResponse(
             deliveryRecord.Id,

@@ -11,6 +11,7 @@ using VTOS.Application.Features.Schools.Commands;
 using VTOS.Application.Features.Schools.DTOs;
 using VTOS.Application.Features.Schools.Queries;
 using VTOS.Domain.Enums;
+using VTOS.Application.Features.Notifications;
 
 namespace VTOS.API.Controllers;
 
@@ -67,6 +68,7 @@ public class SchoolsController : ControllerBase
     private readonly IImageUploadService _imageUploadService;
     private readonly IGetSchoolGradesQueryHandler _getGradesHandler;
     private readonly IGetImportHistoryQueryHandler _getImportHistoryHandler;
+    private readonly IGetImportStatusQueryHandler _getImportStatusHandler;
     private readonly IGetSchoolOutfitsQueryHandler _getOutfitsHandler;
     private readonly ICreateOutfitCommandHandler _createOutfitHandler;
     private readonly IUpdateOutfitCommandHandler _updateOutfitHandler;
@@ -97,6 +99,8 @@ public class SchoolsController : ControllerBase
     private readonly Application.Features.Distribution.ICreateDistributionScheduleHandler _createScheduleHandler;
     private readonly Application.Features.Distribution.IGetDistributionSchedulesHandler _getSchedulesHandler;
     private readonly Application.Features.Distribution.IUpdateDistributionScheduleHandler _updateScheduleHandler;
+    private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
+    private readonly INotificationService _notificationService;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -137,6 +141,7 @@ public class SchoolsController : ControllerBase
         IImageUploadService imageUploadService,
         IGetSchoolGradesQueryHandler getGradesHandler,
         IGetImportHistoryQueryHandler getImportHistoryHandler,
+        IGetImportStatusQueryHandler getImportStatusHandler,
         IGetSchoolOutfitsQueryHandler getOutfitsHandler,
         ICreateOutfitCommandHandler createOutfitHandler,
         IUpdateOutfitCommandHandler updateOutfitHandler,
@@ -165,7 +170,9 @@ public class SchoolsController : ControllerBase
         ICloseComplaintCommandHandler closeComplaintHandler,
         Application.Features.Distribution.ICreateDistributionScheduleHandler createScheduleHandler,
         Application.Features.Distribution.IGetDistributionSchedulesHandler getSchedulesHandler,
-        Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler)
+        Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler,
+        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler,
+        INotificationService notificationService)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -204,6 +211,7 @@ public class SchoolsController : ControllerBase
         _imageUploadService = imageUploadService;
         _getGradesHandler = getGradesHandler;
         _getImportHistoryHandler = getImportHistoryHandler;
+        _getImportStatusHandler = getImportStatusHandler;
         _getOutfitsHandler = getOutfitsHandler;
         _createOutfitHandler = createOutfitHandler;
         _updateOutfitHandler = updateOutfitHandler;
@@ -231,6 +239,8 @@ public class SchoolsController : ControllerBase
         _createScheduleHandler = createScheduleHandler;
         _getSchedulesHandler = getSchedulesHandler;
         _updateScheduleHandler = updateScheduleHandler;
+        _getContractedProvidersHandler = getContractedProvidersHandler;
+        _notificationService = notificationService;
     }
 
 
@@ -278,7 +288,7 @@ public class SchoolsController : ControllerBase
 
     /// <summary>
     /// UC-42: Upload school logo image.
-    /// Uploads to ImgBB and saves the returned URL to LogoURL.
+    /// Uploads to MinIO and saves the returned URL to LogoURL.
     /// </summary>
     [HttpPost("me/logo")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -296,9 +306,9 @@ public class SchoolsController : ControllerBase
         if (!allowed.Contains(file.ContentType))
             return BadRequest(new { error = "Invalid image type. Use JPEG, PNG, WebP, or GIF.", code = "INVALID_TYPE" });
 
-        // Upload to ImgBB
+        // Upload to MinIO
         using var stream = file.OpenReadStream();
-        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, ct);
+        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, "schools", ct);
 
         // Save URL to school profile
         var command = new UpdateSchoolProfileCommand(
@@ -454,21 +464,21 @@ public class SchoolsController : ControllerBase
     }
 
     /// <summary>
-    /// UC-43: Import student data from a .csv or .xlsx file.
+    /// UC-43: Import student data from a .xlsx file.
     /// </summary>
-    /// <param name="file">.csv or .xlsx file (max 5MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Grade, Gender, Parent Phone Number.</param>
+    /// <param name="file">.xlsx file (max 20MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Grade, Gender, Parent Phone Number.</param>
     [HttpPost("me/students/import")]
     [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [RequestSizeLimit(5 * 1024 * 1024)] // 5MB
+    [RequestSizeLimit(20 * 1024 * 1024)] // 20MB
     public async Task<IActionResult> ImportStudents(IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
 
         var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-        if (extension != ".csv" && extension != ".xlsx")
-            return BadRequest(new { error = "Only .csv and .xlsx files are supported.", code = "INVALID_FILE_TYPE" });
+        if (extension != ".xlsx")
+            return BadRequest(new { error = "Only .xlsx files are supported.", code = "INVALID_FILE_TYPE" });
 
         // Parse rows in the controller (where ClosedXML is available)
         IReadOnlyList<string[]> rows;
@@ -515,6 +525,19 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> GetImportHistory([FromQuery] int limit = 10, CancellationToken ct = default)
     {
         var result = await _getImportHistoryHandler.HandleAsync(new GetImportHistoryQuery(_currentUser.UserId, limit), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get import status for the current semester (banner visibility).
+    /// </summary>
+    [HttpGet("me/students/import/status")]
+    [ProducesResponseType(typeof(ImportStatusDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetImportStatus(CancellationToken ct)
+    {
+        var result = await _getImportStatusHandler.HandleAsync(new GetImportStatusQuery(_currentUser.UserId), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
@@ -616,7 +639,7 @@ public class SchoolsController : ControllerBase
             return BadRequest(new { error = "Invalid image type. Use JPEG, PNG, or WebP.", code = "INVALID_TYPE" });
 
         using var stream = file.OpenReadStream();
-        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, ct);
+        var imageUrl = await _imageUploadService.UploadAsync(stream, file.FileName, "outfits", ct);
 
         return Ok(new { imageUrl });
     }
@@ -764,6 +787,22 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> GetProviders(CancellationToken ct)
     {
         var result = await _getProvidersHandler.HandleAsync(new GetProvidersQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get contracted providers grouped by outfit for campaign creation.
+    /// Only returns providers with Approved contracts covering each outfit.
+    /// </summary>
+    [HttpGet("me/contracts/providers-for-outfits")]
+    [ProducesResponseType(typeof(GetContractedProvidersForOutfitsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetContractedProvidersForOutfits(CancellationToken ct)
+    {
+        var result = await _getContractedProvidersHandler.HandleAsync(
+            new GetContractedProvidersForOutfitsQuery(_currentUser.UserId), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
@@ -1310,6 +1349,19 @@ public class SchoolsController : ControllerBase
             new ReportDefectCommand(_currentUser.UserId, batchId, request.Title, request.Description, request.ProofImageUrls), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        // Notify admins about new complaint
+        try
+        {
+            await _notificationService.NotifyAdminsAsync(
+                "⚠️ Khiếu nại mới",
+                $"Khiếu nại từ trường: {request.Title}",
+                "Complaint",
+                result.Value, "Complaint",
+                "/admin/complaints", ct);
+        }
+        catch { /* Don't fail the main operation */ }
+
         return Ok(new { complaintId = result.Value });
     }
 

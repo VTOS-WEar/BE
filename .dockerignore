@@ -1,0 +1,12 @@
+**/.git
+**/.vs
+**/.github
+**/bin
+**/obj
+**/docs
+**/.brain
+**/DB.txt
+**/CHANGELOG.md
+**/README.md
+**/*.md
+**/*.user

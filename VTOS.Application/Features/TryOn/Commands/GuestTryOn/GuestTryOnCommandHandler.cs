@@ -88,6 +88,7 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
             humanImageUrl = await _imageUploadService.UploadAsync(
                 stream, 
                 command.Photo.FileName, 
+                "tryon",
                 cancellationToken);
 
             _logger.LogDebug("Human photo uploaded: {Url}", humanImageUrl);
@@ -124,13 +125,42 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
                 "TRYON_FAILED");
         }
 
-        // Step 7: Save to TryOnHistory
+        // Step 7: If result is a base64 data URL, upload to MinIO to get a proper URL
+        var resultImageUrl = tryOnResult.ImageUrl;
+        if (resultImageUrl.StartsWith("data:image/"))
+        {
+            try
+            {
+                // Parse: data:image/jpeg;base64,/9j/4AAQ...
+                var commaIdx = resultImageUrl.IndexOf(',');
+                var base64Data = resultImageUrl.Substring(commaIdx + 1);
+                var headerPart = resultImageUrl.Substring(0, commaIdx); // data:image/jpeg;base64
+                var mimeType = headerPart.Replace("data:", "").Replace(";base64", ""); // image/jpeg
+                var ext = mimeType.Contains("png") ? "png" : "jpg";
+
+                var imageBytes = Convert.FromBase64String(base64Data);
+                using var ms = new MemoryStream(imageBytes);
+                var fileName = $"tryon-result-{Guid.NewGuid():N}.{ext}";
+
+                resultImageUrl = await _imageUploadService.UploadAsync(
+                    ms, fileName, "tryon-results", cancellationToken);
+
+                _logger.LogInformation("Try-on result uploaded to storage: {Url}", resultImageUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload try-on result image, returning data URL directly");
+                // Fallback: still return data URL to client, but don't save to DB
+            }
+        }
+
+        // Step 8: Save to TryOnHistory
         var history = new TryOnHistory
         {
             GuestSessionID = guestSessionId,
             OutfitID = command.OutfitId,
             UploadedPhotoURL = humanImageUrl,
-            ResultPhotoURL = tryOnResult.ImageUrl,
+            ResultPhotoURL = resultImageUrl,
             TryOnTimestamp = DateTime.UtcNow,
             SourcePlatform = "Web"
         };
@@ -146,7 +176,7 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
 
         return Result<GuestTryOnResponse>.Success(new GuestTryOnResponse(
             history.Id,
-            tryOnResult.ImageUrl,
+            resultImageUrl,
             guestSessionId,
             remainingTries
         ));

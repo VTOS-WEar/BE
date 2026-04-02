@@ -49,6 +49,7 @@ public interface IApplicationDbContext
     DbSet<ProviderManager> ProviderManagers { get; }
     DbSet<AccountRequest> AccountRequests { get; }
     DbSet<NotificationLog> NotificationLogs { get; }
+    DbSet<InAppNotification> InAppNotifications { get; }
 
     DbSet<T> Set<T>() where T : class;
     

@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VTOS.Application.Abstractions;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 
 namespace VTOS.API.Controllers;
@@ -50,13 +51,6 @@ public class TryOnController : ControllerBase
     /// <summary>
     /// Perform virtual try-on for guest users
     /// </summary>
-    /// <param name="request">Try-on request with outfit ID and photo</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Try-on result with generated image URL</returns>
-    /// <response code="200">Try-on successful</response>
-    /// <response code="400">Invalid input (validation error)</response>
-    /// <response code="404">Outfit not found or unavailable</response>
-    /// <response code="429">Rate limit exceeded (max 5 per session per day)</response>
     [HttpPost("guest")]
     [AllowAnonymous]
     [Consumes("multipart/form-data")]

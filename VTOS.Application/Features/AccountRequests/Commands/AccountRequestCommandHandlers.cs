@@ -4,6 +4,7 @@ using VTOS.Application.Common;
 using VTOS.Application.Features.AccountRequests.DTOs;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
+using VTOS.Application.Features.Notifications;
 
 namespace VTOS.Application.Features.AccountRequests.Commands;
 
@@ -45,8 +46,15 @@ internal static class AccountRequestMapper
 public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public SubmitAccountRequestCommandHandler(IApplicationDbContext context) => _context = context;
+    public SubmitAccountRequestCommandHandler(
+        IApplicationDbContext context,
+        INotificationService notificationService)
+    {
+        _context = context;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<AccountRequestDetailDto>> HandleAsync(
         SubmitAccountRequestCommand command, CancellationToken ct = default)
@@ -89,6 +97,19 @@ public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHa
         _context.AccountRequests.Add(accountRequest);
         await _context.SaveChangesAsync(ct);
 
+        // Notify all admins
+        var typeLabel = accountRequest.Type == AccountRequestType.School ? "Trường học" : "Nhà cung cấp";
+        try
+        {
+            await _notificationService.NotifyAdminsAsync(
+                "📋 Yêu cầu hợp tác mới",
+                $"{accountRequest.OrganizationName} ({typeLabel}) gửi yêu cầu hợp tác.",
+                "AccountRequest",
+                accountRequest.Id, "AccountRequest",
+                "/admin/account-requests", ct);
+        }
+        catch { /* Don't fail the main operation */ }
+
         return Result<AccountRequestDetailDto>.Success(AccountRequestMapper.MapToDetailDto(accountRequest));
     }
 }
@@ -99,15 +120,18 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
 
     public CreateAccountForRequestCommandHandler(
         IApplicationDbContext context,
         IPasswordHasher passwordHasher,
-        IEmailService emailService)
+        IEmailService emailService,
+        INotificationService notificationService)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<AccountRequestDetailDto>> HandleAsync(
@@ -223,6 +247,17 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
         {
             // Log error but don't fail — account is already created
         }
+
+        // Send welcome in-app notification
+        try
+        {
+            await _notificationService.CreateAsync(user.Id,
+                "🎉 Chào mừng bạn!",
+                $"Tài khoản {roleName} của bạn đã được tạo thành công. Hãy cập nhật thông tin hồ sơ.",
+                "Welcome", null, null,
+                roleName == "School" ? "/school/profile" : "/provider/profile", ct);
+        }
+        catch { /* Don't fail */ }
 
         // Reload with navigation
         var saved = await _context.AccountRequests

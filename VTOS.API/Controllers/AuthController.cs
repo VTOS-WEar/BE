@@ -32,6 +32,8 @@ public class AuthController : ControllerBase
     private readonly IConfirm2FACommandHandler _confirm2FAHandler;
     private readonly IDisable2FACommandHandler _disable2FAHandler;
     private readonly IVerify2FACommandHandler _verify2FAHandler;
+    // Google OAuth
+    private readonly IGoogleLoginCommandHandler _googleLoginHandler;
 
     public AuthController(
         IRegisterCommandHandler registerHandler,
@@ -51,7 +53,8 @@ public class AuthController : ControllerBase
         ISetup2FACommandHandler setup2FAHandler,
         IConfirm2FACommandHandler confirm2FAHandler,
         IDisable2FACommandHandler disable2FAHandler,
-        IVerify2FACommandHandler verify2FAHandler)
+        IVerify2FACommandHandler verify2FAHandler,
+        IGoogleLoginCommandHandler googleLoginHandler)
     {
         _registerHandler = registerHandler;
         _loginHandler = loginHandler;
@@ -71,6 +74,7 @@ public class AuthController : ControllerBase
         _confirm2FAHandler = confirm2FAHandler;
         _disable2FAHandler = disable2FAHandler;
         _verify2FAHandler = verify2FAHandler;
+        _googleLoginHandler = googleLoginHandler;
     }
 
     /// <summary>
@@ -414,9 +418,30 @@ public class AuthController : ControllerBase
 
         return Ok(new ChangePasswordResponse(result.Value));
     }
+
+    /// <summary>
+    /// Login or register via Google OAuth.
+    /// Validates Google ID token, creates or links account, and returns JWT.
+    /// </summary>
+    [HttpPost("google-login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request, CancellationToken ct)
+    {
+        var command = new GoogleLoginCommand(request.IdToken);
+        var result = await _googleLoginHandler.HandleAsync(command, ct);
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
+    }
 }
 
 // Request DTOs
+public record GoogleLoginRequest(string IdToken);
 public record VerifyEmailRequest(string Email, string OTPCode);
 public record ResendOTPRequest(string Email);
 public record VerifyPhoneRequest(string Phone);

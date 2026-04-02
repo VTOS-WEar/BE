@@ -6,5 +6,6 @@ public enum NotificationType
     PaymentDeadlineReminder = 2,
     CampaignDeadlineReminder = 3,
     ContractReply = 4,
-    AccountCredentials = 5
+    AccountCredentials = 5,
+    AdminDigest = 6
 }

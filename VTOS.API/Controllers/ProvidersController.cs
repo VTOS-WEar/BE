@@ -43,6 +43,8 @@ public class ProvidersController : ControllerBase
     private readonly IRespondComplaintCommandHandler _respondComplaintHandler;
     // Phase 5 — Distribution overview
     private readonly Application.Features.Distribution.IGetProviderDistributionOverviewHandler _distributionOverviewHandler;
+    // Withdrawal
+    private readonly ICreateProviderWithdrawalRequestCommandHandler _createWithdrawalHandler;
 
     public ProvidersController(
         ICurrentUserService currentUser,
@@ -65,7 +67,8 @@ public class ProvidersController : ControllerBase
         IGetProviderComplaintsQueryHandler getProviderComplaintsHandler,
         IGetProviderComplaintDetailQueryHandler getProviderComplaintDetailHandler,
         IRespondComplaintCommandHandler respondComplaintHandler,
-        Application.Features.Distribution.IGetProviderDistributionOverviewHandler distributionOverviewHandler)
+        Application.Features.Distribution.IGetProviderDistributionOverviewHandler distributionOverviewHandler,
+        ICreateProviderWithdrawalRequestCommandHandler createWithdrawalHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -85,6 +88,7 @@ public class ProvidersController : ControllerBase
         _getProviderComplaintDetailHandler = getProviderComplaintDetailHandler;
         _respondComplaintHandler = respondComplaintHandler;
         _distributionOverviewHandler = distributionOverviewHandler;
+        _createWithdrawalHandler = createWithdrawalHandler;
     }
 
     // ──────── Profile ────────
@@ -328,6 +332,23 @@ public class ProvidersController : ControllerBase
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
+
+    // ──────── Wallet Withdrawal ────────
+
+    /// <summary>Create a withdrawal request from provider wallet.</summary>
+    [HttpPost("me/wallet/withdrawals")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateWithdrawalRequest(
+        [FromBody] CreateProviderWithdrawalRequest request,
+        CancellationToken ct)
+    {
+        var result = await _createWithdrawalHandler.HandleAsync(
+            new CreateProviderWithdrawalRequestCommand(_currentUser.UserId, request.Amount), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
 }
 
 /// <summary>Request body for delivering uniforms.</summary>
@@ -347,3 +368,6 @@ public record ProviderRejectProductionOrderRequest(string Reason);
 
 /// <summary>Request body for responding to a complaint.</summary>
 public record RespondComplaintRequest(string Response, bool MarkResolved = false);
+
+/// <summary>Request body for creating a provider withdrawal request.</summary>
+public record CreateProviderWithdrawalRequest(decimal Amount);

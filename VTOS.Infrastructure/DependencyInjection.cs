@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common.Settings;
 using VTOS.Application.Features.Admin.Queries;
@@ -13,6 +15,7 @@ using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Application.Features.Users.Commands;
 using VTOS.Application.Features.Users.Queries;
+using VTOS.Infrastructure.ExternalServices.Google;
 using VTOS.Infrastructure.ExternalServices.ImageStorage;
 using VTOS.Infrastructure.ExternalServices.TryOn;
 using VTOS.Infrastructure.Persistence;
@@ -33,11 +36,23 @@ public static class DependencyInjection
         // Add In-Memory Cache (reduces DB load for public endpoints)
         services.AddMemoryCache();
 
-        // Add DbContext
+        // Add DbContext — supports SQL Server (dev) and PostgreSQL (prod)
+        var dbProvider = configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
         services.AddDbContext<VTOSDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName)));
+        {
+            if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+            {
+                options.UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName));
+            }
+            else
+            {
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName));
+            }
+        });
 
         // Register DbContext as IApplicationDbContext
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<VTOSDbContext>());
@@ -51,7 +66,9 @@ public static class DependencyInjection
         // Register TryOn Settings (UC-60)
         services.Configure<VirtualTryOnSettings>(configuration.GetSection(VirtualTryOnSettings.SectionName));
         services.Configure<TryOnSettings>(configuration.GetSection(TryOnSettings.SectionName));
-        services.Configure<ImgBBSettings>(configuration.GetSection(ImgBBSettings.SectionName));
+        services.Configure<GeminiTryOnSettings>(configuration.GetSection(GeminiTryOnSettings.SectionName));
+        services.Configure<TryOnProviderSettings>(configuration.GetSection(TryOnProviderSettings.SectionName));
+        services.Configure<MinioSettings>(configuration.GetSection(MinioSettings.SectionName));
 
 
         // Register PayOS Settings
@@ -71,8 +88,21 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // Register TryOn Services with HttpClient (UC-60)
-        services.AddHttpClient<IVirtualTryOnService, VirtualTryOnService>();
-        services.AddHttpClient<IImageUploadService, ImgBBImageService>();
+        // Register both concrete services
+        services.AddHttpClient<VirtualTryOnService>();
+        services.AddHttpClient<GeminiTryOnService>();
+        // Register selector as the IVirtualTryOnService implementation
+        services.AddScoped<IVirtualTryOnService>(sp =>
+        {
+            var selector = new TryOnServiceSelector(
+                sp.GetRequiredService<VirtualTryOnService>(),
+                sp.GetRequiredService<GeminiTryOnService>(),
+                sp.GetRequiredService<IOptions<TryOnProviderSettings>>(),
+                sp.GetRequiredService<ILogger<TryOnServiceSelector>>()
+            );
+            return selector;
+        });
+        services.AddSingleton<IImageUploadService, MinioImageService>();
 
         //Register PayOS Service
         services.AddHttpClient<IPayOSService, PayOSService>();
@@ -98,6 +128,11 @@ public static class DependencyInjection
             VTOS.Application.Features.Auth.Commands.TwoFactor.Disable2FACommandHandler>();
         services.AddScoped<VTOS.Application.Features.Auth.Commands.TwoFactor.IVerify2FACommandHandler,
             VTOS.Application.Features.Auth.Commands.TwoFactor.Verify2FACommandHandler>();
+
+        // Google OAuth
+        services.AddHttpClient<IGoogleTokenValidator, GoogleTokenValidator>();
+        services.AddScoped<VTOS.Application.Features.Auth.Commands.IGoogleLoginCommandHandler,
+            VTOS.Application.Features.Auth.Commands.GoogleLoginCommandHandler>();
 
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
@@ -153,6 +188,8 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
         services.AddHostedService<BackgroundJobs.PaymentDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.CampaignDeadlineReminderJob>();
+        services.AddHostedService<BackgroundJobs.AdminNotificationDigestJob>();
+        services.AddScoped<Application.Features.Notifications.INotificationBroadcaster, Hubs.SignalRNotificationBroadcaster>();
 
         // Phase 04: Admin UI Revamp
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAdminCashFlowQueryHandler,
@@ -215,6 +252,8 @@ public static class DependencyInjection
             VTOS.Application.Features.Schools.Queries.GetSchoolGradesQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetImportHistoryQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetImportHistoryQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetImportStatusQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetImportStatusQueryHandler>();
 
         // School Module - Outfit CRUD
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolOutfitsQueryHandler,
@@ -293,6 +332,10 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Admin.Commands.IApproveWithdrawalCommandHandler,
             VTOS.Application.Features.Admin.Commands.ApproveWithdrawalCommandHandler>();
 
+        // Admin Module - Reject Withdrawal
+        services.AddScoped<VTOS.Application.Features.Admin.Commands.IRejectWithdrawalCommandHandler,
+            VTOS.Application.Features.Admin.Commands.RejectWithdrawalCommandHandler>();
+
         // Parent Module - Bank Account
         services.AddScoped<VTOS.Application.Features.Users.Commands.IAddParentBankAccountCommandHandler,
             VTOS.Application.Features.Users.Commands.AddParentBankAccountCommandHandler>();
@@ -304,6 +347,10 @@ public static class DependencyInjection
         // Admin Module - Get Withdrawal Requests
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
+
+        // Provider Module - Withdrawal Request
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ICreateProviderWithdrawalRequestCommandHandler,
+            VTOS.Application.Features.Providers.Commands.CreateProviderWithdrawalRequestCommandHandler>();
 
         // Provider Module - Profile
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProfileQueryHandler,
@@ -374,6 +421,10 @@ public static class DependencyInjection
             VTOS.Application.Features.Contracts.Queries.GetContractsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractDetailQueryHandler,
             VTOS.Application.Features.Contracts.Queries.GetContractDetailQueryHandler>();
+
+        // Contract-based Provider Resolution (for Campaign creation)
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetContractedProvidersForOutfitsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetContractedProvidersForOutfitsQueryHandler>();
 
         // Admin Module - User Management (UC 3.2.8, 3.2.11)
         services.AddScoped<IGetUserDetailQueryHandler, GetUserDetailQueryHandler>();
@@ -452,6 +503,10 @@ public static class DependencyInjection
             VTOS.Application.Features.AccountRequests.Queries.GetAccountRequestsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.AccountRequests.Queries.IGetAccountRequestDetailQueryHandler,
             VTOS.Application.Features.AccountRequests.Queries.GetAccountRequestDetailQueryHandler>();
+
+        // In-App Notification Service
+        services.AddScoped<VTOS.Application.Features.Notifications.INotificationService,
+            VTOS.Application.Features.Notifications.NotificationService>();
 
         return services;
     }

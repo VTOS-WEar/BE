@@ -5,5 +5,7 @@ public record SchoolDto(
     string SchoolName,
     string? LogoURL,
     string? ContactInfo,
-    int OutfitCount
+    int OutfitCount,
+    string? Level,
+    double? Rating
 );

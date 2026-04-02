@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Features.Notifications;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Commands;
@@ -16,8 +17,13 @@ public interface ISendProductionRequestCommandHandler
 public class SendProductionRequestCommandHandler : ISendProductionRequestCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public SendProductionRequestCommandHandler(IApplicationDbContext db) => _db = db;
+    public SendProductionRequestCommandHandler(IApplicationDbContext db, INotificationService notificationService)
+    {
+        _db = db;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<string>> HandleAsync(SendProductionRequestCommand command, CancellationToken ct = default)
     {
@@ -42,6 +48,17 @@ public class SendProductionRequestCommandHandler : ISendProductionRequestCommand
         // Status stays Pending — this represents the "sent" state visible to provider
         // Provider will Approve or Reject it
         await _db.SaveChangesAsync(ct);
+
+        // Notify provider about new production request
+        try
+        {
+            await _notificationService.NotifyProviderAsync(batch.ProviderID,
+                "📋 Đơn sản xuất mới",
+                $"Trường gửi đơn sản xuất: {batch.BatchName}. Vui lòng xác nhận.",
+                "ProductionOrder", batch.Id, "ProductionBatch",
+                "/provider/production-orders", ct);
+        }
+        catch { /* Don't fail */ }
 
         return Result<string>.Success("Production request sent to provider successfully.");
     }

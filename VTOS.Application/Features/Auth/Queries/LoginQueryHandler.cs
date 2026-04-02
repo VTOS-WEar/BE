@@ -87,31 +87,8 @@ public class LoginQueryHandler : ILoginQueryHandler
             ));
         }
 
-        // Case 2: Role requires 2FA but not yet set up → force setup
-        if (isMandatoryRole && !user.IsTwoFactorEnabled)
-        {
-            // Update last login so they can access the setup endpoint
-            user.LastLogin = DateTime.UtcNow;
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Still generate a real token (they need to be authenticated to set up 2FA)
-            Guid? providerId = null;
-            Guid? schoolId = null;
-            var provMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
-            if (provMgr != null) providerId = provMgr.ProviderID;
-            var schMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
-            if (schMgr != null) schoolId = schMgr.SchoolID;
-
-            var token = _jwtTokenGenerator.GenerateToken(user, providerId, schoolId);
-            var expiresIn = _jwtTokenGenerator.GetExpiryMinutes() * 60;
-            var userDto = new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, providerId);
-            return Result<LoginResponse>.Success(new LoginResponse(
-                token, expiresIn, userDto,
-                RequiresTwoFactorSetup: true
-            ));
-        }
-
-        // Case 3: No 2FA required (Parent without 2FA) → normal login
+        // Case 2 & 3: No 2FA active — normal login
+        // If role should have 2FA but hasn't set up → flag it (soft hint, not blocking)
         user.LastLogin = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -127,10 +104,13 @@ public class LoginQueryHandler : ILoginQueryHandler
         var jwtToken = _jwtTokenGenerator.GenerateToken(user, pid, sid);
         var jwtExpiry = _jwtTokenGenerator.GetExpiryMinutes() * 60;
 
+        var shouldSetup2FA = isMandatoryRole && !user.IsTwoFactorEnabled;
+
         return Result<LoginResponse>.Success(new LoginResponse(
             jwtToken,
             jwtExpiry,
-            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, pid)
+            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, pid),
+            ShouldSetup2FA: shouldSetup2FA
         ));
     }
 }

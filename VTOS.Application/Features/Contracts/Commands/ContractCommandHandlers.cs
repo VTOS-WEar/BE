@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Contracts.DTOs;
+using VTOS.Application.Features.Notifications;
 using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Features.Contracts.Commands;
@@ -29,8 +30,13 @@ internal static class ContractMapper
 public class CreateContractCommandHandler : ICreateContractCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public CreateContractCommandHandler(IApplicationDbContext context) => _context = context;
+    public CreateContractCommandHandler(IApplicationDbContext context, INotificationService notificationService)
+    {
+        _context = context;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<ContractDto>> HandleAsync(
         CreateContractCommand command, CancellationToken ct = default)
@@ -102,6 +108,18 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
         _context.Contracts.Add(contract);
         await _context.SaveChangesAsync(ct);
 
+        // Notify provider about new contract
+        try
+        {
+            var school = await _context.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.Id == schoolId, ct);
+            await _notificationService.NotifyProviderAsync(req.ProviderId,
+                "📋 Hợp đồng mới",
+                $"{school?.SchoolName ?? "Trường"} gửi hợp đồng: {contract.ContractName}.",
+                "Contract", contract.Id, "Contract",
+                "/provider/contracts", ct);
+        }
+        catch { /* Don't fail the main operation */ }
+
         // Reload with navigation for response
         var saved = await ContractMapper.IncludeAll(_context.Contracts.AsQueryable())
             .FirstOrDefaultAsync(x => x.Id == contract.Id, ct);
@@ -114,11 +132,13 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
 
-    public ApproveContractCommandHandler(IApplicationDbContext context, IEmailService emailService)
+    public ApproveContractCommandHandler(IApplicationDbContext context, IEmailService emailService, INotificationService notificationService)
     {
         _context = context;
         _emailService = emailService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<ContractDto>> HandleAsync(
@@ -149,6 +169,17 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
         contract.ApprovedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
 
+        // Notify school (in-app + SignalR)
+        try
+        {
+            await _notificationService.NotifySchoolAsync(contract.SchoolID,
+                "✅ Hợp đồng đã duyệt",
+                $"NCC {contract.Provider?.ProviderName} đã duyệt hợp đồng: {contract.ContractName}.",
+                "Contract", contract.Id, "Contract",
+                "/school/contracts", ct);
+        }
+        catch { /* Don't fail */ }
+
         // Send email notification to the School about contract approval
         try
         {
@@ -177,11 +208,13 @@ public class RejectContractCommandHandler : IRejectContractCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
 
-    public RejectContractCommandHandler(IApplicationDbContext context, IEmailService emailService)
+    public RejectContractCommandHandler(IApplicationDbContext context, IEmailService emailService, INotificationService notificationService)
     {
         _context = context;
         _emailService = emailService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<ContractDto>> HandleAsync(
@@ -212,6 +245,17 @@ public class RejectContractCommandHandler : IRejectContractCommandHandler
         contract.RejectedAt = DateTime.UtcNow;
         contract.RejectionReason = command.Reason;
         await _context.SaveChangesAsync(ct);
+
+        // Notify school (in-app + SignalR)
+        try
+        {
+            await _notificationService.NotifySchoolAsync(contract.SchoolID,
+                "❌ Hợp đồng bị từ chối",
+                $"NCC {contract.Provider?.ProviderName} đã từ chối hợp đồng: {contract.ContractName}.",
+                "Contract", contract.Id, "Contract",
+                "/school/contracts", ct);
+        }
+        catch { /* Don't fail */ }
 
         // Send email notification to the School about contract rejection
         try

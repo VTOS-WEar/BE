@@ -11,6 +11,7 @@ public record LoginResponse(
     UserDto User,
     bool RequiresTwoFactor = false,
     bool RequiresTwoFactorSetup = false,
+    bool ShouldSetup2FA = false,
     string? TwoFactorToken = null
 );
 

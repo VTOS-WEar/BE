@@ -62,6 +62,7 @@ public class SubmitVerificationCommandHandler : ISubmitVerificationCommandHandle
                     avatarUrl = await _imageUploadService.UploadAsync(
                         stream,
                         command.Avatar.FileName,
+                        "avatars",
                         cancellationToken);
                 }
                 user.Avatar = avatarUrl;

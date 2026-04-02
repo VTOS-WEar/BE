@@ -72,6 +72,36 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
                     $"Outfit '{outfit.OutfitName}' is not available.", "OUTFIT_NOT_AVAILABLE");
         }
 
+        // 3.5 Validate contract exists when ProviderID is specified (Option B — optional provider)
+        var outfitsWithProvider = command.Outfits.Where(o => o.ProviderId.HasValue).ToList();
+        if (outfitsWithProvider.Any())
+        {
+            var providerIds = outfitsWithProvider.Select(o => o.ProviderId!.Value).Distinct().ToList();
+
+            // Load approved contracts for this school + these providers
+            var approvedContracts = await _db.Contracts.AsNoTracking()
+                .Where(c => c.SchoolID == schoolId
+                         && c.Status == "Approved"
+                         && providerIds.Contains(c.ProviderID))
+                .Include(c => c.ContractItems)
+                .ToListAsync(ct);
+
+            foreach (var input in outfitsWithProvider)
+            {
+                var contract = approvedContracts
+                    .FirstOrDefault(c => c.ProviderID == input.ProviderId!.Value
+                                      && c.ContractItems.Any(ci => ci.OutfitID == input.OutfitId));
+
+                if (contract == null)
+                {
+                    var outfit = schoolOutfits.FirstOrDefault(o => o.Id == input.OutfitId);
+                    return Result<PublishCampaignResponseDto>.Failure(
+                        $"Provider '{input.ProviderId}' does not have an approved contract for outfit '{outfit?.OutfitName ?? input.OutfitId.ToString()}'.",
+                        "PROVIDER_NO_CONTRACT");
+                }
+            }
+        }
+
         // 4. Create Campaign — Draft or Active based on SaveAsDraft flag
         var campaign = new Campaign
         {
