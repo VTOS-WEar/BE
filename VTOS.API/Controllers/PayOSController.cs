@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Common.Models;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.DTOs;
+using VTOS.Infrastructure.ExternalServices.PayOS;
 
 namespace VTOS.API.Controllers;
 
@@ -18,15 +20,18 @@ public class PayOSController : ControllerBase
     private readonly IPayOSService _payOSService;
     private readonly IPaymentWebhookHandler _paymentWebhookHandler;
     private readonly ILogger<PayOSController> _logger;
+    private readonly PayOSSettings _payOSSettings;
     private const string InternalServerError = "INTERNAL_SERVER_ERROR";
 
     public PayOSController(
         IPayOSService payOSService,
         IPaymentWebhookHandler paymentWebhookHandler,
+        IOptions<PayOSSettings> payOSSettings,
         ILogger<PayOSController> logger)
     {
         _payOSService = payOSService;
         _paymentWebhookHandler = paymentWebhookHandler;
+        _payOSSettings = payOSSettings.Value;
         _logger = logger;
     }
 
@@ -337,7 +342,7 @@ public class PayOSController : ControllerBase
                 webhook?.Data?.PaymentLinkId, webhook?.Success);
             if (webhook != null)
             {
-                if(webhook?.Data?.AccountNumber == "12345678")
+                if(!string.IsNullOrEmpty(_payOSSettings.TestAccountNumber) && webhook?.Data?.AccountNumber == _payOSSettings.TestAccountNumber)
                 {
                     return Ok("ok");
                 }
