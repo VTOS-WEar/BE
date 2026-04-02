@@ -64,6 +64,11 @@ jobs:
               -e ASPNETCORE_ENVIRONMENT=Production \
               -e DatabaseProvider=PostgreSQL \
               -e "ConnectionStrings__DefaultConnection=Host=vtos-postgres;Port=5432;Database=vtosdb;Username=vtos;Password=$(grep DB_PASSWORD /root/vtos/.env | cut -d= -f2)" \
+              -e "ImageStorage__Minio__Endpoint=$(grep MINIO_ENDPOINT /root/vtos/.env | cut -d= -f2)" \
+              -e "ImageStorage__Minio__AccessKey=$(grep MINIO_ACCESS_KEY /root/vtos/.env | cut -d= -f2)" \
+              -e "ImageStorage__Minio__SecretKey=$(grep MINIO_SECRET_KEY /root/vtos/.env | cut -d= -f2)" \
+              -e "ImageStorage__Minio__BucketName=$(grep MINIO_BUCKET /root/vtos/.env | cut -d= -f2)" \
+              -e "ImageStorage__Minio__PublicBaseUrl=$(grep MINIO_PUBLIC_URL /root/vtos/.env | cut -d= -f2)" \
               -p 8080:8080 \
               ${REGISTRY}/${IMAGE_NAME_LC}:latest
 

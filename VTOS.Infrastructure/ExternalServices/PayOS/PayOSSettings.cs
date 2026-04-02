@@ -49,4 +49,9 @@ public class PayOSSettings
     /// API endpoint URL
     /// </summary>
     public string ApiUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// PayOS test webhook account number — webhook calls with this account number are acknowledged but not processed.
+    /// </summary>
+    public string TestAccountNumber { get; set; } = string.Empty;
 }
