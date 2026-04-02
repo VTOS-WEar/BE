@@ -11,6 +11,7 @@ using VTOS.Application.Features.Schools.Commands;
 using VTOS.Application.Features.Schools.DTOs;
 using VTOS.Application.Features.Schools.Queries;
 using VTOS.Domain.Enums;
+using VTOS.Application.Features.Notifications;
 
 namespace VTOS.API.Controllers;
 
@@ -99,6 +100,7 @@ public class SchoolsController : ControllerBase
     private readonly Application.Features.Distribution.IGetDistributionSchedulesHandler _getSchedulesHandler;
     private readonly Application.Features.Distribution.IUpdateDistributionScheduleHandler _updateScheduleHandler;
     private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
+    private readonly INotificationService _notificationService;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -169,7 +171,8 @@ public class SchoolsController : ControllerBase
         Application.Features.Distribution.ICreateDistributionScheduleHandler createScheduleHandler,
         Application.Features.Distribution.IGetDistributionSchedulesHandler getSchedulesHandler,
         Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler,
-        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler)
+        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler,
+        INotificationService notificationService)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -237,6 +240,7 @@ public class SchoolsController : ControllerBase
         _getSchedulesHandler = getSchedulesHandler;
         _updateScheduleHandler = updateScheduleHandler;
         _getContractedProvidersHandler = getContractedProvidersHandler;
+        _notificationService = notificationService;
     }
 
 
@@ -1345,6 +1349,19 @@ public class SchoolsController : ControllerBase
             new ReportDefectCommand(_currentUser.UserId, batchId, request.Title, request.Description, request.ProofImageUrls), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        // Notify admins about new complaint
+        try
+        {
+            await _notificationService.NotifyAdminsAsync(
+                "⚠️ Khiếu nại mới",
+                $"Khiếu nại từ trường: {request.Title}",
+                "Complaint",
+                result.Value, "Complaint",
+                "/admin/complaints", ct);
+        }
+        catch { /* Don't fail the main operation */ }
+
         return Ok(new { complaintId = result.Value });
     }
 

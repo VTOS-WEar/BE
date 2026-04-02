@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Entities;
+using VTOS.Application.Features.Notifications;
 
 namespace VTOS.Application.Features.Schools.Commands;
 
@@ -10,13 +11,16 @@ public class CreateWithdrawalRequestCommandHandler : ICreateWithdrawalRequestCom
 {
     private readonly IApplicationDbContext _db;
     private readonly ILogger<CreateWithdrawalRequestCommandHandler> _logger;
+    private readonly INotificationService _notificationService;
 
     public CreateWithdrawalRequestCommandHandler(
         IApplicationDbContext db,
-        ILogger<CreateWithdrawalRequestCommandHandler> logger)
+        ILogger<CreateWithdrawalRequestCommandHandler> logger,
+        INotificationService notificationService)
     {
         _db = db;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<WithdrawalRequestResponse>> HandleAsync(CreateWithdrawalRequestCommand command, CancellationToken ct = default)
@@ -78,6 +82,19 @@ public class CreateWithdrawalRequestCommandHandler : ICreateWithdrawalRequestCom
         _logger.LogInformation(
             "Withdrawal request created: Id={Id}, WalletId={WalletId}, Amount={Amount}",
             withdrawalRequest.Id, wallet.Id, command.Amount);
+
+        // Notify admins
+        try
+        {
+            var school = await _db.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.Id == schoolMgr.SchoolID, ct);
+            await _notificationService.NotifyAdminsAsync(
+                "💸 Yêu cầu rút tiền mới",
+                $"{school?.SchoolName ?? "Trường"} yêu cầu rút {command.Amount:N0}đ.",
+                "WithdrawalRequest",
+                withdrawalRequest.Id, "WithdrawalRequest",
+                "/admin/withdrawals", ct);
+        }
+        catch { /* Don't fail the main operation */ }
 
         return Result<WithdrawalRequestResponse>.Success(new WithdrawalRequestResponse
         {

@@ -188,6 +188,8 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
         services.AddHostedService<BackgroundJobs.PaymentDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.CampaignDeadlineReminderJob>();
+        services.AddHostedService<BackgroundJobs.AdminNotificationDigestJob>();
+        services.AddScoped<Application.Features.Notifications.INotificationBroadcaster, Hubs.SignalRNotificationBroadcaster>();
 
         // Phase 04: Admin UI Revamp
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAdminCashFlowQueryHandler,

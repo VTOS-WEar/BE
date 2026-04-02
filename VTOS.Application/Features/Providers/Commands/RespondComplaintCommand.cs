@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Features.Notifications;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Providers.Commands;
@@ -20,8 +21,13 @@ public interface IRespondComplaintCommandHandler
 public class RespondComplaintCommandHandler : IRespondComplaintCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public RespondComplaintCommandHandler(IApplicationDbContext db) => _db = db;
+    public RespondComplaintCommandHandler(IApplicationDbContext db, INotificationService notificationService)
+    {
+        _db = db;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<string>> HandleAsync(RespondComplaintCommand command, CancellationToken ct = default)
     {
@@ -55,6 +61,21 @@ public class RespondComplaintCommandHandler : IRespondComplaintCommandHandler
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Notify school about complaint response
+        try
+        {
+            if (complaint.SchoolID != Guid.Empty)
+            {
+                var statusMsg = command.MarkResolved ? "và đánh dấu đã giải quyết" : "";
+                await _notificationService.NotifySchoolAsync(complaint.SchoolID,
+                    "💬 NCC phản hồi khiếu nại",
+                    $"NCC đã phản hồi khiếu nại: {complaint.Title} {statusMsg}".Trim(),
+                    "Complaint", complaint.Id, "Complaint",
+                    "/school/complaints", ct);
+            }
+        }
+        catch { /* Don't fail */ }
 
         var msg = command.MarkResolved ? "Complaint responded and resolved." : "Complaint responded.";
         return Result<string>.Success(msg);

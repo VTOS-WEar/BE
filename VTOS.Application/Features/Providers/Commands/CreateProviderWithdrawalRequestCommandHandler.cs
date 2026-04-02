@@ -4,6 +4,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.Commands;
 using VTOS.Domain.Entities;
+using VTOS.Application.Features.Notifications;
 
 namespace VTOS.Application.Features.Providers.Commands;
 
@@ -11,13 +12,16 @@ public class CreateProviderWithdrawalRequestCommandHandler : ICreateProviderWith
 {
     private readonly IApplicationDbContext _db;
     private readonly ILogger<CreateProviderWithdrawalRequestCommandHandler> _logger;
+    private readonly INotificationService _notificationService;
 
     public CreateProviderWithdrawalRequestCommandHandler(
         IApplicationDbContext db,
-        ILogger<CreateProviderWithdrawalRequestCommandHandler> logger)
+        ILogger<CreateProviderWithdrawalRequestCommandHandler> logger,
+        INotificationService notificationService)
     {
         _db = db;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<WithdrawalRequestResponse>> HandleAsync(CreateProviderWithdrawalRequestCommand command, CancellationToken ct = default)
@@ -79,6 +83,19 @@ public class CreateProviderWithdrawalRequestCommandHandler : ICreateProviderWith
         _logger.LogInformation(
             "Provider withdrawal request created: Id={Id}, WalletId={WalletId}, Amount={Amount}",
             withdrawalRequest.Id, wallet.Id, command.Amount);
+
+        // Notify admins
+        try
+        {
+            var provider = await _db.Providers.AsNoTracking().FirstOrDefaultAsync(p => p.Id == providerMgr.ProviderID, ct);
+            await _notificationService.NotifyAdminsAsync(
+                "💸 Yêu cầu rút tiền mới (NCC)",
+                $"{provider?.ProviderName ?? "NCC"} yêu cầu rút {command.Amount:N0}đ.",
+                "WithdrawalRequest",
+                withdrawalRequest.Id, "WithdrawalRequest",
+                "/admin/withdrawals", ct);
+        }
+        catch { /* Don't fail the main operation */ }
 
         return Result<WithdrawalRequestResponse>.Success(new WithdrawalRequestResponse
         {

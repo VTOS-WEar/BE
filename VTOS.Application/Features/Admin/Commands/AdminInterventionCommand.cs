@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Features.Notifications;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Admin.Commands;
@@ -21,8 +22,13 @@ public interface IAdminInterventionCommandHandler
 public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public AdminInterventionCommandHandler(IApplicationDbContext context) => _context = context;
+    public AdminInterventionCommandHandler(IApplicationDbContext context, INotificationService notificationService)
+    {
+        _context = context;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<string>> HandleAsync(AdminInterventionCommand command, CancellationToken ct = default)
     {
@@ -58,6 +64,31 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
 
         complaint.RespondedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
+
+        // Notify both school and provider about admin intervention
+        try
+        {
+            var statusLabel = command.Action?.ToLower() switch
+            {
+                "resolve" => "Giải quyết",
+                "close" => "Đóng",
+                "escalate" => "Chuyển tiếp",
+                _ => "Ghi chú"
+            };
+            if (complaint.SchoolID != Guid.Empty)
+                await _notificationService.NotifySchoolAsync(complaint.SchoolID,
+                    "👨‍⚖️ Admin can thiệp khiếu nại",
+                    $"Admin {statusLabel} khiếu nại: {complaint.Title}",
+                    "Complaint", complaint.Id, "Complaint",
+                    "/school/complaints", ct);
+            if (complaint.ProviderID.HasValue)
+                await _notificationService.NotifyProviderAsync(complaint.ProviderID.Value,
+                    "👨‍⚖️ Admin can thiệp khiếu nại",
+                    $"Admin {statusLabel} khiếu nại: {complaint.Title}",
+                    "Complaint", complaint.Id, "Complaint",
+                    "/provider/complaints", ct);
+        }
+        catch { /* Don't fail */ }
 
         return Result<string>.Success($"Intervention added. Status: {complaint.Status}");
     }

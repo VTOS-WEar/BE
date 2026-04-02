@@ -2,8 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Features.Notifications;
 using VTOS.Application.Features.Schools.Commands;
 using VTOS.Domain.Entities;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Admin.Commands;
 
@@ -11,13 +13,16 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
 {
     private readonly IApplicationDbContext _db;
     private readonly ILogger<ApproveWithdrawalCommandHandler> _logger;
+    private readonly INotificationService _notificationService;
 
     public ApproveWithdrawalCommandHandler(
         IApplicationDbContext db,
-        ILogger<ApproveWithdrawalCommandHandler> logger)
+        ILogger<ApproveWithdrawalCommandHandler> logger,
+        INotificationService notificationService)
     {
         _db = db;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<WithdrawalRequestResponse>> HandleAsync(ApproveWithdrawalCommand command, CancellationToken ct = default)
@@ -54,6 +59,24 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
         _logger.LogInformation(
             "Withdrawal approved: WithdrawalId={WithdrawalId}, Amount={Amount}, WalletId={WalletId}",
             withdrawal.Id, withdrawal.Amount, wallet.Id);
+
+        // Notify wallet owner (School or Provider)
+        try
+        {
+            if (wallet.OwnerType == WalletOwnerType.School)
+                await _notificationService.NotifySchoolAsync(wallet.OwnerID,
+                    "✅ Rút tiền đã duyệt",
+                    $"Yêu cầu rút {withdrawal.Amount:N0}đ đã được duyệt.",
+                    "Withdrawal", withdrawal.Id, "WithdrawalRequest",
+                    "/school/wallet", ct);
+            else
+                await _notificationService.NotifyProviderAsync(wallet.OwnerID,
+                    "✅ Rút tiền đã duyệt",
+                    $"Yêu cầu rút {withdrawal.Amount:N0}đ đã được duyệt.",
+                    "Withdrawal", withdrawal.Id, "WithdrawalRequest",
+                    "/provider/wallet", ct);
+        }
+        catch { /* Don't fail */ }
 
         return Result<WithdrawalRequestResponse>.Success(new WithdrawalRequestResponse
         {

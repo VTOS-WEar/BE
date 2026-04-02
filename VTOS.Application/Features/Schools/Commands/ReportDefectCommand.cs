@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Features.Notifications;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -18,8 +19,13 @@ public interface IReportDefectCommandHandler
 public class ReportDefectCommandHandler : IReportDefectCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public ReportDefectCommandHandler(IApplicationDbContext db) => _db = db;
+    public ReportDefectCommandHandler(IApplicationDbContext db, INotificationService notificationService)
+    {
+        _db = db;
+        _notificationService = notificationService;
+    }
 
     public async Task<Result<Guid>> HandleAsync(ReportDefectCommand command, CancellationToken ct = default)
     {
@@ -64,6 +70,28 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
 
         _db.Complaints.Add(complaint);
         await _db.SaveChangesAsync(ct);
+
+        // Notify provider about new complaint
+        try
+        {
+            await _notificationService.NotifyProviderAsync(batch.ProviderID,
+                "⚠️ Khiếu nại mới",
+                $"Trường khiếu nại đơn {batch.BatchName}: {command.Title}",
+                "Complaint", complaint.Id, "Complaint",
+                "/provider/complaints", ct);
+        }
+        catch { /* Don't fail */ }
+
+        // Also notify admins
+        try
+        {
+            await _notificationService.NotifyAdminsAsync(
+                "⚠️ Khiếu nại mới",
+                $"Trường khiếu nại đơn {batch.BatchName}: {command.Title}",
+                "Complaint", complaint.Id, "Complaint",
+                "/admin/complaints", ct);
+        }
+        catch { /* Don't fail */ }
 
         return Result<Guid>.Success(complaint.Id);
     }

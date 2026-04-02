@@ -406,4 +406,57 @@ public class EmailService : IEmailService
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
     }
+
+    // ── Phase 03: Admin Notification Digest ──
+
+    public async Task SendAdminDigestEmailAsync(
+        string toEmail, string adminName,
+        IReadOnlyList<(string Title, string Message, DateTime CreatedAt)> notifications,
+        CancellationToken cancellationToken = default)
+    {
+        if (notifications.Count == 0) return;
+
+        var notificationRows = string.Join("", notifications.Select(n =>
+            $@"<tr>
+                <td style='padding: 12px; border-bottom: 1px solid #eee;'>
+                    <strong style='color: #1A1A2E;'>{n.Title}</strong><br/>
+                    <span style='color: #666; font-size: 13px;'>{n.Message}</span><br/>
+                    <span style='color: #999; font-size: 11px;'>{n.CreatedAt.ToLocalTime():HH:mm dd/MM/yyyy}</span>
+                </td>
+            </tr>"));
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"VTOS - 🔔 Bạn có {notifications.Count} thông báo chưa đọc";
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = $@"
+                <html><body style='font-family: Arial, sans-serif;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #6938EF;'>🔔 Thông báo từ VTOS</h2>
+                    <p>Xin chào <strong>{adminName}</strong>,</p>
+                    <p>Bạn có <strong>{notifications.Count} thông báo</strong> chưa xử lý:</p>
+                    <table style='width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px;'>
+                        {notificationRows}
+                    </table>
+                    <div style='text-align: center; margin: 30px 0;'>
+                        <a href='https://vtos.homes/admin/dashboard' style='background-color: #6938EF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Đăng nhập xử lý</a>
+                    </div>
+                    <hr style='margin-top: 30px; border: none; border-top: 1px solid #ddd;'>
+                    <p style='color: #888; font-size: 12px;'>VTOS - Virtual Try-On System</p>
+                </div>
+                </body></html>",
+            TextBody = $"Bạn có {notifications.Count} thông báo chưa đọc trên VTOS. Đăng nhập để xử lý."
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort,
+            _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken);
+        await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
 }

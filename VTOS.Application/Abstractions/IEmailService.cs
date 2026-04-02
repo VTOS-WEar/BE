@@ -58,4 +58,14 @@ public interface IEmailService
         string toEmail, string recipientName,
         string contractName, string action, string respondentName,
         CancellationToken cancellationToken = default);
+
+    // ── Phase 03: Admin Notification Digest ──
+
+    /// <summary>
+    /// Sends a batched digest email to an Admin user with all unread notifications.
+    /// </summary>
+    Task SendAdminDigestEmailAsync(
+        string toEmail, string adminName,
+        IReadOnlyList<(string Title, string Message, DateTime CreatedAt)> notifications,
+        CancellationToken cancellationToken = default);
 }

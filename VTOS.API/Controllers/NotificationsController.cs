@@ -107,4 +107,20 @@ public class NotificationsController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new { message = "All marked as read", count = unread.Count });
     }
+
+    /// <summary>
+    /// POST /api/notifications/heartbeat — Admin FE calls every 30s to track online status.
+    /// Updates User.LastLoginAt so the digest job knows who is offline.
+    /// </summary>
+    [HttpPost("heartbeat")]
+    public async Task<IActionResult> Heartbeat()
+    {
+        var userId = GetUserId();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return NotFound();
+
+        user.LastLogin = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return Ok(new { status = "ok" });
+    }
 }

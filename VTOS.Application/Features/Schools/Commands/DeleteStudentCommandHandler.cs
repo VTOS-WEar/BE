@@ -25,6 +25,9 @@ public class DeleteStudentCommandHandler : IDeleteStudentCommandHandler
         if (child == null)
             return Result<string>.Failure("Student not found.", "STUDENT_NOT_FOUND");
 
+        if (child.ParentUserID != null)
+            return Result<string>.Failure("Không thể xóa học sinh đã liên kết với phụ huynh. Vui lòng hủy liên kết trước.", "STUDENT_HAS_PARENT");
+
         _db.ChildProfiles.Remove(child);
         await _db.SaveChangesAsync(ct);
 
