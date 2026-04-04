@@ -20,5 +20,6 @@ public record OutfitDetailResponse(
     SizeChartDto? SizeChart,
     IEnumerable<string> Categories,
     decimal AverageRating,
-    int FeedbackCount
+    int FeedbackCount,
+    IEnumerable<ReviewDto> Reviews
 );
