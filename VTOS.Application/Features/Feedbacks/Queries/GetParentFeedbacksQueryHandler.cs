@@ -29,7 +29,7 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             .ToListAsync(ct);
 
         if (!parentOrderIds.Any())
-            return new ParentFeedbacksResponse(new(), 0, query.Page, query.PageSize, new());
+            return new ParentFeedbacksResponse(new(), 0, query.Page, query.PageSize, new(), new());
 
         // Get all order items for parent's orders with their campaign and outfit info
         var parentOrderItems = await _db.OrderItems
@@ -55,7 +55,7 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             .ToListAsync(ct);
 
         if (!parentOrderItems.Any())
-            return new ParentFeedbacksResponse(new(), 0, query.Page, query.PageSize, new());
+            return new ParentFeedbacksResponse(new(), 0, query.Page, query.PageSize, new(), new());
 
         var orderItemIds = parentOrderItems.Select(oi => oi.OrderItemId).ToList();
 
@@ -126,6 +126,17 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             .OrderBy(c => c.CampaignName)
             .ToList();
 
-        return new ParentFeedbacksResponse(paginated, total, query.Page, query.PageSize, campaignFilters);
+        // Get rating counts
+        var allCount = ordered.Count;
+        var ratedCount = ordered.Count(f => f.Rating.HasValue);
+        var notRatedCount = ordered.Count(f => !f.Rating.HasValue);
+        var ratingCounts = new List<RatingCountDto>
+        {
+            new RatingCountDto("all", allCount),
+            new RatingCountDto("rated", ratedCount),
+            new RatingCountDto("not-rated", notRatedCount)
+        };
+
+        return new ParentFeedbacksResponse(paginated, total, query.Page, query.PageSize, campaignFilters, ratingCounts);
     }
 }

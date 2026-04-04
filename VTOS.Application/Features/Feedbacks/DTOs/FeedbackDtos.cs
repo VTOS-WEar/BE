@@ -33,12 +33,15 @@ public record ParentFeedbackDto(
     int Quantity
 );
 
+public record RatingCountDto(string Label, int Count);
+
 public record ParentFeedbacksResponse(
     List<ParentFeedbackDto> Items,
     int Total,
     int Page,
     int PageSize,
-    List<CampaignFilterDto> Campaigns
+    List<CampaignFilterDto> Campaigns,
+    List<RatingCountDto> RatingCounts
 );
 
 public record CampaignFilterDto(
