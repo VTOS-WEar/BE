@@ -35,11 +35,11 @@ public class UpdateChildProfileValidator : AbstractValidator<UpdateChildProfileC
             .When(x => x.HeightCm.HasValue)
             .WithMessage("HeightCm must be between 30 and 220 cm.");
 
-        // WeightKg is optional; if provided must be in a sensible range
+        // WeightKg is optional; if provided must be in a sensible range for children
         RuleFor(x => x.WeightKg)
-            .InclusiveBetween(1, 200)
+            .InclusiveBetween(5, 100)
             .When(x => x.WeightKg.HasValue)
-            .WithMessage("WeightKg must be between 1 and 200 kg.");
+            .WithMessage("WeightKg must be between 5 and 100 kg.");
 
     }
 }

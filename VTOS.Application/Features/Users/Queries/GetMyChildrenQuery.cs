@@ -34,6 +34,7 @@ public class GetMyChildrenQueryHandler
                 c.Age,
                 c.Grade,
                 c.Gender.ToString(),
+                c.Avatar,
                 new ChildSchoolDto(c.School.Id, c.School.SchoolName, c.School.LogoURL),
                 c.HeightCm,
                 c.WeightKg

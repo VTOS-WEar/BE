@@ -68,15 +68,10 @@ namespace VTOS.Application.Features.Children.Commands
                 isUpdated = true;
             }
 
-            if (!isUpdated)
+            if (isUpdated)
             {
-                return Result<UpdateChildProfileResponse>.Failure(
-                    "No changes detected",
-                    "NO_CHANGES"
-                );
+                await _context.SaveChangesAsync(cancellationToken);
             }
-
-            await _context.SaveChangesAsync(cancellationToken);
 
             return Result<UpdateChildProfileResponse>.Success(
                 new UpdateChildProfileResponse(

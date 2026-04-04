@@ -164,6 +164,7 @@ public static class DependencyInjection
         services.AddScoped<IGetMyChildProfileQueryHandler, GetMyChildProfileQueryHandler>();
         services.AddScoped<IGetChildProfileQueryHandler, GetChildProfileQueryHandler>();
         services.AddScoped<IUpdateChildProfileCommandHandler, UpdateChildProfileCommandHandler>();
+        services.AddScoped<IUpdateChildAvatarCommandHandler, UpdateChildAvatarCommandHandler>();
 
         // Public Module Handlers (UC 3.3.2, 3.3.3, 3.3.4, 3.3.5)
         services.AddScoped<GetSchoolsQueryHandler>();
