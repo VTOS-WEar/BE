@@ -184,6 +184,7 @@ public static class DependencyInjection
         services.AddScoped<IPaymentWebhookHandler, PaymentWebhookHandler>();
         services.AddScoped<IGetOrderStatusQueryHandler, GetOrderStatusQueryHandler>();
         services.AddScoped<IGetOrderHistoryQueryHandler, GetOrderHistoryQueryHandler>();
+        services.AddScoped<IGetOrderDetailForFeedbackQueryHandler, GetOrderDetailForFeedbackQueryHandler>();
 
         // Background Jobs
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
@@ -508,6 +509,12 @@ public static class DependencyInjection
         // In-App Notification Service
         services.AddScoped<VTOS.Application.Features.Notifications.INotificationService,
             VTOS.Application.Features.Notifications.NotificationService>();
+
+        // Feedback Module (Campaign Outfit Feedback)
+        services.AddScoped<VTOS.Application.Features.Feedbacks.Commands.ISubmitFeedbackCommandHandler,
+            VTOS.Application.Features.Feedbacks.Commands.SubmitFeedbackCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Feedbacks.Queries.IGetParentFeedbacksQueryHandler,
+            VTOS.Application.Features.Feedbacks.Queries.GetParentFeedbacksQueryHandler>();
 
         return services;
     }

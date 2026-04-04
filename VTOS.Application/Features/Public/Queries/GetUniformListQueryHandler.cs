@@ -44,24 +44,44 @@ public class GetUniformListQueryHandler
 
         var totalCount = await outfitsQuery.CountAsync(ct);
 
-        var items = await outfitsQuery
+        // Get outfits with categories
+        var outfits = await outfitsQuery
             .OrderBy(o => o.OutfitName)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(o => new UniformDto(
-                o.Id,
-                o.OutfitName,
-                o.Price,
-                o.OutfitType.ToString(),
-                o.MainImageURL,
-                o.IsAvailable,
-                o.OutfitCategories.Select(oc => oc.Category.CategoryName).ToList(),
-                o.Feedbacks.Any()
-                    ? Math.Round((decimal)o.Feedbacks.Average(f => f.Rating), 1)
-                    : 0m,
-                o.Feedbacks.Count
-            ))
+            .Include(o => o.OutfitCategories)
+                .ThenInclude(oc => oc.Category)
             .ToListAsync(ct);
+
+        // Get campaign outfit IDs and feedback stats for these outfits
+        var outfitIdMap = new Dictionary<Guid, (decimal AvgRating, int Count)>();
+
+        foreach (var outfit in outfits)
+        {
+            var feedbacks = await _context.Feedbacks
+                .AsNoTracking()
+                .Where(f => f.ProductVariantID == outfit.Id)
+                .ToListAsync(ct);
+
+            var avgRating = feedbacks.Any() 
+                ? Math.Round((decimal)feedbacks.Average(f => f.Rating), 1)
+                : 0m;
+
+            outfitIdMap[outfit.Id] = (avgRating, feedbacks.Count);
+        }
+
+        // Build DTOs
+        var items = outfits.Select(o => new UniformDto(
+            o.Id,
+            o.OutfitName,
+            o.Price,
+            o.OutfitType.ToString(),
+            o.MainImageURL,
+            o.IsAvailable,
+            o.OutfitCategories.Select(oc => oc.Category.CategoryName).ToList(),
+            outfitIdMap[o.Id].AvgRating,
+            outfitIdMap[o.Id].Count
+        )).ToList();
 
         var result = new UniformListResponse(items, totalCount, query.Page, query.PageSize);
 

@@ -23,14 +23,18 @@ public class GetOutfitDetailQueryHandler
                 .ThenInclude(sc => sc!.SizeChartDetails)
             .Include(o => o.OutfitCategories)
                 .ThenInclude(oc => oc.Category)
-            .Include(o => o.Feedbacks)
             .FirstOrDefaultAsync(o => o.Id == query.OutfitId, ct);
 
         if (outfit == null)
             return null;
 
+        // Get feedbacks for this outfit across all campaigns
+        var feedbacks = await _context.Feedbacks
+            .AsNoTracking()
+            .Where(f => f.ProductVariantID == query.OutfitId)
+            .ToListAsync(ct);
+
         // Calculate average rating
-        var feedbacks = outfit.Feedbacks.ToList();
         var averageRating = feedbacks.Any() ? (decimal)feedbacks.Average(f => f.Rating) : 0m;
 
         // Build size chart DTO
