@@ -10,6 +10,7 @@ public class OrderDetailForFeedbackDto
     public string OrderStatus { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
+    public string CampaignName { get; set; } = string.Empty;
     public List<OrderItemForFeedbackDto> Items { get; set; } = new();
 }
 

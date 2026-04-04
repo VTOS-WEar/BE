@@ -83,6 +83,7 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
             OrderStatus = order.OrderStatus.ToString(),
             OrderDate = order.OrderDate,
             ShippingAddress = order.ShippingAddress,
+            CampaignName = order.Campaign?.CampaignName ?? string.Empty,
             Items = items
         };
 
