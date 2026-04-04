@@ -28,10 +28,12 @@ public class GetOutfitDetailQueryHandler
         if (outfit == null)
             return null;
 
-        // Get feedbacks for this outfit across all campaigns
+        // Get feedbacks for this outfit across all orders
         var feedbacks = await _context.Feedbacks
             .AsNoTracking()
-            .Where(f => f.ProductVariantID == query.OutfitId)
+            .Include(f => f.OrderItem)
+                .ThenInclude(oi => oi.ProductVariant)
+            .Where(f => f.OrderItem.ProductVariant.OutfitID == query.OutfitId)
             .ToListAsync(ct);
 
         // Calculate average rating

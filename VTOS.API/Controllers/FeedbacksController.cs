@@ -31,14 +31,14 @@ public class FeedbacksController : ControllerBase
     }
 
     /// <summary>
-    /// Submit feedback for a campaign outfit
+    /// Submit feedback for an order item
     /// </summary>
     /// <remarks>
     /// Sample request:
     /// 
-    ///     POST /api/feedbacks/campaign-outfit
+    ///     POST /api/feedbacks/order-item
     ///     {
-    ///         "campaignOutfitId": "550e8400-e29b-41d4-a716-446655440000",
+    ///         "orderItemId": "550e8400-e29b-41d4-a716-446655440000",
     ///         "rating": 5,
     ///         "comment": "Great quality and great fit!"
     ///     }
@@ -46,12 +46,12 @@ public class FeedbacksController : ControllerBase
     /// <param name="request">Feedback request</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success or failure result</returns>
-    [HttpPost("campaign-outfit")]
+    [HttpPost("order-item")]
     [ProducesResponseType(typeof(Result<SubmitFeedbackResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> SubmitCampaignOutfitFeedback(
+    public async Task<IActionResult> SubmitOrderItemFeedback(
         [FromBody] SubmitFeedbackRequest request,
         CancellationToken cancellationToken)
     {
@@ -63,13 +63,12 @@ public class FeedbacksController : ControllerBase
                 return BadRequest(Result<SubmitFeedbackResponse>.Failure("Request cannot be empty", "INVALID_REQUEST"));
             }
 
-            _logger.LogInformation("Feedback submitted for campaign outfit: {ProductVariantId} with rating: {Rating}",
-                request.ProductVariantId, request.Rating);
+            _logger.LogInformation("Feedback submitted for order item: {OrderItemId} with rating: {Rating}",
+                request.OrderItemId, request.Rating);
 
             var command = new SubmitFeedbackCommand(
                 _currentUserService.UserId,
-                request.ProductVariantId,
-                request.CampaignId,
+                request.OrderItemId,
                 request.Rating,
                 request.Comment
             );

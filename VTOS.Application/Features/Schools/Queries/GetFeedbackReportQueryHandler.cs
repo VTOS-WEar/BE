@@ -60,12 +60,34 @@ public class GetFeedbackReportQueryHandler : IGetFeedbackReportQueryHandler
             });
         }
 
-        // Get feedbacks for school's product variants
+        // Get order item IDs for these product variants
+        var orderItemIds = await _db.OrderItems
+            .AsNoTracking()
+            .Where(oi => productVariantIds.Contains(oi.ProductVariantID))
+            .Select(oi => oi.Id)
+            .ToListAsync(ct);
+
+        if (!orderItemIds.Any())
+        {
+            return Result<FeedbackReportDto>.Success(new FeedbackReportDto
+            {
+                TotalFeedbacks = 0,
+                AvgRating = 0,
+                RatingDistribution = new Dictionary<int, int>
+                {
+                    { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }
+                }
+            });
+        }
+
+        // Get feedbacks for school's order items
         var feedbacksQuery = _db.Feedbacks
             .AsNoTracking()
             .Include(f => f.User)
-            .Include(f => f.ProductVariant).ThenInclude(pv => pv.Outfit)
-            .Where(f => productVariantIds.Contains(f.ProductVariantID));
+            .Include(f => f.OrderItem)
+                .ThenInclude(oi => oi.ProductVariant)
+                .ThenInclude(pv => pv.Outfit)
+            .Where(f => orderItemIds.Contains(f.OrderItemID));
 
         // Apply date filters
         if (query.FromDate.HasValue)
@@ -97,7 +119,7 @@ public class GetFeedbackReportQueryHandler : IGetFeedbackReportQueryHandler
             {
                 FeedbackId = f.Id,
                 UserName = f.User.FullName,
-                OutfitName = f.ProductVariant.Outfit.OutfitName,
+                OutfitName = f.OrderItem.ProductVariant.Outfit.OutfitName,
                 Rating = f.Rating,
                 Comment = f.Comment,
                 Timestamp = f.Timestamp
@@ -113,3 +135,5 @@ public class GetFeedbackReportQueryHandler : IGetFeedbackReportQueryHandler
         });
     }
 }
+
+          

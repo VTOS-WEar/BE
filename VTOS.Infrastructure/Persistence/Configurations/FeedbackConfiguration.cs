@@ -16,10 +16,7 @@ public class FeedbackConfiguration : IEntityTypeConfiguration<Feedback>
         builder.Property(f => f.UserID)
             .IsRequired();
 
-        builder.Property(f => f.ProductVariantID)
-            .IsRequired();
-
-        builder.Property(f => f.CampaignID)
+        builder.Property(f => f.OrderItemID)
             .IsRequired();
 
         builder.Property(f => f.Rating)
@@ -42,15 +39,11 @@ public class FeedbackConfiguration : IEntityTypeConfiguration<Feedback>
             .HasForeignKey(f => f.UserID)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(f => f.ProductVariant)
-            .WithMany(pv => pv.Feedbacks)
-            .HasForeignKey(f => f.ProductVariantID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(f => f.Campaign)
-            .WithMany(c => c.Feedbacks)
-            .HasForeignKey(f => f.CampaignID)
+        builder.HasOne(f => f.OrderItem)
+            .WithMany(oi => oi.Feedbacks)
+            .HasForeignKey(f => f.OrderItemID)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
 

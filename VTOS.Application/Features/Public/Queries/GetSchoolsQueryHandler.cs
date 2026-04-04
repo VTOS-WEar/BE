@@ -46,7 +46,9 @@ public class GetSchoolsQueryHandler
             var avgRating = outfitIds.Any() 
                 ? await _context.Feedbacks
                     .AsNoTracking()
-                    .Where(f => outfitIds.Contains(f.ProductVariantID))
+                    .Include(f => f.OrderItem)
+                        .ThenInclude(oi => oi.ProductVariant)
+                    .Where(f => outfitIds.Contains(f.OrderItem.ProductVariant.OutfitID))
                     .AverageAsync(f => (double?)f.Rating, ct)
                 : null;
 

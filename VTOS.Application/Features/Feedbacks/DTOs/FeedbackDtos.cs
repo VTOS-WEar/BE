@@ -1,17 +1,15 @@
 namespace VTOS.Application.Features.Feedbacks.DTOs;
 
 public record SubmitFeedbackRequest(
-   Guid UserId,
-    Guid ProductVariantId,
-    Guid CampaignId,
+    Guid UserId,
+    Guid OrderItemId,
     int Rating,
     string? Comment
 );
 
 public record SubmitFeedbackResponse(
     Guid FeedbackId,
-    Guid ProductVariantId,
-    Guid CampaignId,
+    Guid OrderItemId,
     int Rating,
     string? Comment,
     DateTime Timestamp
@@ -20,7 +18,7 @@ public record SubmitFeedbackResponse(
 // Parent feedback view - for listing feedbacks with product info
 public record ParentFeedbackDto(
     Guid FeedbackId,
-    Guid CampaignOutfitId,
+    Guid OrderItemId,
     Guid CampaignId,
     string CampaignName,
     Guid OutfitId,

@@ -60,7 +60,9 @@ public class GetUniformListQueryHandler
         {
             var feedbacks = await _context.Feedbacks
                 .AsNoTracking()
-                .Where(f => f.ProductVariantID == outfit.Id)
+                .Include(f => f.OrderItem)
+                    .ThenInclude(oi => oi.ProductVariant)
+                .Where(f => f.OrderItem.ProductVariant.OutfitID == outfit.Id)
                 .ToListAsync(ct);
 
             var avgRating = feedbacks.Any() 

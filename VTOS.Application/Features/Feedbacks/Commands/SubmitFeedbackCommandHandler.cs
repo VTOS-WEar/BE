@@ -28,18 +28,37 @@ public class SubmitFeedbackCommandHandler : ISubmitFeedbackCommandHandler
                 "INVALID_RATING");
         }
 
-        // Check if user already has feedback for this product variant in this campaign
+        // Verify OrderItem exists and belongs to this user's order
+        var orderItem = await _context.OrderItems
+            .Include(oi => oi.Order)
+                .ThenInclude(o => o.ChildProfile)
+            .FirstOrDefaultAsync(oi => oi.Id == command.OrderItemId, cancellationToken);
+
+        if (orderItem == null)
+        {
+            return Result<SubmitFeedbackResponse>.Failure(
+                "Order item not found",
+                "ORDER_ITEM_NOT_FOUND");
+        }
+
+        if (orderItem.Order.ChildProfile.ParentUserID != command.UserId)
+        {
+            return Result<SubmitFeedbackResponse>.Failure(
+                "You are not authorized to submit feedback for this order",
+                "UNAUTHORIZED_ORDER_ACCESS");
+        }
+
+        // Check if user already has feedback for this order item
         var existingFeedback = await _context.Feedbacks
             .FirstOrDefaultAsync(
                 f => f.UserID == command.UserId 
-                    && f.ProductVariantID == command.ProductVariantId
-                    && f.CampaignID == command.CampaignId,
+                    && f.OrderItemID == command.OrderItemId,
                 cancellationToken);
 
         if (existingFeedback != null)
         {
             return Result<SubmitFeedbackResponse>.Failure(
-                "You have already submitted feedback for this outfit",
+                "You have already submitted feedback for this item",
                 "FEEDBACK_ALREADY_EXISTS");
         }
 
@@ -47,8 +66,7 @@ public class SubmitFeedbackCommandHandler : ISubmitFeedbackCommandHandler
         var feedback = new Feedback
         {
             UserID = command.UserId,
-            ProductVariantID = command.ProductVariantId,
-            CampaignID = command.CampaignId,
+            OrderItemID = command.OrderItemId,
             Rating = command.Rating,
             Comment = command.Comment?.Trim(),
             Timestamp = DateTime.UtcNow,
@@ -61,8 +79,7 @@ public class SubmitFeedbackCommandHandler : ISubmitFeedbackCommandHandler
         return Result<SubmitFeedbackResponse>.Success(
             new SubmitFeedbackResponse(
                 feedback.Id,
-                command.ProductVariantId,
-                command.CampaignId,
+                command.OrderItemId,
                 feedback.Rating,
                 feedback.Comment,
                 feedback.Timestamp
