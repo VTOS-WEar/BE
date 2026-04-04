@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Feedbacks.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Feedbacks.Queries;
 
@@ -20,10 +21,10 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
 
     public async Task<ParentFeedbacksResponse> HandleAsync(GetParentFeedbacksQuery query, CancellationToken ct = default)
     {
-        // Get all orders for this parent
+        // Get all delivered orders for this parent
         var parentOrderIds = await _db.Orders.Include(x => x.ChildProfile)
             .AsNoTracking()
-            .Where(o => o.ChildProfile.ParentUserID == query.ParentId)
+            .Where(o => o.ChildProfile.ParentUserID == query.ParentId && o.OrderStatus == OrderStatus.Delivered)
             .Select(o => o.Id)
             .ToListAsync(ct);
 

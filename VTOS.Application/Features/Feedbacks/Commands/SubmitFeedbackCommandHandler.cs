@@ -55,25 +55,35 @@ public class SubmitFeedbackCommandHandler : ISubmitFeedbackCommandHandler
                     && f.OrderItemID == command.OrderItemId,
                 cancellationToken);
 
+        Feedback feedback;
+
         if (existingFeedback != null)
         {
-            return Result<SubmitFeedbackResponse>.Failure(
-                "You have already submitted feedback for this item",
-                "FEEDBACK_ALREADY_EXISTS");
+            // Update existing feedback (allow editing)
+            existingFeedback.Rating = command.Rating;
+            existingFeedback.Comment = command.Comment?.Trim();
+            existingFeedback.Timestamp = DateTime.UtcNow;
+            existingFeedback.ModerationStatus = ModerationStatus.Pending;
+            
+            _context.Feedbacks.Update(existingFeedback);
+            feedback = existingFeedback;
+        }
+        else
+        {
+            // Create new feedback
+            feedback = new Feedback
+            {
+                UserID = command.UserId,
+                OrderItemID = command.OrderItemId,
+                Rating = command.Rating,
+                Comment = command.Comment?.Trim(),
+                Timestamp = DateTime.UtcNow,
+                ModerationStatus = ModerationStatus.Pending
+            };
+
+            _context.Feedbacks.Add(feedback);
         }
 
-        // Create feedback
-        var feedback = new Feedback
-        {
-            UserID = command.UserId,
-            OrderItemID = command.OrderItemId,
-            Rating = command.Rating,
-            Comment = command.Comment?.Trim(),
-            Timestamp = DateTime.UtcNow,
-            ModerationStatus = ModerationStatus.Pending
-        };
-
-        _context.Feedbacks.Add(feedback);
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<SubmitFeedbackResponse>.Success(
