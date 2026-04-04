@@ -48,7 +48,9 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
                 OutfitName = oi.ProductVariant.Outfit.OutfitName,
                 OutfitImage = oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL,
                 OutfitType = oi.ProductVariant.Outfit.OutfitType.ToString(),
-                Price = oi.UnitPrice
+                Price = oi.UnitPrice,
+                Size = oi.ProductVariant.Size,
+                Quantity = oi.Quantity
             })
             .ToListAsync(ct);
 
@@ -97,7 +99,9 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
                 Comment: feedback?.Comment,
                 FeedbackTimestamp: feedback?.Timestamp,
                 OutfitPrice: oi.Price,
-                OutfitType: oi.OutfitType
+                OutfitType: oi.OutfitType,
+                Size: oi.Size ?? "N/A",
+                Quantity: oi.Quantity
             ));
         }
 

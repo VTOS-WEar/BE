@@ -28,7 +28,9 @@ public record ParentFeedbackDto(
     string? Comment,
     DateTime? FeedbackTimestamp,
     decimal OutfitPrice,
-    string OutfitType
+    string OutfitType,
+    string Size,
+    int Quantity
 );
 
 public record ParentFeedbacksResponse(
