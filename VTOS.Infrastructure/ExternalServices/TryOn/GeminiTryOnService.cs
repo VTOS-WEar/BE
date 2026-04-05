@@ -78,10 +78,20 @@ public class GeminiTryOnService : IVirtualTryOnService
             var humanBytes = await _httpClient.GetByteArrayAsync(humanImageUrl, cancellationToken);
             var garmentBytes = await _httpClient.GetByteArrayAsync(garmentImageUrl, cancellationToken);
 
+            _logger.LogInformation("Downloaded images. Human: {HumanSize} bytes, Garment: {GarmentSize} bytes",
+                humanBytes.Length, garmentBytes.Length);
+
             var humanBase64 = Convert.ToBase64String(humanBytes);
             var garmentBase64 = Convert.ToBase64String(garmentBytes);
 
-            // Step 2: Build Gemini API request
+            // Step 2: Detect MIME types from actual image bytes
+            var humanMimeType = DetectMimeType(humanBytes, humanImageUrl);
+            var garmentMimeType = DetectMimeType(garmentBytes, garmentImageUrl);
+
+            _logger.LogInformation("Detected MIME types. Human: {HumanMime}, Garment: {GarmentMime}",
+                humanMimeType, garmentMimeType);
+
+            // Step 3: Build Gemini API request
             var apiUrl = $"https://generativelanguage.googleapis.com/v1beta/models/{_settings.Model}:generateContent?key={_settings.ApiKey}";
 
             var requestBody = new
@@ -97,7 +107,7 @@ public class GeminiTryOnService : IVirtualTryOnService
                             {
                                 inline_data = new
                                 {
-                                    mime_type = "image/jpeg",
+                                    mime_type = garmentMimeType,
                                     data = garmentBase64
                                 }
                             },
@@ -105,7 +115,7 @@ public class GeminiTryOnService : IVirtualTryOnService
                             {
                                 inline_data = new
                                 {
-                                    mime_type = "image/jpeg",
+                                    mime_type = humanMimeType,
                                     data = humanBase64
                                 }
                             }
@@ -132,7 +142,10 @@ public class GeminiTryOnService : IVirtualTryOnService
             {
                 _logger.LogError("Gemini API error. Status: {Status}, Response: {Response}",
                     response.StatusCode, responseContent);
-                return new TryOnResult(false, null, $"Gemini API error: {response.StatusCode}");
+                
+                // Extract error message from Gemini response for better debugging
+                var errorDetail = TryExtractGeminiError(responseContent);
+                return new TryOnResult(false, null, $"Gemini API error: {response.StatusCode} - {errorDetail}");
             }
 
             // Step 3: Parse response — extract generated image
@@ -171,6 +184,71 @@ public class GeminiTryOnService : IVirtualTryOnService
             return new TryOnResult(false, null, $"Gemini service error: {ex.Message}");
         }
     }
+
+    #region Helper Methods
+    /// <summary>
+    /// Detect MIME type from image magic bytes, with URL extension as fallback.
+    /// </summary>
+    private static string DetectMimeType(byte[] imageBytes, string url)
+    {
+        // Check magic bytes first
+        if (imageBytes.Length >= 8)
+        {
+            // PNG: 89 50 4E 47
+            if (imageBytes[0] == 0x89 && imageBytes[1] == 0x50 && imageBytes[2] == 0x4E && imageBytes[3] == 0x47)
+                return "image/png";
+
+            // JPEG: FF D8 FF
+            if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8 && imageBytes[2] == 0xFF)
+                return "image/jpeg";
+
+            // WebP: RIFF....WEBP
+            if (imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46 && imageBytes[3] == 0x46
+                && imageBytes.Length >= 12 && imageBytes[8] == 0x57 && imageBytes[9] == 0x45 && imageBytes[10] == 0x42 && imageBytes[11] == 0x50)
+                return "image/webp";
+
+            // GIF: GIF8
+            if (imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46 && imageBytes[3] == 0x38)
+                return "image/gif";
+
+            // BMP: BM
+            if (imageBytes[0] == 0x42 && imageBytes[1] == 0x4D)
+                return "image/bmp";
+        }
+
+        // Fallback: check URL extension
+        var lowerUrl = url.ToLowerInvariant();
+        if (lowerUrl.Contains(".png")) return "image/png";
+        if (lowerUrl.Contains(".webp")) return "image/webp";
+        if (lowerUrl.Contains(".gif")) return "image/gif";
+        if (lowerUrl.Contains(".bmp")) return "image/bmp";
+
+        // Default to JPEG
+        return "image/jpeg";
+    }
+
+    /// <summary>
+    /// Try to extract a meaningful error message from the Gemini API error response JSON.
+    /// </summary>
+    private static string TryExtractGeminiError(string responseContent)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseContent);
+            if (doc.RootElement.TryGetProperty("error", out var errorObj))
+            {
+                var message = errorObj.TryGetProperty("message", out var msg) ? msg.GetString() : null;
+                var status = errorObj.TryGetProperty("status", out var st) ? st.GetString() : null;
+                return message ?? status ?? responseContent;
+            }
+        }
+        catch
+        {
+            // If JSON parsing fails, return raw content (truncated)
+        }
+        return responseContent.Length > 500 ? responseContent[..500] : responseContent;
+    }
+    #endregion
 
     #region Gemini Response Models
     private class GeminiResponse
