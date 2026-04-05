@@ -39,11 +39,20 @@ Adapt the uniform naturally to the existing body shape of the person in the seco
 Keep the uniform details accurate:
 garment cut, collar shape, neckline, sleeve shape, cuff shape, hemline, seams, trim, stripe placement, logo placement, badge placement, embroidery, text, pattern, and fabric texture.
 
+IMPORTANT:
+Only transfer elements that are part of the actual garment design.
+Do NOT include any temporary tags, labels, stickers, size tags, neck tags, or non-design attachments (such as ""TC"" labels or hanging tags).
+These elements must not appear anywhere in the final image.
+
+Ensure the neckline and chest area are clean and natural, with no tags, patches, or artifacts unless they are part of the actual uniform design.
+
+The clothing must be re-rendered naturally on the body, not copied or pasted from the source image.
+Do not replicate any photographic artifacts, printed labels, or external objects from the first image.
+
 Keep the background and scene colors unchanged.
 The final result should be photorealistic, sharp, clean, and high-detail, with crisp garment edges, realistic fabric folds, and preserved fine details.
 Do not change the input aspect ratio.";
 }
-
 /// <summary>
 /// Gemini API-based virtual try-on using image generation (Nano Banana 2 approach).
 /// Downloads images, sends as base64 inline data, gets generated result.
