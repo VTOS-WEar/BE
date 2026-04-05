@@ -69,6 +69,9 @@ jobs:
               -e "ImageStorage__Minio__SecretKey=$(grep MINIO_SECRET_KEY /root/vtos/.env | cut -d= -f2)" \
               -e "ImageStorage__Minio__BucketName=$(grep MINIO_BUCKET /root/vtos/.env | cut -d= -f2)" \
               -e "ImageStorage__Minio__PublicBaseUrl=$(grep MINIO_PUBLIC_URL /root/vtos/.env | cut -d= -f2)" \
+              -e "GeminiTryOn__ApiKey=$(grep GEMINI_TRYON_API_KEY /root/vtos/.env | cut -d= -f2)" \
+              -e "GeminiTryOn__Model=$(grep GEMINI_TRYON_MODEL /root/vtos/.env | cut -d= -f2- || echo 'gemini-3.1-flash-image-preview')" \
+              -e "TryOnProvider__Provider=$(grep TRYON_PROVIDER /root/vtos/.env | cut -d= -f2 || echo 'gemini')" \
               -p 8080:8080 \
               ${REGISTRY}/${IMAGE_NAME_LC}:latest
 
