@@ -21,19 +21,22 @@ public class ChildrenController : Controller
     private readonly IGetChildProfileQueryHandler _getChildProfileHandler;
     private readonly IUpdateChildProfileCommandHandler _updateChildProfileHandler;
     private readonly IValidator<UpdateChildProfileCommand> _updateChildProfileValidator;
+    private readonly IUpdateChildAvatarCommandHandler _updateChildAvatarHandler;
 
     public ChildrenController(
         ICurrentUserService currentUser,
         IGetMyChildProfileQueryHandler getMyChildProfileHandler,
         IGetChildProfileQueryHandler getChildProfileHandler,
         IUpdateChildProfileCommandHandler updateChildProfileHandler,
-        IValidator<UpdateChildProfileCommand> updateChildProfileValidator)
+        IValidator<UpdateChildProfileCommand> updateChildProfileValidator,
+        IUpdateChildAvatarCommandHandler updateChildAvatarHandler)
     {
         _currentUser = currentUser;
         _getMyChildProfileHandler = getMyChildProfileHandler;
         _getChildProfileHandler = getChildProfileHandler;
         _updateChildProfileHandler = updateChildProfileHandler;
         _updateChildProfileValidator = updateChildProfileValidator;
+        _updateChildAvatarHandler = updateChildAvatarHandler;
     }
 
     /// <summary>
@@ -88,5 +91,49 @@ public class ChildrenController : Controller
         }
         var result = await _updateChildProfileHandler.HandleAsync(command, cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>update child avatar by id</summary>
+    [HttpPut("{id}/avatar")]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateChildAvatar([FromRoute] string id, IFormFile avatar, CancellationToken cancellationToken)
+    {
+        if (avatar == null || avatar.Length == 0)
+        {
+            return BadRequest(new { error = "Avatar file is required" });
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(avatar.ContentType))
+        {
+            return BadRequest(new { error = "Only image files (JPEG, PNG, GIF, WebP) are allowed" });
+        }
+
+        // Validate file size (5MB max)
+        const long maxFileSize = 5 * 1024 * 1024; // 5MB
+        if (avatar.Length > maxFileSize)
+        {
+            return BadRequest(new { error = "File size must not exceed 5MB" });
+        }
+
+        try
+        {
+            var childId = Guid.Parse(id);
+            var command = new UpdateChildAvatarCommand(childId, avatar);
+            var result = await _updateChildAvatarHandler.HandleAsync(command, cancellationToken);
+            
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { error = result.Error, code = result.ErrorCode });
+            }
+            
+            return Ok(result);
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new { error = "Invalid child ID format" });
+        }
     }
 }

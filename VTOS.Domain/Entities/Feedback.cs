@@ -6,7 +6,8 @@ namespace VTOS.Domain.Entities;
 public class Feedback : AuditableEntity
 {
     public Guid UserID { get; set; }
-    public Guid OutfitID { get; set; }
+    public Guid OrderItemID { get; set; }
+
     public int Rating { get; set; }
     public string? Comment { get; set; }
     public DateTime Timestamp { get; set; }
@@ -14,6 +15,6 @@ public class Feedback : AuditableEntity
 
     // Navigation properties
     public User User { get; set; } = null!;
-    public Outfit Outfit { get; set; } = null!;
+    public OrderItem OrderItem { get; set; } = null!;
 }
 

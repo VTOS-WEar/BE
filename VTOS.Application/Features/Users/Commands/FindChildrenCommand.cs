@@ -103,6 +103,7 @@ public class FindChildrenCommandHandler
                 child.Age,
                 child.Grade,
                 child.Gender.ToString(),
+                child.Avatar,
                 child.School != null
                     ? new ChildSchoolDto(child.School.Id, child.School.SchoolName, child.School.LogoURL)
                     : null,

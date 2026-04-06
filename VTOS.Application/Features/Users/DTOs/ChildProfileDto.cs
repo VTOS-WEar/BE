@@ -9,6 +9,7 @@ public record ChildProfileDto(
     int Age,
     string Grade,
     string Gender,
+    string? AvatarUrl,
     ChildSchoolDto School,
     int HeightCm,
     float WeightKg

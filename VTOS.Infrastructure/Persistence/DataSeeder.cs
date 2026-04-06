@@ -167,40 +167,40 @@ public static class DataSeeder
         // ========================
         // FEEDBACK
         // ========================
-        if (!await context.Feedbacks.AnyAsync())
-        {
-            var activeUser = await context.Users
-                .FirstAsync(u => u.Email == "active@vtos.com");
+        //if (!await context.Feedbacks.AnyAsync())
+        //{
+        //    var activeUser = await context.Users
+        //        .FirstAsync(u => u.Email == "active@vtos.com");
 
-            var pendingUser = await context.Users
-                .FirstAsync(u => u.Email == "pending@vtos.com");
+        //    var pendingUser = await context.Users
+        //        .FirstAsync(u => u.Email == "pending@vtos.com");
 
-            var feedbacks = new List<Feedback>
-            {
-                new Feedback
-                {
-                    Id = Guid.NewGuid(),
-                    UserID = activeUser.Id,
-                    OutfitID = outfit.Id,
-                    Rating = 5,
-                    Comment = "Very good system",
-                    Timestamp = DateTime.UtcNow,
-                    ModerationStatus = ModerationStatus.Approved
-                },
-                new Feedback
-                {
-                    Id = Guid.NewGuid(),
-                    UserID = pendingUser.Id,
-                    OutfitID = outfit.Id,
-                    Rating = 1,
-                    Comment = "Spam content remove me",
-                    Timestamp = DateTime.UtcNow,
-                    ModerationStatus = ModerationStatus.Pending
-                }
-            };
+        //    var feedbacks = new List<Feedback>
+        //    {
+        //        new Feedback
+        //        {
+        //            Id = Guid.NewGuid(),
+        //            UserID = activeUser.Id,
+        //            OutfitID = outfit.Id,
+        //            Rating = 5,
+        //            Comment = "Very good system",
+        //            Timestamp = DateTime.UtcNow,
+        //            ModerationStatus = ModerationStatus.Approved
+        //        },
+        //        new Feedback
+        //        {
+        //            Id = Guid.NewGuid(),
+        //            UserID = pendingUser.Id,
+        //            OutfitID = outfit.Id,
+        //            Rating = 1,
+        //            Comment = "Spam content remove me",
+        //            Timestamp = DateTime.UtcNow,
+        //            ModerationStatus = ModerationStatus.Pending
+        //        }
+        //    };
 
-            context.Feedbacks.AddRange(feedbacks);
-            await context.SaveChangesAsync();
-        }
+            //context.Feedbacks.AddRange(feedbacks);
+            //await context.SaveChangesAsync();
+        //}
     }
 }

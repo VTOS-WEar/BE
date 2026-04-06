@@ -27,24 +27,42 @@ public class GetSchoolsQueryHandler
         // Get total count
         var totalCount = await schoolsQuery.CountAsync(ct);
 
-        // Get paginated results with outfit count
+        // Get paginated schools
         var schools = await schoolsQuery
             .OrderBy(s => s.SchoolName)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(s => new SchoolDto(
-                s.Id,
-                s.SchoolName,
-                s.LogoURL,
-                s.ContactInfo,
-                s.Outfits.Count(o => o.IsAvailable),
-                s.Level,
-                s.Outfits.SelectMany(o => o.Feedbacks).Any()
-                    ? s.Outfits.SelectMany(o => o.Feedbacks).Average(f => (double?)f.Rating)
-                    : null
-            ))
+            .Include(s => s.Outfits)
             .ToListAsync(ct);
 
-        return new SchoolListResponse(schools, totalCount, query.Page, query.PageSize);
+        // Build DTOs with feedback averages
+        var schoolDtos = new List<SchoolDto>();
+        foreach (var school in schools)
+        {
+            var outfitIds = school.Outfits.Where(o => o.IsAvailable).Select(o => o.Id).ToList();
+            
+            // Get campaign outfit IDs for this school's outfits
+            // Get average rating for this school
+            var avgRating = outfitIds.Any() 
+                ? await _context.Feedbacks
+                    .AsNoTracking()
+                    .Include(f => f.OrderItem)
+                        .ThenInclude(oi => oi.ProductVariant)
+                    .Where(f => outfitIds.Contains(f.OrderItem.ProductVariant.OutfitID))
+                    .AverageAsync(f => (double?)f.Rating, ct)
+                : null;
+
+            schoolDtos.Add(new SchoolDto(
+                school.Id,
+                school.SchoolName,
+                school.LogoURL,
+                school.ContactInfo,
+                outfitIds.Count,
+                school.Level,
+                avgRating
+            ));
+        }
+
+        return new SchoolListResponse(schoolDtos, totalCount, query.Page, query.PageSize);
     }
 }

@@ -10,5 +10,6 @@ public record GetProfileResponse(
     bool IsActive,
     bool IsDeleted,
     DateTime CreatedAt,
-    DateTime LastLogin
+    DateTime LastLogin,
+    string? Avatar
 );
