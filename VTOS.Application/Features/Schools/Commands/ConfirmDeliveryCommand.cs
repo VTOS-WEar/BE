@@ -67,6 +67,35 @@ public class ConfirmDeliveryCommandHandler : IConfirmDeliveryCommandHandler
         if (allConfirmed)
         {
             batch.DeliveryConfirmedAt = DateTime.UtcNow;
+
+            // Auto-fulfill contract: check if ALL batches for this campaign+provider are delivery-confirmed
+            var allBatchesForProvider = await _db.ProductionBatches
+                .Where(b => b.CampaignID == batch.CampaignID
+                          && b.ProviderID == batch.ProviderID
+                          && !b.IsDeleted)
+                .ToListAsync(ct);
+
+            var allBatchesConfirmed = allBatchesForProvider.All(b =>
+                b.Id == batch.Id ? true : b.DeliveryConfirmedAt != null);
+
+            if (allBatchesConfirmed)
+            {
+                // Find the InUse contract linked to this campaign+provider
+                var campaignOutfit = await _db.CampaignOutfits.AsNoTracking()
+                    .FirstOrDefaultAsync(co => co.CampaignID == batch.CampaignID
+                                            && co.ProviderID == batch.ProviderID
+                                            && co.ContractID != null, ct);
+
+                if (campaignOutfit?.ContractID != null)
+                {
+                    var contract = await _db.Contracts
+                        .FirstOrDefaultAsync(c => c.Id == campaignOutfit.ContractID && c.Status == "InUse", ct);
+                    if (contract != null)
+                    {
+                        contract.Status = "Fulfilled";
+                    }
+                }
+            }
         }
 
         // Auto-create complaint if defective > 0

@@ -118,14 +118,40 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
         _db.Campaigns.Add(campaign);
 
         // 5. Create CampaignOutfit entries (ProviderID nullable — can be assigned later)
+        // Also resolve ContractID for each outfit+provider pair
         foreach (var input in command.Outfits)
         {
+            Guid? contractId = null;
+
+            // Find matching Approved contract for this provider + outfit
+            if (input.ProviderId.HasValue)
+            {
+                var matchingContract = await _db.Contracts
+                    .Where(c => c.SchoolID == schoolId
+                             && c.ProviderID == input.ProviderId.Value
+                             && c.Status == "Approved")
+                    .Include(c => c.ContractItems)
+                    .FirstOrDefaultAsync(c => c.ContractItems.Any(ci => ci.OutfitID == input.OutfitId), ct);
+
+                if (matchingContract != null)
+                {
+                    contractId = matchingContract.Id;
+
+                    // Transition contract to InUse when publishing (not draft)
+                    if (!command.SaveAsDraft)
+                    {
+                        matchingContract.Status = "InUse";
+                    }
+                }
+            }
+
             var campaignOutfit = new CampaignOutfit
             {
                 Id = Guid.NewGuid(),
                 CampaignID = campaign.Id,
                 OutfitID = input.OutfitId,
                 ProviderID = input.ProviderId,
+                ContractID = contractId,
                 CampaignPrice = input.CampaignPrice,
                 MaxQuantity = input.MaxQuantity
             };
