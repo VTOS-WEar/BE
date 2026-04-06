@@ -17,5 +17,6 @@ public class Campaign : AuditableEntity
     public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<ProductionBatch> ProductionBatches { get; set; } = new List<ProductionBatch>();
+    public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 }
 

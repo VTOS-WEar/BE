@@ -54,7 +54,8 @@ public class GetProfileQueryHandler : IGetProfileQueryHandler
             user.IsActive,
             user.IsDeleted,
             user.CreatedAt,
-            user.LastLogin ?? DateTime.MinValue
+            user.LastLogin ?? DateTime.MinValue,
+            user.Avatar
         ));
     }
 }

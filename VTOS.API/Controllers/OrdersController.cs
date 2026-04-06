@@ -18,6 +18,7 @@ public class OrdersController : ControllerBase
     private readonly ICancelOrderCommandHandler _cancelOrderCommandHandler;
     private readonly IGetOrderStatusQueryHandler _getOrderStatusQueryHandler;
     private readonly IGetOrderHistoryQueryHandler _getOrderHistoryQueryHandler;
+    private readonly IGetOrderDetailForFeedbackQueryHandler _getOrderDetailForFeedbackQueryHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
@@ -26,6 +27,7 @@ public class OrdersController : ControllerBase
         ICancelOrderCommandHandler cancelOrderCommandHandler,
         IGetOrderStatusQueryHandler getOrderStatusQueryHandler,
         IGetOrderHistoryQueryHandler getOrderHistoryQueryHandler,
+        IGetOrderDetailForFeedbackQueryHandler getOrderDetailForFeedbackQueryHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
@@ -33,6 +35,7 @@ public class OrdersController : ControllerBase
         _cancelOrderCommandHandler = cancelOrderCommandHandler;
         _getOrderStatusQueryHandler = getOrderStatusQueryHandler;
         _getOrderHistoryQueryHandler = getOrderHistoryQueryHandler;
+        _getOrderDetailForFeedbackQueryHandler = getOrderDetailForFeedbackQueryHandler;
         _logger = logger;
     }
 
@@ -258,6 +261,50 @@ public class OrdersController : ControllerBase
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 Result<OrderHistoryResponse>.Failure(
+                    "An unexpected error occurred",
+                    "INTERNAL_SERVER_ERROR"));
+        }
+    }
+
+    /// <summary>
+    /// Get order details specifically for feedback submission
+    /// </summary>
+    /// <remarks>
+    /// This endpoint returns order details with campaign outfit information for feedback collection.
+    /// Includes child information, order items with campaign outfit IDs for targeting feedback submission.
+    /// </remarks>
+    /// <param name="orderId">The ID of the order to retrieve details for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Order details with items and campaign outfit information</returns>
+    [HttpGet("{orderId}/detail")]
+    [ProducesResponseType(typeof(Result<OrderDetailForFeedbackDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrderDetailForFeedback(
+        [FromRoute] Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = new GetOrderDetailForFeedbackQuery(_currentUserService.UserId, orderId);
+            var result = await _getOrderDetailForFeedbackQueryHandler.HandleAsync(query, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode == "ORDER_NOT_FOUND"
+                    ? NotFound(result)
+                    : BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting order details for feedback");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                Result<OrderDetailForFeedbackDto>.Failure(
                     "An unexpected error occurred",
                     "INTERNAL_SERVER_ERROR"));
         }

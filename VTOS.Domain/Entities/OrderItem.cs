@@ -15,5 +15,6 @@ public class OrderItem : AuditableEntity
     // Navigation properties
     public Order Order { get; set; } = null!;
     public ProductVariant ProductVariant { get; set; } = null!;
+    public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 }
 

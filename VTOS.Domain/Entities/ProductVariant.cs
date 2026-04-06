@@ -21,4 +21,5 @@ public class ProductVariant : BaseEntity
     // Navigation properties
     public Outfit Outfit { get; set; } = null!;
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 }

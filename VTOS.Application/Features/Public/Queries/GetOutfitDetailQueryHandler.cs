@@ -23,14 +23,22 @@ public class GetOutfitDetailQueryHandler
                 .ThenInclude(sc => sc!.SizeChartDetails)
             .Include(o => o.OutfitCategories)
                 .ThenInclude(oc => oc.Category)
-            .Include(o => o.Feedbacks)
             .FirstOrDefaultAsync(o => o.Id == query.OutfitId, ct);
 
         if (outfit == null)
             return null;
 
+        // Get feedbacks for this outfit across all orders
+        var feedbacks = await _context.Feedbacks
+            .AsNoTracking()
+            .Include(f => f.OrderItem)
+                .ThenInclude(oi => oi.ProductVariant)
+            .Include(f => f.User)
+            .Where(f => f.OrderItem.ProductVariant.OutfitID == query.OutfitId)
+            .OrderByDescending(f => f.Timestamp)
+            .ToListAsync(ct);
+
         // Calculate average rating
-        var feedbacks = outfit.Feedbacks.ToList();
         var averageRating = feedbacks.Any() ? (decimal)feedbacks.Average(f => f.Rating) : 0m;
 
         // Build size chart DTO
@@ -76,6 +84,18 @@ public class GetOutfitDetailQueryHandler
             .Select(oc => oc.Category.CategoryName)
             .ToList();
 
+        // Build review DTOs
+        var reviews = feedbacks
+            .Select(f => new ReviewDto(
+                f.Id,
+                f.Rating,
+                f.Comment,
+                f.Timestamp,
+                f.User.FullName,
+                f.User.Avatar
+            ))
+            .ToList();
+
         return new OutfitDetailResponse(
             outfit.Id,
             outfit.OutfitName,
@@ -90,7 +110,8 @@ public class GetOutfitDetailQueryHandler
             sizeChartDto,
             categories,
             Math.Round(averageRating, 1),
-            feedbacks.Count
+            feedbacks.Count,
+            reviews
         );
     }
 }

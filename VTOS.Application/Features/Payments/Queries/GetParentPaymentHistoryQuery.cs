@@ -17,7 +17,13 @@ public record ParentPaymentDto(
     DateTime Timestamp
 );
 
-public record ParentPaymentHistoryResponse(List<ParentPaymentDto> Items, int Total);
+public record StatusCountDto(string Status, int Count);
+
+public record ParentPaymentHistoryResponse(
+    List<ParentPaymentDto> Items, 
+    int Total,
+    List<StatusCountDto> StatusCounts
+);
 
 public interface IGetParentPaymentHistoryQueryHandler
 {
@@ -42,7 +48,8 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .ToListAsync(ct);
 
         if (!childIds.Any())
-            return Result<ParentPaymentHistoryResponse>.Success(new ParentPaymentHistoryResponse(new(), 0));
+            return Result<ParentPaymentHistoryResponse>.Success(
+                new ParentPaymentHistoryResponse(new(), 0, new()));
 
         // Get order IDs for this parent's children
         var orderIds = await _db.Orders.AsNoTracking()
@@ -55,7 +62,16 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o })
             .OrderByDescending(x => x.pt.TransactionTimestamp);
 
+        // Get total count
         var total = await q.CountAsync(ct);
+
+        // Calculate status counts from all orders (not just paginated)
+        var allStatusCounts = await q
+            .GroupBy(x => x.o.OrderStatus)
+            .Select(g => new StatusCountDto(g.Key.ToString(), g.Count()))
+            .ToListAsync(ct);
+
+        // Get paginated items
         var items = await q
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
@@ -69,6 +85,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             ))
             .ToListAsync(ct);
 
-        return Result<ParentPaymentHistoryResponse>.Success(new ParentPaymentHistoryResponse(items, total));
+        return Result<ParentPaymentHistoryResponse>.Success(
+            new ParentPaymentHistoryResponse(items, total, allStatusCounts));
     }
 }

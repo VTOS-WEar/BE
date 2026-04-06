@@ -40,12 +40,54 @@ public class GetFeedbackReportQueryHandler : IGetFeedbackReportQueryHandler
             });
         }
 
-        // Get feedbacks for school's outfits
+        // Get product variant IDs for these outfits
+        var productVariantIds = await _db.ProductVariants
+            .AsNoTracking()
+            .Where(pv => schoolOutfitIds.Contains(pv.OutfitID))
+            .Select(pv => pv.Id)
+            .ToListAsync(ct);
+
+        if (!productVariantIds.Any())
+        {
+            return Result<FeedbackReportDto>.Success(new FeedbackReportDto
+            {
+                TotalFeedbacks = 0,
+                AvgRating = 0,
+                RatingDistribution = new Dictionary<int, int>
+                {
+                    { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }
+                }
+            });
+        }
+
+        // Get order item IDs for these product variants
+        var orderItemIds = await _db.OrderItems
+            .AsNoTracking()
+            .Where(oi => productVariantIds.Contains(oi.ProductVariantID))
+            .Select(oi => oi.Id)
+            .ToListAsync(ct);
+
+        if (!orderItemIds.Any())
+        {
+            return Result<FeedbackReportDto>.Success(new FeedbackReportDto
+            {
+                TotalFeedbacks = 0,
+                AvgRating = 0,
+                RatingDistribution = new Dictionary<int, int>
+                {
+                    { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }
+                }
+            });
+        }
+
+        // Get feedbacks for school's order items
         var feedbacksQuery = _db.Feedbacks
             .AsNoTracking()
             .Include(f => f.User)
-            .Include(f => f.Outfit)
-            .Where(f => schoolOutfitIds.Contains(f.OutfitID));
+            .Include(f => f.OrderItem)
+                .ThenInclude(oi => oi.ProductVariant)
+                .ThenInclude(pv => pv.Outfit)
+            .Where(f => orderItemIds.Contains(f.OrderItemID));
 
         // Apply date filters
         if (query.FromDate.HasValue)
@@ -77,7 +119,7 @@ public class GetFeedbackReportQueryHandler : IGetFeedbackReportQueryHandler
             {
                 FeedbackId = f.Id,
                 UserName = f.User.FullName,
-                OutfitName = f.Outfit.OutfitName,
+                OutfitName = f.OrderItem.ProductVariant.Outfit.OutfitName,
                 Rating = f.Rating,
                 Comment = f.Comment,
                 Timestamp = f.Timestamp
@@ -93,3 +135,5 @@ public class GetFeedbackReportQueryHandler : IGetFeedbackReportQueryHandler
         });
     }
 }
+
+          
