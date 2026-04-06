@@ -104,11 +104,22 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Initialize database & apply pending migrations on startup
+// Initialize database on startup
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
-    await context.Database.MigrateAsync();
+    
+    if (app.Environment.IsProduction())
+    {
+        // Production (PostgreSQL): Apply pending EF migrations automatically
+        await context.Database.MigrateAsync();
+    }
+    else
+    {
+        // Development (SQL Server): Create DB from model directly (no migrations needed)
+        await context.Database.EnsureCreatedAsync();
+    }
+    
     await DbInitializer.SeedAsync(context);
 }
 
