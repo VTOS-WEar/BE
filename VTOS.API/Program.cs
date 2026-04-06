@@ -104,11 +104,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Initialize database & seed test data on startup
+// Initialize database & apply pending migrations on startup
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    await context.Database.MigrateAsync();
     await DbInitializer.SeedAsync(context);
 }
 
