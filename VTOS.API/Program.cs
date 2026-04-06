@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -103,11 +104,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Seed test data on startup (only runs when DB is empty)
+// Auto-apply pending migrations & seed test data on startup
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<VTOSDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    await context.Database.MigrateAsync();
     await DbInitializer.SeedAsync(context);
 }
 
