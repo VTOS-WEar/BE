@@ -12,6 +12,7 @@ public record ContractDto(
     string? RejectionReason,
     string? SchoolName,
     string? ProviderName,
+    DateTime ExpiresAt,
     List<ContractItemDto> Items
 );
 
@@ -28,6 +29,7 @@ public record ContractItemDto(
 public record CreateContractRequest(
     string ContractName,
     Guid ProviderId,
+    DateTime ExpiresAt,
     List<CreateContractItemRequest> Items
 );
 
@@ -40,3 +42,4 @@ public record CreateContractItemRequest(
 
 /// <summary>Request body for rejecting a contract.</summary>
 public record RejectContractRequest(string Reason);
+

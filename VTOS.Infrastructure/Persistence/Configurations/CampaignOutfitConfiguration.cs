@@ -19,6 +19,8 @@ public class CampaignOutfitConfiguration : IEntityTypeConfiguration<CampaignOutf
 
         builder.Property(co => co.ProviderID);
 
+        builder.Property(co => co.ContractID);
+
         builder.Property(co => co.CampaignPrice)
             .HasColumnType("decimal(18,2)");
 
@@ -38,6 +40,12 @@ public class CampaignOutfitConfiguration : IEntityTypeConfiguration<CampaignOutf
         builder.HasOne(co => co.Provider)
             .WithMany(p => p.CampaignOutfits)
             .HasForeignKey(co => co.ProviderID)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(co => co.Contract)
+            .WithMany()
+            .HasForeignKey(co => co.ContractID)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }

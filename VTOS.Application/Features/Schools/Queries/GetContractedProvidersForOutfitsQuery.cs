@@ -61,7 +61,21 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
 
         var schoolId = schoolMgr.SchoolID;
 
-        // 2. Query approved contracts with their items for this school
+        // 2. Lazy expiration — auto-expire Approved contracts past ExpiresAt
+        var expiredContracts = await _db.Contracts
+            .Where(c => c.SchoolID == schoolId
+                     && c.Status == "Approved"
+                     && c.ExpiresAt <= DateTime.UtcNow)
+            .ToListAsync(ct);
+
+        if (expiredContracts.Any())
+        {
+            foreach (var c in expiredContracts)
+                c.Status = "Expired";
+            await _db.SaveChangesAsync(ct);
+        }
+
+        // 3. Query Approved + not expired contracts with their items
         var contractData = await _db.Contracts.AsNoTracking()
             .Where(c => c.SchoolID == schoolId && c.Status == "Approved")
             .Include(c => c.Provider)
@@ -77,7 +91,7 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
             }))
             .ToListAsync(ct);
 
-        // 3. Group by OutfitId
+        // 4. Group by OutfitId
         var grouped = contractData
             .GroupBy(x => x.OutfitId)
             .ToDictionary(

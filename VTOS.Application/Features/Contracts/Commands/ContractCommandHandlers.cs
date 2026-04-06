@@ -15,6 +15,7 @@ internal static class ContractMapper
         c.ContractName, c.Status, c.CreatedAt,
         c.ApprovedAt, c.RejectedAt, c.RejectionReason,
         c.School?.SchoolName, c.Provider?.ProviderName,
+        c.ExpiresAt,
         c.ContractItems.Select(ci => new ContractItemDto(
             ci.Id, ci.OutfitID, ci.Outfit?.OutfitName ?? "", ci.PricePerUnit, ci.MinQuantity, ci.MaxQuantity
         )).ToList()
@@ -69,6 +70,34 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
                 $"Outfits not found or don't belong to your school: {string.Join(", ", missingOutfits)}",
                 "INVALID_OUTFITS");
 
+        // Validate ExpiresAt is in the future
+        if (req.ExpiresAt <= DateTime.UtcNow)
+            return Result<ContractDto>.Failure(
+                "Contract expiration date must be in the future.",
+                "INVALID_EXPIRES_AT");
+
+        // Validate no duplicate active contract (same provider + same outfit + status Approved/InUse)
+        var activeStatuses = new[] { "Pending", "Approved", "InUse" };
+        var existingContracts = await _context.Contracts.AsNoTracking()
+            .Where(c => c.SchoolID == schoolId
+                     && c.ProviderID == req.ProviderId
+                     && activeStatuses.Contains(c.Status))
+            .Include(c => c.ContractItems)
+            .ToListAsync(ct);
+
+        foreach (var oid in outfitIds)
+        {
+            var duplicate = existingContracts
+                .FirstOrDefault(c => c.ContractItems.Any(ci => ci.OutfitID == oid));
+            if (duplicate != null)
+            {
+                var outfit = await _context.Outfits.AsNoTracking().FirstOrDefaultAsync(o => o.Id == oid, ct);
+                return Result<ContractDto>.Failure(
+                    $"Already have an active contract ('{duplicate.ContractName}', status: {duplicate.Status}) with this provider for outfit '{outfit?.OutfitName ?? oid.ToString()}'. Complete or cancel the existing contract first.",
+                    "DUPLICATE_CONTRACT");
+            }
+        }
+
         // Validate quantity ranges
         foreach (var item in req.Items)
         {
@@ -90,6 +119,7 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
             ContractName = req.ContractName,
             Status = "Pending",
             CreatedAt = DateTime.UtcNow,
+            ExpiresAt = req.ExpiresAt,
         };
 
         foreach (var item in req.Items)

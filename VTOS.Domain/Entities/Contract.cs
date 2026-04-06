@@ -12,7 +12,7 @@ public class Contract : BaseEntity
     public Guid ProviderID { get; set; }
     public string ContractName { get; set; } = string.Empty;
 
-    /// <summary>Pending | Approved | Rejected | Expired</summary>
+    /// <summary>Pending | Approved | InUse | Fulfilled | Rejected | Expired</summary>
     public string Status { get; set; } = "Pending";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -20,8 +20,12 @@ public class Contract : BaseEntity
     public DateTime? RejectedAt { get; set; }
     public string? RejectionReason { get; set; }
 
+    /// <summary>Contract expiration date. Required — protects Provider if School doesn't open a campaign.</summary>
+    public DateTime ExpiresAt { get; set; }
+
     // Navigation
     public School School { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
     public ICollection<ContractItem> ContractItems { get; set; } = new List<ContractItem>();
 }
+
