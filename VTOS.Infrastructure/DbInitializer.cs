@@ -166,21 +166,21 @@ public static class DbInitializer
             new School
             {
                 Id = SCH1, SchoolName = "Trường THPT Phan Châu Trinh", Level = "THPT",
-                LogoURL = "https://i.ibb.co/placeholder/pct-logo.png",
+                LogoURL = "https://media.vtos.homes/media/schools/2026/04/05/bea91cc23bd34907bdd15909feb552c3.png",
                 ContactInfo = "{\"email\":\"contact@thptphanchautrinh.edu.vn\",\"phone\":\"0236 3822 367\",\"address\":\"154 Lê Lợi, Hải Châu, Đà Nẵng\",\"foundedYear\":1952}",
                 CreatedAt = now
             },
             new School
             {
                 Id = SCH2, SchoolName = "Trường THPT Trần Phú", Level = "THPT",
-                LogoURL = "https://i.ibb.co/placeholder/tp-logo.png",
+                LogoURL = "https://media.vtos.homes/media/schools/2026/03/30/91e5dc3478584f6e8591f285963320ee.jpg",
                 ContactInfo = "{\"email\":\"contact@thpttranphu.edu.vn\",\"phone\":\"0236 3895 289\",\"address\":\"11 Lê Thánh Tôn, Hải Châu, Đà Nẵng\",\"foundedYear\":1965}",
                 CreatedAt = now
             },
             new School
             {
                 Id = SCH3, SchoolName = "Trường THCS Nguyễn Huệ", Level = "THCS",
-                LogoURL = "https://i.ibb.co/placeholder/nh-logo.png",
+                LogoURL = "https://media.vtos.homes/media/schools/2026/04/05/fd2c3f02fafd4ff1b6293505e6f84ccf.jpg",
                 ContactInfo = "{\"email\":\"contact@thcsnguyenhue.edu.vn\",\"phone\":\"0236 3823 456\",\"address\":\"62 Nguyễn Chí Thanh, Hải Châu, Đà Nẵng\",\"foundedYear\":1975}",
                 CreatedAt = now
             }
@@ -263,9 +263,9 @@ public static class DbInitializer
 
         // ── Outfits ───────────────────────────────────────────────────────────
         db.Outfits.AddRange(
-            new Outfit { Id = OFT1, SchoolID = SCH1, OutfitName = "Áo sơ mi trắng THPT Phan Châu Trinh", Description = "Áo sơ mi trắng dài tay, logo trường thêu ngực trái", Price = 185_000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
-            new Outfit { Id = OFT2, SchoolID = SCH2, OutfitName = "Quần tây xanh THPT Trần Phú", Description = "Quần tây xanh đen, vải tốt không nhăn", Price = 195_000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
-            new Outfit { Id = OFT3, SchoolID = SCH3, OutfitName = "Áo thể dục THCS Nguyễn Huệ", Description = "Áo thể dục cổ tròn, vải thun cotton thoáng mát", Price = 120_000, OutfitType = OutfitType.Sportswear, SizeChartID = SC3, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT1, SchoolID = SCH1, OutfitName = "Áo sơ mi trắng THPT Phan Châu Trinh", Description = "Áo sơ mi trắng dài tay, logo trường thêu ngực trái", MainImageURL = "https://media.vtos.homes/media/outfits/2026/04/06/174a00210048433dbc14f528d7b76a33.png", Price = 185_000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT2, SchoolID = SCH2, OutfitName = "Quần tây xanh THPT Trần Phú", Description = "Quần tây xanh đen, vải tốt không nhăn", MainImageURL = "https://media.vtos.homes/media/outfits/2026/04/05/bf4271679702402c9d6abfdf43fb3da3.png", Price = 195_000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
+            new Outfit { Id = OFT3, SchoolID = SCH3, OutfitName = "Áo thể dục THCS Nguyễn Huệ", Description = "Áo thể dục cổ tròn, vải thun cotton thoáng mát", MainImageURL = "https://media.vtos.homes/media/outfits/2026/04/05/d5dd53e035a64d05bd19c0035f88a70b.png", Price = 120_000, OutfitType = OutfitType.Sportswear, SizeChartID = SC3, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
             new Outfit { Id = OFT4, SchoolID = SCH1, OutfitName = "Áo dài trắng nữ THPT Phan Châu Trinh", Description = "Áo dài trắng truyền thống dành cho nữ sinh", Price = 350_000, OutfitType = OutfitType.Uniform, SizeChartID = SC1, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now },
             new Outfit { Id = OFT5, SchoolID = SCH2, OutfitName = "Áo khoác đồng phục THPT Trần Phú", Description = "Áo khoác gió đồng phục, logo trường thêu", Price = 280_000, OutfitType = OutfitType.Uniform, SizeChartID = SC2, IsAvailable = true, IsCustomizable = false, IsDeleted = false, CreatedAt = now }
         );
