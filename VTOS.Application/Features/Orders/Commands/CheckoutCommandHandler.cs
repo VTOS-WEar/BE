@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -338,6 +339,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             WalletID = schoolWalletId,
             PaymentLinkId = paymentLinkId,
             GatewayType = PaymentGatewayType.PayOS,
+            TransactionType = TransactionType.OrderPayment,
             TransactionStatus = PaymentStatus.Pending,
             Amount = totalAmount,
             TransactionTimestamp = DateTime.UtcNow,
