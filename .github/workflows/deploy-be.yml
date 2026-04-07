@@ -56,6 +56,10 @@ jobs:
             docker rm vtos-backend 2>/dev/null || true
 
             # Run new container using .env file on VPS
+            # NOTE: /root/vtos/.env uses .NET double-underscore format directly
+            # (e.g. PaymentSettings__ReturnBaseUrl=https://vtos.homes)
+            # so --env-file handles all config binding automatically.
+            # Only override: constants + ConnectionStrings (needs password interpolation)
             docker run -d \
               --name vtos-backend \
               --network vtos-network \
@@ -64,12 +68,6 @@ jobs:
               -e ASPNETCORE_ENVIRONMENT=Production \
               -e DatabaseProvider=PostgreSQL \
               -e "ConnectionStrings__DefaultConnection=Host=vtos-postgres;Port=5432;Database=vtosdb;Username=vtos;Password=$(grep DB_PASSWORD /root/vtos/.env | cut -d= -f2)" \
-              -e "ImageStorage__Minio__Endpoint=$(grep MINIO_ENDPOINT /root/vtos/.env | cut -d= -f2)" \
-              -e "ImageStorage__Minio__AccessKey=$(grep MINIO_ACCESS_KEY /root/vtos/.env | cut -d= -f2)" \
-              -e "ImageStorage__Minio__SecretKey=$(grep MINIO_SECRET_KEY /root/vtos/.env | cut -d= -f2)" \
-              -e "ImageStorage__Minio__BucketName=$(grep MINIO_BUCKET /root/vtos/.env | cut -d= -f2)" \
-              -e "ImageStorage__Minio__PublicBaseUrl=$(grep MINIO_PUBLIC_URL /root/vtos/.env | cut -d= -f2)" \
-              -e "GeminiTryOn__ApiKey=$(grep GEMINI_TRYON_API_KEY /root/vtos/.env | cut -d= -f2)" \
               -p 8080:8080 \
               ${REGISTRY}/${IMAGE_NAME_LC}:latest
 
