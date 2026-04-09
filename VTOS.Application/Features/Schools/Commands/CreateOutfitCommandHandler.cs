@@ -34,6 +34,16 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         if (schoolMgr == null)
             return Result<OutfitDto>.Failure("School profile not set up yet. Please create your school profile first.", "SCHOOL_NOT_FOUND");
 
+        // Validate field lengths against DB constraints
+        if (string.IsNullOrWhiteSpace(command.OutfitName))
+            return Result<OutfitDto>.Failure("Outfit name is required.", "NAME_REQUIRED");
+        if (command.OutfitName.Length > 50)
+            return Result<OutfitDto>.Failure("Outfit name cannot exceed 50 characters.", "NAME_TOO_LONG");
+        if (command.Description != null && command.Description.Length > 500)
+            return Result<OutfitDto>.Failure("Description cannot exceed 500 characters.", "DESCRIPTION_TOO_LONG");
+        if (command.MainImageURL != null && command.MainImageURL.Length > 500)
+            return Result<OutfitDto>.Failure("Image URL cannot exceed 500 characters.", "IMAGE_URL_TOO_LONG");
+
         var outfit = new Outfit
         {
             Id = Guid.NewGuid(),

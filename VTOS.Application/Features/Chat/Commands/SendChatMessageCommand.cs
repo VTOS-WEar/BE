@@ -32,6 +32,9 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
         if (string.IsNullOrWhiteSpace(command.Content))
             return Result<SendChatMessageResponse>.Failure("Message content is required.", "CONTENT_REQUIRED");
 
+        if (command.Content.Length > 2000)
+            return Result<SendChatMessageResponse>.Failure("Message content cannot exceed 2000 characters.", "CONTENT_TOO_LONG");
+
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
         if (user == null)
             return Result<SendChatMessageResponse>.Failure("User not found.", "USER_NOT_FOUND");

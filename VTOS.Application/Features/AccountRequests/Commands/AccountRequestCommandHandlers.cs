@@ -64,12 +64,18 @@ public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHa
         // Validate required fields
         if (string.IsNullOrWhiteSpace(req.OrganizationName))
             return Result<AccountRequestDetailDto>.Failure("Tên tổ chức không được để trống.", "VALIDATION");
+        if (req.OrganizationName.Length > 200)
+            return Result<AccountRequestDetailDto>.Failure("Tên tổ chức không được vượt quá 200 ký tự.", "ORG_NAME_TOO_LONG");
         if (string.IsNullOrWhiteSpace(req.ContactEmail))
             return Result<AccountRequestDetailDto>.Failure("Email không được để trống.", "VALIDATION");
         if (string.IsNullOrWhiteSpace(req.ContactPhone))
             return Result<AccountRequestDetailDto>.Failure("Số điện thoại không được để trống.", "VALIDATION");
         if (req.Type != 1 && req.Type != 2)
             return Result<AccountRequestDetailDto>.Failure("Loại tài khoản không hợp lệ.", "VALIDATION");
+        if (req.Description != null && req.Description.Length > 1000)
+            return Result<AccountRequestDetailDto>.Failure("Mô tả không được vượt quá 1000 ký tự.", "DESCRIPTION_TOO_LONG");
+        if (req.Address != null && req.Address.Length > 500)
+            return Result<AccountRequestDetailDto>.Failure("Địa chỉ không được vượt quá 500 ký tự.", "ADDRESS_TOO_LONG");
 
         // Check duplicate pending requests by email
         var existingRequest = await _context.AccountRequests
@@ -297,6 +303,8 @@ public class RejectAccountRequestCommandHandler : IRejectAccountRequestCommandHa
                 $"Yêu cầu đã được xử lý ({accountRequest.Status}).", "ALREADY_PROCESSED");
 
         accountRequest.Status = AccountRequestStatus.Rejected;
+        if (command.Reason != null && command.Reason.Length > 500)
+            return Result<AccountRequestDetailDto>.Failure("Lý do từ chối không được vượt quá 500 ký tự.", "REASON_TOO_LONG");
         accountRequest.RejectionReason = command.Reason;
         accountRequest.ProcessedByUserId = command.AdminUserId;
         accountRequest.ProcessedAt = DateTime.UtcNow;

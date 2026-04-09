@@ -40,8 +40,14 @@ public class SendUniformProposalCommandHandler : ISendUniformProposalCommandHand
         if (string.IsNullOrWhiteSpace(command.ImageUrl))
             return Result<SendUniformProposalResponse>.Failure("Image URL is required for a uniform proposal.", "IMAGE_REQUIRED");
 
+        if (command.ImageUrl.Length > 500)
+            return Result<SendUniformProposalResponse>.Failure("Image URL cannot exceed 500 characters.", "IMAGE_URL_TOO_LONG");
+
         if (string.IsNullOrWhiteSpace(command.OutfitName))
             return Result<SendUniformProposalResponse>.Failure("Outfit name is required.", "NAME_REQUIRED");
+
+        if (command.OutfitName.Length > 100)
+            return Result<SendUniformProposalResponse>.Failure("Outfit name cannot exceed 100 characters.", "NAME_TOO_LONG");
 
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
         if (user == null)

@@ -28,6 +28,14 @@ public class SubmitFeedbackCommandHandler : ISubmitFeedbackCommandHandler
                 "INVALID_RATING");
         }
 
+        // Validate comment length
+        if (command.Comment != null && command.Comment.Length > 500)
+        {
+            return Result<SubmitFeedbackResponse>.Failure(
+                "Comment cannot exceed 500 characters.",
+                "COMMENT_TOO_LONG");
+        }
+
         // Verify OrderItem exists and belongs to this user's order
         var orderItem = await _context.OrderItems
             .Include(oi => oi.Order)
