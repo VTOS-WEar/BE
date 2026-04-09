@@ -177,6 +177,8 @@ public static class DependencyInjection
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.TryOn.Queries.IGetParentTryOnHistoryQueryHandler,
+            VTOS.Application.Features.TryOn.Queries.GetParentTryOnHistoryQueryHandler>();
 
         // Orders Module Handlers (Checkout, Cancel, Track Status, History)
         services.AddScoped<ICheckoutCommandHandler, CheckoutCommandHandler>();
@@ -409,6 +411,10 @@ public static class DependencyInjection
             VTOS.Application.Features.Chat.Queries.GetChatMessagesQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Chat.Commands.ISendChatMessageCommandHandler,
             VTOS.Application.Features.Chat.Commands.SendChatMessageCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Chat.Commands.ISendUniformProposalCommandHandler,
+            VTOS.Application.Features.Chat.Commands.SendUniformProposalCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Chat.Commands.IAcceptUniformProposalCommandHandler,
+            VTOS.Application.Features.Chat.Commands.AcceptUniformProposalCommandHandler>();
         services.AddScoped<VTOS.Application.Abstractions.IChatBroadcaster,
             VTOS.Infrastructure.Hubs.SignalRChatBroadcaster>();
 
@@ -419,6 +425,8 @@ public static class DependencyInjection
             VTOS.Application.Features.Contracts.Commands.ApproveContractCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Commands.IRejectContractCommandHandler,
             VTOS.Application.Features.Contracts.Commands.RejectContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.ICancelContractCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.CancelContractCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractsQueryHandler,
             VTOS.Application.Features.Contracts.Queries.GetContractsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractDetailQueryHandler,

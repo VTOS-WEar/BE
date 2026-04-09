@@ -62,7 +62,8 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
         // Broadcast via SignalR
         await _broadcaster.BroadcastMessageAsync(
             command.ChannelType.ToString(), command.ChannelId,
-            new ChatMessageDto(message.Id, message.SenderUserId, message.SenderName, message.Content, message.SentAt, false),
+            new ChatMessageDto(message.Id, message.SenderUserId, message.SenderName, message.Content, message.SentAt, false,
+                message.MessageType.ToString(), message.ImageUrl, message.ProposalStatus, message.ProposalOutfitName),
             ct);
 
         return Result<SendChatMessageResponse>.Success(

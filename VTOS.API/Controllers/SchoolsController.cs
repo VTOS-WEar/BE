@@ -85,6 +85,7 @@ public class SchoolsController : ControllerBase
     private readonly ICreateContractCommandHandler _createContractHandler;
     private readonly IGetContractsQueryHandler _getContractsHandler;
     private readonly IGetContractDetailQueryHandler _getContractDetailHandler;
+    private readonly ICancelContractCommandHandler _cancelContractHandler;
     // Phase 4 — Delivery & Distribution
     private readonly IConfirmDeliveryCommandHandler _confirmDeliveryHandler;
     private readonly IGetVerifyQuantityQueryHandler _getVerifyQuantityHandler;
@@ -158,6 +159,7 @@ public class SchoolsController : ControllerBase
         ICreateContractCommandHandler createContractHandler,
         IGetContractsQueryHandler getContractsHandler,
         IGetContractDetailQueryHandler getContractDetailHandler,
+        ICancelContractCommandHandler cancelContractHandler,
         // Phase 4
         IConfirmDeliveryCommandHandler confirmDeliveryHandler,
         IGetVerifyQuantityQueryHandler getVerifyQuantityHandler,
@@ -228,6 +230,7 @@ public class SchoolsController : ControllerBase
         _createContractHandler = createContractHandler;
         _getContractsHandler = getContractsHandler;
         _getContractDetailHandler = getContractDetailHandler;
+        _cancelContractHandler = cancelContractHandler;
         _confirmDeliveryHandler = confirmDeliveryHandler;
         _getVerifyQuantityHandler = getVerifyQuantityHandler;
         _reportDefectHandler = reportDefectHandler;
@@ -1294,6 +1297,18 @@ public class SchoolsController : ControllerBase
     {
         var result = await _getContractDetailHandler.HandleAsync(
             new GetContractDetailQuery(_currentUser.UserId, "School", id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Cancel a Pending contract (before Provider accepts).</summary>
+    [HttpPut("me/contracts/{id}/cancel")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CancelContract(Guid id, CancellationToken ct)
+    {
+        var result = await _cancelContractHandler.HandleAsync(
+            new CancelContractCommand(_currentUser.UserId, id), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }

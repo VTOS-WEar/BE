@@ -13,7 +13,11 @@ public record ChatMessageDto(
     string SenderName,
     string Content,
     DateTime SentAt,
-    bool IsMe
+    bool IsMe,
+    string MessageType = "Text",
+    string? ImageUrl = null,
+    string? ProposalStatus = null,
+    string? ProposalOutfitName = null
 );
 
 public record GetChatMessagesResponse(
@@ -51,7 +55,11 @@ public class GetChatMessagesQueryHandler : IGetChatMessagesQueryHandler
             .Take(query.PageSize)
             .Select(m => new ChatMessageDto(
                 m.Id, m.SenderUserId, m.SenderName,
-                m.Content, m.SentAt, m.SenderUserId == query.UserId
+                m.Content, m.SentAt, m.SenderUserId == query.UserId,
+                m.MessageType.ToString(),
+                m.ImageUrl,
+                m.ProposalStatus,
+                m.ProposalOutfitName
             ))
             .ToListAsync(ct);
 

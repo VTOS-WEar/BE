@@ -33,6 +33,19 @@ public class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMessage>
         builder.Property(m => m.SentAt)
             .IsRequired();
 
+        builder.Property(m => m.MessageType)
+            .IsRequired()
+            .HasDefaultValue(VTOS.Domain.Enums.ChatMessageType.Text);
+
+        builder.Property(m => m.ImageUrl)
+            .HasMaxLength(2000);
+
+        builder.Property(m => m.ProposalStatus)
+            .HasMaxLength(20);
+
+        builder.Property(m => m.ProposalOutfitName)
+            .HasMaxLength(200);
+
         // Index for fast lookups: all messages in a channel, ordered by time
         builder.HasIndex(m => new { m.ChannelType, m.ChannelId, m.SentAt });
 
