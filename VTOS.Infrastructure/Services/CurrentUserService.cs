@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using VTOS.Application.Abstractions;
@@ -14,12 +14,11 @@ namespace VTOS.Infrastructure.Services
             var user = httpContextAccessor.HttpContext?.User;
             var userIdClaim = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var userId))
             {
-                throw new UnauthorizedAccessException("Invalid token");
+                UserId = userId;
             }
-
-            UserId = userId;
+            // For anonymous/guest users, UserId remains Guid.Empty
         }
     }
 
