@@ -26,3 +26,11 @@ public interface IRejectContractCommandHandler
 {
     Task<Result<ContractDto>> HandleAsync(RejectContractCommand command, CancellationToken ct = default);
 }
+
+// ── Cancel Contract (School) ──
+public record CancelContractCommand(Guid UserId, Guid ContractId);
+
+public interface ICancelContractCommandHandler
+{
+    Task<Result<ContractDto>> HandleAsync(CancelContractCommand command, CancellationToken ct = default);
+}

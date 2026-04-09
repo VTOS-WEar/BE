@@ -14,7 +14,7 @@ public class MinioImageService : IImageUploadService
     private readonly IMinioClient _minioClient;
     private readonly MinioSettings _settings;
     private readonly ILogger<MinioImageService> _logger;
-    private bool _bucketEnsured = false;
+    private static bool _bucketEnsured = false;
 
     public MinioImageService(
         IOptions<MinioSettings> settings,
@@ -84,7 +84,8 @@ public class MinioImageService : IImageUploadService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading image to MinIO: {FileName}", fileName);
+            _logger.LogError(ex, "Error uploading image to MinIO. FileName: {FileName}, Folder: {Folder}, Bucket: {Bucket}",
+                fileName, folder ?? "root", _settings.BucketName);
             throw new InvalidOperationException($"Image upload failed: {ex.Message}", ex);
         }
     }

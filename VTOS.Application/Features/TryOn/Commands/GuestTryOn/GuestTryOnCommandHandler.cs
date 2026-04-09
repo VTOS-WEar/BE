@@ -53,11 +53,23 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
         _logger.LogInformation("Processing guest try-on for session: {SessionId}, outfit: {OutfitId}", 
             guestSessionId, command.OutfitId);
 
-        // Step 2: Check rate limit (5 tries per session per day)
+        // Step 2: Check rate limit
         var today = DateTime.UtcNow.Date;
-        var tryCount = await _context.TryOnHistories
-            .CountAsync(t => t.GuestSessionID == guestSessionId 
-                && t.TryOnTimestamp.Date == today, cancellationToken);
+        int tryCount;
+        if (command.UserId.HasValue)
+        {
+            // Logged-in user: rate limit by UserID
+            tryCount = await _context.TryOnHistories
+                .CountAsync(t => t.UserID == command.UserId.Value
+                    && t.TryOnTimestamp.Date == today, cancellationToken);
+        }
+        else
+        {
+            // Guest: rate limit by session ID
+            tryCount = await _context.TryOnHistories
+                .CountAsync(t => t.GuestSessionID == guestSessionId 
+                    && t.TryOnTimestamp.Date == today, cancellationToken);
+        }
 
         if (tryCount >= _maxTriesPerSession)
         {
@@ -158,6 +170,7 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
         var history = new TryOnHistory
         {
             GuestSessionID = guestSessionId,
+            UserID = command.UserId,
             OutfitID = command.OutfitId,
             UploadedPhotoURL = humanImageUrl,
             ResultPhotoURL = resultImageUrl,

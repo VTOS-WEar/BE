@@ -309,3 +309,57 @@ public class RejectContractCommandHandler : IRejectContractCommandHandler
         return Result<ContractDto>.Success(ContractMapper.MapToDto(contract));
     }
 }
+
+// ─── Cancel Contract Handler (School) ───
+public class CancelContractCommandHandler : ICancelContractCommandHandler
+{
+    private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
+
+    public CancelContractCommandHandler(IApplicationDbContext context, INotificationService notificationService)
+    {
+        _context = context;
+        _notificationService = notificationService;
+    }
+
+    public async Task<Result<ContractDto>> HandleAsync(
+        CancelContractCommand command, CancellationToken ct = default)
+    {
+        // Resolve SchoolID from UserId
+        var schoolMgr = await _context.SchoolManagers.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserID == command.UserId, ct);
+        if (schoolMgr?.SchoolID == null)
+            return Result<ContractDto>.Failure("User is not linked to a school.", "NOT_SCHOOL");
+
+        var schoolId = schoolMgr.SchoolID;
+
+        var contract = await ContractMapper.IncludeAll(_context.Contracts.AsQueryable())
+            .FirstOrDefaultAsync(c => c.Id == command.ContractId && c.SchoolID == schoolId, ct);
+
+        if (contract == null)
+            return Result<ContractDto>.Failure("Contract not found.", "NOT_FOUND");
+
+        if (contract.Status != "Pending")
+            return Result<ContractDto>.Failure(
+                $"Contract is '{contract.Status}', only Pending contracts can be cancelled.",
+                "INVALID_STATUS");
+
+        contract.Status = "Cancelled";
+        contract.RejectedAt = DateTime.UtcNow;
+        contract.RejectionReason = "Cancelled by school";
+        await _context.SaveChangesAsync(ct);
+
+        // Notify provider
+        try
+        {
+            await _notificationService.NotifyProviderAsync(contract.ProviderID,
+                "🚫 Hợp đồng đã bị hủy",
+                $"Trường {contract.School?.SchoolName} đã hủy hợp đồng: {contract.ContractName}.",
+                "Contract", contract.Id, "Contract",
+                "/provider/contracts", ct);
+        }
+        catch { /* Don't fail the main operation */ }
+
+        return Result<ContractDto>.Success(ContractMapper.MapToDto(contract));
+    }
+}

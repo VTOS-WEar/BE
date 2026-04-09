@@ -16,6 +16,18 @@ public class ChatMessage : BaseEntity
     public string Content { get; set; } = string.Empty;
     public DateTime SentAt { get; set; }
 
+    /// <summary>Type of message: Text, UniformProposal, or SystemNotification</summary>
+    public ChatMessageType MessageType { get; set; } = ChatMessageType.Text;
+
+    /// <summary>Image URL for uniform proposals and system confirmations</summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>Status of a uniform proposal: null, Pending, Accepted, Rejected</summary>
+    public string? ProposalStatus { get; set; }
+
+    /// <summary>Name of the proposed uniform (set by Provider)</summary>
+    public string? ProposalOutfitName { get; set; }
+
     // Navigation
     public User Sender { get; set; } = null!;
 }
