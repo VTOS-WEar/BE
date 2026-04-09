@@ -52,6 +52,11 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
         var schoolId = schoolMgr.SchoolID;
         var req = command.Request;
 
+        if (string.IsNullOrWhiteSpace(req.ContractName))
+            return Result<ContractDto>.Failure("Contract name is required.", "NAME_REQUIRED");
+        if (req.ContractName.Length > 200)
+            return Result<ContractDto>.Failure("Contract name cannot exceed 200 characters.", "NAME_TOO_LONG");
+
         // Validate provider exists
         var provider = await _context.Providers.FindAsync(new object[] { req.ProviderId }, ct);
         if (provider == null)
@@ -270,6 +275,11 @@ public class RejectContractCommandHandler : IRejectContractCommandHandler
             return Result<ContractDto>.Failure(
                 $"Contract is '{contract.Status}', only Pending contracts can be rejected.",
                 "INVALID_STATUS");
+
+        if (string.IsNullOrWhiteSpace(command.Reason))
+            return Result<ContractDto>.Failure("Rejection reason is required.", "REASON_REQUIRED");
+        if (command.Reason.Length > 500)
+            return Result<ContractDto>.Failure("Rejection reason cannot exceed 500 characters.", "REASON_TOO_LONG");
 
         contract.Status = "Rejected";
         contract.RejectedAt = DateTime.UtcNow;

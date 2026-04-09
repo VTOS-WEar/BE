@@ -43,6 +43,14 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
         if (outfit.SchoolID != schoolMgr.SchoolID)
             return Result<OutfitDto>.Failure("You do not have permission to update this outfit.", "OUTFIT_NOT_FOUND");
 
+        // Validate field lengths against DB constraints
+        if (command.OutfitName != null && command.OutfitName.Length > 50)
+            return Result<OutfitDto>.Failure("Outfit name cannot exceed 50 characters.", "NAME_TOO_LONG");
+        if (command.Description != null && command.Description.Length > 500)
+            return Result<OutfitDto>.Failure("Description cannot exceed 500 characters.", "DESCRIPTION_TOO_LONG");
+        if (command.MainImageURL != null && command.MainImageURL.Length > 500)
+            return Result<OutfitDto>.Failure("Image URL cannot exceed 500 characters.", "IMAGE_URL_TOO_LONG");
+
         // Partial update — only apply non-null fields
         if (command.OutfitName != null) outfit.OutfitName = command.OutfitName;
         if (command.Description != null) outfit.Description = command.Description;
