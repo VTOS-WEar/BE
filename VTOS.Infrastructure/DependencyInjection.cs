@@ -18,6 +18,7 @@ using VTOS.Application.Features.Users.Queries;
 using VTOS.Infrastructure.ExternalServices.Google;
 using VTOS.Infrastructure.ExternalServices.ImageStorage;
 using VTOS.Infrastructure.ExternalServices.TryOn;
+using VTOS.Infrastructure.Bodygram;
 using VTOS.Infrastructure.Persistence;
 using VTOS.Infrastructure.Services;
 using AutoMapper;
@@ -80,6 +81,9 @@ public static class DependencyInjection
         // Register Frontend Settings
         services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
 
+  // Bodygram Service Settings
+        services.Configure<BodygramSettings>(configuration.GetSection(BodygramSettings.SectionName));
+
         // Register Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -106,6 +110,9 @@ public static class DependencyInjection
 
         //Register PayOS Service
         services.AddHttpClient<IPayOSService, PayOSService>();
+
+  //Register Bodygram Service
+        services.AddHttpClient<IBodygramService, BodygramService>();
 
         // Register Handlers
         services.AddScoped<IRegisterCommandHandler, RegisterCommandHandler>();
