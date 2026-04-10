@@ -28,4 +28,12 @@ public interface IBodygramService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Scan data including 3D avatar and measurements</returns>
     Task<BodygramScanResponse> GetScanAsync(string scanId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Generates a scan token for client-side scanning
+    /// </summary>
+    /// <param name="request">Request parameters for scan token</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Token and Expiry</returns>
+    Task<GenerateScanTokenResponse> GenerateScanTokenAsync(GenerateScanTokenRequest request, CancellationToken cancellationToken = default);
 }

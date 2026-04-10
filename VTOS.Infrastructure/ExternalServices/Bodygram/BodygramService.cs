@@ -167,6 +167,66 @@ public class BodygramService : IBodygramService
     }
 
     /// <summary>
+    /// Generates a scan token for client-side scanning
+    /// </summary>
+    public async Task<GenerateScanTokenResponse> GenerateScanTokenAsync(GenerateScanTokenRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Generating Bodygram scan token for custom ID: {CustomScanId}", request.CustomScanId);
+
+            int maxRetries = GetAvailableCredentials().Count;
+            HttpResponseMessage response = null;
+            
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                var credential = GetCurrentCredential();
+                var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scan-tokens";
+                var httpRequest = CreatePostRequestWithBody(url, request, credential);
+
+                response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var tokenResponse = DeserializeResponse<GenerateScanTokenResponse>(jsonResponse);
+                    _logger.LogInformation("Bodygram scan token generated successfully");
+                    return tokenResponse;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired || 
+                    response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("Bodygram API returned {StatusCode} ({Reason}). Attempting fallback credential {Attempt}/{MaxRetries}", 
+                        response.StatusCode, response.ReasonPhrase, attempt + 1, maxRetries);
+
+                    if (attempt < maxRetries - 1)
+                    {
+                        TryNextCredential();
+                        continue;
+                    }
+                }
+                else
+                {
+                    await HandleErrorResponseAsync(response, "Bodygram scan token generation", cancellationToken);
+                }
+            }
+
+            if (response != null)
+            {
+                await HandleErrorResponseAsync(response, "Bodygram scan token generation - all credentials exhausted", cancellationToken);
+            }
+
+            throw new HttpRequestException("Bodygram API: All available credentials exhausted");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating Bodygram scan token");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Helper: Create HTTP request with authorization header
     /// </summary>
     private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url)

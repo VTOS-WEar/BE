@@ -285,4 +285,35 @@ public class BodygramController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", details = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Generates a scan token for Bodygram SDK client
+    /// </summary>
+    [HttpPost("scan-tokens")]
+    public async Task<ActionResult<GenerateScanTokenResponse>> GenerateScanToken(
+        [FromBody] GenerateScanTokenRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.CustomScanId))
+                request.CustomScanId = $"scan_{Guid.NewGuid()}";
+
+            if (request.Scope == null || request.Scope.Count == 0)
+                request.Scope = new List<string> { "api.platform.bodygram.com/scans:create" };
+
+            var response = await _bodygramService.GenerateScanTokenAsync(request, cancellationToken);
+            return Ok(response);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Bodygram API request failed");
+            return StatusCode(502, new { error = "Bodygram service error", details = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error generating scan token");
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+        }
+    }
 }
