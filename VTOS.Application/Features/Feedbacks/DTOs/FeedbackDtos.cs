@@ -27,6 +27,7 @@ public record ParentFeedbackDto(
     int? Rating,           // null if not yet rated
     string? Comment,
     DateTime? FeedbackTimestamp,
+    DateTime OrderDate,
     decimal OutfitPrice,
     string OutfitType,
     string Size,
