@@ -36,6 +36,7 @@ public class BodygramService : IBodygramService
         ["thighGirthR"] = "Thigh",
         ["calfGirthR"] = "Calf"
     };
+    private const int TrialScanLimit = 5;
 
     // Track current credential index for fallback strategy (sequential)
     private static int _currentCredentialIndex = 0;
@@ -235,6 +236,8 @@ public class BodygramService : IBodygramService
             };
 
             _logger.LogInformation("Generating Bodygram scan token for custom ID: {CustomScanId}", customScanId);
+
+            await SelectCredentialForScanTokenAsync(cancellationToken);
 
             int maxRetries = GetAvailableCredentials().Count;
             HttpResponseMessage response = null;
@@ -753,6 +756,60 @@ public class BodygramService : IBodygramService
         return $"{baseUrl}/{locale}/{organizationId}/scan?token={encodedToken}&system=metric&tap=true";
     }
 
+    private async Task SelectCredentialForScanTokenAsync(CancellationToken cancellationToken)
+    {
+        var credentials = GetAvailableCredentials();
+        if (credentials.Count <= 1)
+        {
+            return;
+        }
+
+        var startIndex = GetCurrentCredentialIndex();
+
+        for (int offset = 0; offset < credentials.Count; offset++)
+        {
+            var index = (startIndex + offset) % credentials.Count;
+            var credential = credentials[index];
+            var scanCount = await GetScanCountForCredentialAsync(credential, cancellationToken);
+
+            _logger.LogInformation(
+                "Bodygram credential {Index}/{Total} for organization {OrganizationId} currently has {ScanCount} scans.",
+                index + 1,
+                credentials.Count,
+                credential.OrganizationId,
+                scanCount);
+
+            if (scanCount < TrialScanLimit)
+            {
+                SetCurrentCredentialIndex(index);
+                return;
+            }
+        }
+
+        throw new HttpRequestException($"Bodygram API: All available organizations have reached the configured trial scan limit of {TrialScanLimit} scans.");
+    }
+
+    private async Task<int> GetScanCountForCredentialAsync(BodygramCredential credential, CancellationToken cancellationToken)
+    {
+        var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans";
+        var request = CreateAuthenticatedRequest(HttpMethod.Get, url, credential);
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return 0;
+            }
+
+            await HandleErrorResponseAsync(response, $"Retrieve scans for organization {credential.OrganizationId}", cancellationToken);
+        }
+
+        var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+        var scansResponse = DeserializeResponse<ScanListResponse>(jsonResponse);
+        return scansResponse?.Results?.Count ?? 0;
+    }
+
     /// <summary>
     /// Helper: Get current credential (with fallback to legacy settings)
     /// </summary>
@@ -771,6 +828,22 @@ public class BodygramService : IBodygramService
                 };
             }
             return credentials[_currentCredentialIndex];
+        }
+    }
+
+    private int GetCurrentCredentialIndex()
+    {
+        lock (_credentialLock)
+        {
+            return _currentCredentialIndex;
+        }
+    }
+
+    private void SetCurrentCredentialIndex(int index)
+    {
+        lock (_credentialLock)
+        {
+            _currentCredentialIndex = index;
         }
     }
 
