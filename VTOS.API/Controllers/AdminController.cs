@@ -171,7 +171,7 @@ public class AdminController : ControllerBase
 
         if (!success) return NotFound();
 
-        return Ok();
+        return NoContent();
     }
 
     // ✅ Suspend User
@@ -183,7 +183,7 @@ public class AdminController : ControllerBase
 
         if (!success) return NotFound();
 
-        return Ok();
+        return NoContent();
     }
 
     // ✅ Remove Feedback

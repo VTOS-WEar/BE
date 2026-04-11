@@ -16,6 +16,7 @@ public class OutfitDto
     public Guid? SizeChartID { get; set; }
     public bool IsAvailable { get; set; }
     public bool IsCustomizable { get; set; }
+    public bool CanDelete { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

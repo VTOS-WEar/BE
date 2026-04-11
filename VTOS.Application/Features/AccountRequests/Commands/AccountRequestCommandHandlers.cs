@@ -162,6 +162,16 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
             return Result<AccountRequestDetailDto>.Failure(
                 $"Email '{email}' đã tồn tại trong hệ thống.", "EMAIL_EXISTS");
 
+        // Check if phone is already used by another user (if provided)
+        if (!string.IsNullOrWhiteSpace(req.Phone))
+        {
+            var normalizedPhone = NormalizePhone(req.Phone);
+            var phoneExists = await _context.Users.AnyAsync(u => u.Phone == normalizedPhone, ct);
+            if (phoneExists)
+                return Result<AccountRequestDetailDto>.Failure(
+                    "Số điện thoại đã được sử dụng bởi tài khoản khác.", "PHONE_ALREADY_USED");
+        }
+
         // Determine role
         var roleName = accountRequest.Type == AccountRequestType.School ? "School" : "Provider";
         var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleName, ct);
@@ -188,7 +198,7 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
             Email = email,
             PasswordHash = _passwordHasher.HashPassword(tempPassword),
             FullName = req.FullName?.Trim() ?? accountRequest.ContactPersonName ?? "User",
-            Phone = req.Phone?.Trim(),
+            Phone = !string.IsNullOrWhiteSpace(req.Phone) ? NormalizePhone(req.Phone) : null,
             RoleID = role.Id,
             IsActive = true,  // Active immediately (no OTP needed — admin-created)
             IsDeleted = false,
@@ -279,6 +289,16 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
         var random = new Random();
         return new string(Enumerable.Repeat(chars, 12).Select(s => s[random.Next(s.Length)]).ToArray());
+    }
+
+    /// <summary>Normalizes a phone number to local "0xxxxxxxxx" format.</summary>
+    private static string NormalizePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return "";
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("84")) digits = digits[2..];
+        if (digits.StartsWith("0")) digits = digits[1..];
+        return "0" + digits;
     }
 }
 

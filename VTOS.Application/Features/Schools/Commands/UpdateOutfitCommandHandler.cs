@@ -76,6 +76,7 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
             SizeChartID = outfit.SizeChartID,
             IsAvailable = outfit.IsAvailable,
             IsCustomizable = outfit.IsCustomizable,
+            CanDelete = true,
             CreatedAt = outfit.CreatedAt,
             UpdatedAt = outfit.UpdatedAt
         });

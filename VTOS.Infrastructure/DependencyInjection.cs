@@ -174,6 +174,7 @@ public static class DependencyInjection
         services.AddScoped<GetSchoolDetailQueryHandler>();
         services.AddScoped<GetUniformListQueryHandler>();
         services.AddScoped<GetPublicCampaignDetailQueryHandler>();
+        services.AddScoped<PublicSearchQueryHandler>();
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
@@ -194,6 +195,7 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundJobs.CampaignDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.AdminNotificationDigestJob>();
         services.AddScoped<Application.Features.Notifications.INotificationBroadcaster, Hubs.SignalRNotificationBroadcaster>();
+        services.AddScoped<Application.Features.Admin.Commands.IUserStatusBroadcaster, Hubs.SignalRUserStatusBroadcaster>();
 
         // Phase 04: Admin UI Revamp
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAdminCashFlowQueryHandler,

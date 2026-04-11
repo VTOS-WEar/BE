@@ -624,6 +624,21 @@ public class SchoolsController : ControllerBase
     }
 
     /// <summary>
+    /// Toggle uniform visibility (hide/show from public listing).
+    /// Use this when an outfit is in a Completed campaign and cannot be deleted.
+    /// </summary>
+    [HttpPatch("me/outfits/{id:guid}/availability")]
+    [ProducesResponseType(typeof(OutfitDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SetOutfitAvailability(Guid id, [FromBody] SetOutfitAvailabilityRequest request, CancellationToken ct)
+    {
+        var userId = _currentUser.UserId;
+        var result = await _updateOutfitHandler.HandleAsync(
+            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, request.IsAvailable, null), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
     /// Upload an image for an outfit (returns the hosted URL).
     /// </summary>
     [HttpPost("me/outfits/upload-image")]
@@ -1498,4 +1513,7 @@ public record UpdateOutfitRequest(
     bool? IsAvailable = null,
     bool? IsCustomizable = null
 );
+
+/// <summary>Request body for toggling outfit visibility.</summary>
+public record SetOutfitAvailabilityRequest(bool IsAvailable);
 
