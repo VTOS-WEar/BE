@@ -51,6 +51,8 @@ public interface IApplicationDbContext
     DbSet<NotificationLog> NotificationLogs { get; }
     DbSet<InAppNotification> InAppNotifications { get; }
     DbSet<BodygramScanLog> BodygramScanLogs { get; }
+    DbSet<BodygramScanRecord> BodygramScanRecords { get; }
+    DbSet<BodygramMeasurementRecord> BodygramMeasurementRecords { get; }
 
     DbSet<T> Set<T>() where T : class;
     

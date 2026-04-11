@@ -19,11 +19,22 @@ public class BodygramService : IBodygramService
     private readonly BodygramSettings _settings;
     private readonly ILogger<BodygramService> _logger;
     private readonly IApplicationDbContext _dbContext;
+    private readonly IImageUploadService _imageUploadService;
 
     // Shared JsonSerializerOptions
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private static readonly Dictionary<string, string> MeasurementLabels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["bustGirth"] = "Bust",
+        ["waistGirth"] = "Waist",
+        ["hipGirth"] = "Hip",
+        ["upperArmGirthR"] = "Upper Arm",
+        ["thighGirthR"] = "Thigh",
+        ["calfGirthR"] = "Calf"
     };
 
     // Track current credential index for fallback strategy (sequential)
@@ -34,12 +45,14 @@ public class BodygramService : IBodygramService
         HttpClient httpClient,
         IOptions<BodygramSettings> options,
         ILogger<BodygramService> logger,
-        IApplicationDbContext dbContext)
+        IApplicationDbContext dbContext,
+        IImageUploadService imageUploadService)
     {
         _httpClient = httpClient;
         _settings = options.Value;
         _logger = logger;
         _dbContext = dbContext;
+        _imageUploadService = imageUploadService;
     }
 
     /// <summary>
@@ -341,6 +354,8 @@ public class BodygramService : IBodygramService
                     {
                         scanLog.Child.WeightKg = (float)(response.Entry.Input.PhotoScan.Weight / 1000.0); // g -> kg
                     }
+
+                    await UpsertScanRecordAsync(scanLog.Child, response.Entry, cancellationToken);
                 }
             }
 
@@ -388,6 +403,103 @@ public class BodygramService : IBodygramService
         };
     }
 
+    public async Task<IReadOnlyList<BodygramScanHistoryItemResponse>> GetChildScanHistoryAsync(Guid childId, Guid parentId, CancellationToken cancellationToken = default)
+    {
+        var child = await _dbContext.ChildProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == childId, cancellationToken);
+
+        if (child == null)
+        {
+            throw new KeyNotFoundException("Student not found.");
+        }
+
+        if (child.ParentUserID != parentId)
+        {
+            throw new UnauthorizedAccessException("You do not have permission to view this student's Bodygram history.");
+        }
+
+        var records = await _dbContext.BodygramScanRecords
+            .AsNoTracking()
+            .Include(r => r.Measurements)
+            .Where(r => r.ChildId == childId)
+            .OrderByDescending(r => r.ScannedAt)
+            .ToListAsync(cancellationToken);
+
+        return records.Select(record => new BodygramScanHistoryItemResponse
+        {
+            ScanRecordId = record.Id,
+            ChildId = record.ChildId,
+            ChildName = child.FullName,
+            ScannedAt = record.ScannedAt,
+            Status = record.Status,
+            HeightCm = record.HeightCm,
+            WeightKg = record.WeightKg,
+            BustCm = GetMeasurementCm(record.Measurements, "bustGirth"),
+            WaistGirthCm = GetMeasurementCm(record.Measurements, "waistGirth"),
+            HipGirthCm = GetMeasurementCm(record.Measurements, "hipGirth"),
+            WaistToHipRatio = record.WaistToHipRatio,
+            AvatarThumbnailUrl = record.AvatarUrl
+        }).ToList();
+    }
+
+    public async Task<BodygramScanDetailResponse> GetScanDetailAsync(Guid scanRecordId, Guid parentId, CancellationToken cancellationToken = default)
+    {
+        var record = await _dbContext.BodygramScanRecords
+            .AsNoTracking()
+            .Include(r => r.Child)
+            .Include(r => r.Measurements)
+            .FirstOrDefaultAsync(r => r.Id == scanRecordId, cancellationToken);
+
+        if (record == null)
+        {
+            throw new KeyNotFoundException("Bodygram scan record not found.");
+        }
+
+        if (record.Child.ParentUserID != parentId)
+        {
+            throw new UnauthorizedAccessException("You do not have permission to view this scan.");
+        }
+
+        return new BodygramScanDetailResponse
+        {
+            ScanRecordId = record.Id,
+            ChildId = record.ChildId,
+            ChildName = record.Child.FullName,
+            BodygramScanId = record.BodygramScanId,
+            CustomScanId = record.CustomScanId,
+            Status = record.Status,
+            ScannedAt = record.ScannedAt,
+            HeightCm = record.HeightCm,
+            WeightKg = record.WeightKg,
+            AvatarUrl = record.AvatarUrl,
+            AvatarFormat = record.AvatarFormat,
+            AvatarType = record.AvatarType,
+            WaistToHipRatio = record.WaistToHipRatio,
+            RiskLevel = GetRiskLevel(record.WaistToHipRatio),
+            BustCm = GetMeasurementCm(record.Measurements, "bustGirth"),
+            WaistCm = GetMeasurementCm(record.Measurements, "waistGirth"),
+            HipCm = GetMeasurementCm(record.Measurements, "hipGirth"),
+            UpperArmCm = GetMeasurementCm(record.Measurements, "upperArmGirthR"),
+            ThighCm = GetMeasurementCm(record.Measurements, "thighGirthR"),
+            CalfCm = GetMeasurementCm(record.Measurements, "calfGirthR"),
+            Gender = record.Child.Gender == VTOS.Domain.Enums.Gender.Female ? "female" : "male",
+            Measurements = record.Measurements
+                .OrderBy(m => m.Name)
+                .Select(m => new BodygramMeasurementDetailItem
+                {
+                    Name = m.Name,
+                    Label = MeasurementLabels.TryGetValue(m.Name, out var label) ? label : m.Name,
+                    Unit = m.Unit,
+                    Value = m.Value,
+                    ValueCm = string.Equals(m.Unit, "mm", StringComparison.OrdinalIgnoreCase)
+                        ? Math.Round(m.Value / 10d, 1)
+                        : null
+                })
+                .ToList()
+        };
+    }
+
     private async Task TrySyncPendingScanAsync(BodygramScanLog scanLog, Guid parentId, CancellationToken cancellationToken)
     {
         try
@@ -419,6 +531,117 @@ public class BodygramService : IBodygramService
         {
             _logger.LogWarning(ex, "Unable to sync Bodygram pending scan {CustomScanId} during status polling.", scanLog.CustomScanId);
         }
+    }
+
+    private async Task UpsertScanRecordAsync(ChildProfile child, ScanEntry entry, CancellationToken cancellationToken)
+    {
+        var existingRecord = await _dbContext.BodygramScanRecords
+            .Include(r => r.Measurements)
+            .FirstOrDefaultAsync(r => r.BodygramScanId == entry.Id || r.CustomScanId == entry.CustomScanId, cancellationToken);
+
+        var scanRecord = existingRecord ?? new BodygramScanRecord
+        {
+            Id = Guid.NewGuid(),
+            ChildId = child.Id,
+            BodygramScanId = entry.Id,
+            CustomScanId = entry.CustomScanId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        scanRecord.ChildId = child.Id;
+        scanRecord.BodygramScanId = entry.Id;
+        scanRecord.CustomScanId = entry.CustomScanId;
+        scanRecord.Status = entry.Status;
+        scanRecord.ScannedAt = DateTimeOffset.FromUnixTimeSeconds(entry.CreatedAt).UtcDateTime;
+        scanRecord.CreatedAtUnix = entry.CreatedAt;
+        scanRecord.HeightCm = child.HeightCm;
+        scanRecord.WeightKg = child.WeightKg;
+        scanRecord.RawInputJson = entry.Input == null ? null : JsonSerializer.Serialize(entry.Input, JsonOptions);
+        scanRecord.RawMeasurementsJson = JsonSerializer.Serialize(entry.Measurements ?? new List<Measurement>(), JsonOptions);
+        scanRecord.WaistToHipRatio = CalculateWaistToHipRatio(entry.Measurements);
+        scanRecord.AvatarFormat = entry.Avatar?.Format;
+        scanRecord.AvatarType = entry.Avatar?.Type;
+        scanRecord.UpdatedAt = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(entry.Avatar?.Data))
+        {
+            var avatarBytes = ImageHelper.ConvertBase64AvatarToBytes(entry.Avatar.Data);
+            await using var avatarStream = new MemoryStream(avatarBytes);
+            scanRecord.AvatarUrl = await _imageUploadService.UploadAsync(
+                avatarStream,
+                $"{entry.Id}.{entry.Avatar.Format}",
+                $"bodygram/{child.Id}",
+                cancellationToken);
+        }
+
+        if (existingRecord == null)
+        {
+            _dbContext.BodygramScanRecords.Add(scanRecord);
+        }
+        else if (existingRecord.Measurements.Count > 0)
+        {
+            _dbContext.BodygramMeasurementRecords.RemoveRange(existingRecord.Measurements);
+        }
+
+        if (entry.Measurements?.Count > 0)
+        {
+            var measurements = entry.Measurements.Select(m => new BodygramMeasurementRecord
+            {
+                Id = Guid.NewGuid(),
+                ScanRecordId = scanRecord.Id,
+                Name = m.Name,
+                Unit = m.Unit,
+                Value = m.Value
+            });
+
+            _dbContext.BodygramMeasurementRecords.AddRange(measurements);
+        }
+    }
+
+    private static double? GetMeasurementCm(IEnumerable<BodygramMeasurementRecord> measurements, string measurementName)
+    {
+        var measurement = measurements.FirstOrDefault(m => string.Equals(m.Name, measurementName, StringComparison.OrdinalIgnoreCase));
+        if (measurement == null)
+        {
+            return null;
+        }
+
+        return string.Equals(measurement.Unit, "mm", StringComparison.OrdinalIgnoreCase)
+            ? Math.Round(measurement.Value / 10d, 1)
+            : Math.Round(measurement.Value, 1);
+    }
+
+    private static double? CalculateWaistToHipRatio(IEnumerable<Measurement> measurements)
+    {
+        var waist = measurements.FirstOrDefault(m => string.Equals(m.Name, "waistGirth", StringComparison.OrdinalIgnoreCase));
+        var hip = measurements.FirstOrDefault(m => string.Equals(m.Name, "hipGirth", StringComparison.OrdinalIgnoreCase));
+
+        if (waist == null || hip == null || hip.Value <= 0)
+        {
+            return null;
+        }
+
+        return Math.Round(waist.Value / hip.Value, 2);
+    }
+
+    private static string? GetRiskLevel(double? waistToHipRatio)
+    {
+        if (waistToHipRatio == null)
+        {
+            return null;
+        }
+
+        if (waistToHipRatio < 0.80d)
+        {
+            return "Low risk";
+        }
+
+        if (waistToHipRatio <= 0.85d)
+        {
+            return "Moderate risk";
+        }
+
+        return "High risk";
     }
 
     /// <summary>

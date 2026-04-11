@@ -382,4 +382,58 @@ public class BodygramController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", details = ex.Message });
         }
     }
+
+    [HttpGet("children/{childId:guid}/scans")]
+    [Authorize]
+    public async Task<ActionResult<IReadOnlyList<BodygramScanHistoryItemResponse>>> GetChildScans(
+        Guid childId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId;
+            var response = await _bodygramService.GetChildScanHistoryAsync(childId, userId, cancellationToken);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving child Bodygram scan history for child {ChildId}", childId);
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+        }
+    }
+
+    [HttpGet("records/{scanRecordId:guid}")]
+    [Authorize]
+    public async Task<ActionResult<BodygramScanDetailResponse>> GetScanRecordDetail(
+        Guid scanRecordId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId;
+            var response = await _bodygramService.GetScanDetailAsync(scanRecordId, userId, cancellationToken);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving Bodygram scan record detail {ScanRecordId}", scanRecordId);
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+        }
+    }
 }

@@ -75,6 +75,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
 
     // Bodygram Scans
     public DbSet<BodygramScanLog> BodygramScanLogs { get; set; }
+    public DbSet<BodygramScanRecord> BodygramScanRecords { get; set; }
+    public DbSet<BodygramMeasurementRecord> BodygramMeasurementRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

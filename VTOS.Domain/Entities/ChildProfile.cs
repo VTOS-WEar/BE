@@ -26,6 +26,7 @@ public class ChildProfile : BaseEntity
     public User ParentUser { get; set; } = null!;
     public School School { get; set; } = null!;
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
+    public ICollection<BodygramScanRecord> BodygramScanRecords { get; set; } = new List<BodygramScanRecord>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();
 }

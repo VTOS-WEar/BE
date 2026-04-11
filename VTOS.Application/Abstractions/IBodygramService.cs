@@ -43,4 +43,14 @@ public interface IBodygramService
     /// Retrieves scan session status for a specific child owned by the current parent
     /// </summary>
     Task<BodygramScanStatusResponse> GetScanStatusAsync(string customScanId, Guid parentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves saved Bodygram scan history for a child owned by the current parent.
+    /// </summary>
+    Task<IReadOnlyList<BodygramScanHistoryItemResponse>> GetChildScanHistoryAsync(Guid childId, Guid parentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a saved Bodygram scan detail owned by the current parent.
+    /// </summary>
+    Task<BodygramScanDetailResponse> GetScanDetailAsync(Guid scanRecordId, Guid parentId, CancellationToken cancellationToken = default);
 }
