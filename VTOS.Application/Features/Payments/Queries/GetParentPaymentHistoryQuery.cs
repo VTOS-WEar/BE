@@ -12,7 +12,7 @@ public record ParentPaymentDto(
     Guid PaymentId,
     Guid OrderId,
     decimal Amount,
-    string Status,
+    string PaymentStatus,
     string OrderStatus,
     DateTime Timestamp
 );
