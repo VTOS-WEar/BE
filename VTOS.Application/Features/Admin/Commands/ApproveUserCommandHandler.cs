@@ -6,10 +6,12 @@ namespace VTOS.Application.Features.Admin.Commands;
 public class ApproveUserCommandHandler : IApproveUserCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly IUserStatusBroadcaster _broadcaster;
 
-    public ApproveUserCommandHandler(IApplicationDbContext context)
+    public ApproveUserCommandHandler(IApplicationDbContext context, IUserStatusBroadcaster broadcaster)
     {
         _context = context;
+        _broadcaster = broadcaster;
     }
 
     public async Task<bool> HandleAsync(
@@ -71,6 +73,9 @@ public class ApproveUserCommandHandler : IApproveUserCommandHandler
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Broadcast: all connected admin clients update their user status badge immediately
+        await _broadcaster.BroadcastUserStatusChangedAsync(user.Id, isActive: true, cancellationToken);
 
         return true;
     }

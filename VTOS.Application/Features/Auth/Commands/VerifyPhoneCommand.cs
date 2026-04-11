@@ -43,9 +43,12 @@ public class VerifyPhoneCommandHandler
                 "USER_NOT_FOUND");
         }
 
-        // Check if phone is already used by another parent
+        // Normalize phone before checking and storing (handles +84, 84, 0 prefixes)
+        var normalizedPhone = NormalizePhone(command.Phone);
+
+        // Check if phone is already used by another user
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Phone == command.Phone && u.Id != command.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Phone == normalizedPhone && u.Id != command.UserId, cancellationToken);
 
         if (existingUser != null)
         {
@@ -54,13 +57,26 @@ public class VerifyPhoneCommandHandler
                 "PHONE_ALREADY_USED");
         }
 
-        // Save phone to user record
-        user.Phone = command.Phone;
+        // Save normalized phone to user record
+        user.Phone = normalizedPhone;
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<VerifyPhoneResponse>.Success(new VerifyPhoneResponse(
-            command.Phone,
+            normalizedPhone,
             "Số điện thoại đã được lưu thành công."
         ));
+    }
+
+    /// <summary>
+    /// Normalizes a phone number to local "0xxxxxxxxx" format.
+    /// Handles +84, 84, 0 prefixes — all stored as local format.
+    /// </summary>
+    private static string NormalizePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return "";
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("84")) digits = digits[2..];
+        if (digits.StartsWith("0")) digits = digits[1..];
+        return "0" + digits;
     }
 }

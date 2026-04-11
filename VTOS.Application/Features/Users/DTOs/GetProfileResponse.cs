@@ -11,5 +11,6 @@ public record GetProfileResponse(
     bool IsDeleted,
     DateTime CreatedAt,
     DateTime LastLogin,
-    string? Avatar
+    string? Avatar,
+    bool TwoFactorEnabled
 );

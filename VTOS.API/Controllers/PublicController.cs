@@ -20,6 +20,7 @@ public class PublicController : ControllerBase
     private readonly GetSchoolDetailQueryHandler _getSchoolDetailHandler;
     private readonly GetUniformListQueryHandler _getUniformListHandler;
     private readonly GetPublicCampaignDetailQueryHandler _getPublicCampaignDetailHandler;
+    private readonly PublicSearchQueryHandler _publicSearchHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
@@ -27,7 +28,8 @@ public class PublicController : ControllerBase
         GetOutfitDetailQueryHandler getOutfitDetailHandler,
         GetSchoolDetailQueryHandler getSchoolDetailHandler,
         GetUniformListQueryHandler getUniformListHandler,
-        GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler)
+        GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler,
+        PublicSearchQueryHandler publicSearchHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
@@ -35,6 +37,7 @@ public class PublicController : ControllerBase
         _getSchoolDetailHandler = getSchoolDetailHandler;
         _getUniformListHandler = getUniformListHandler;
         _getPublicCampaignDetailHandler = getPublicCampaignDetailHandler;
+        _publicSearchHandler = publicSearchHandler;
     }
 
     /// <summary>
@@ -53,6 +56,27 @@ public class PublicController : ControllerBase
     {
         var query = new GetSchoolsQuery(search, page, pageSize);
         var result = await _getSchoolsHandler.HandleAsync(query, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Unified search across schools and uniforms.
+    /// Returns schools and uniforms matching the query (case-insensitive contains).
+    /// Used by the navbar search bar.
+    /// </summary>
+    /// <param name="q">Search keyword</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per section (default: 10)</param>
+    [HttpGet("search")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? q,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var query = new PublicSearchQuery(q, page, pageSize);
+        var result = await _publicSearchHandler.HandleAsync(query, ct);
         return Ok(result);
     }
 

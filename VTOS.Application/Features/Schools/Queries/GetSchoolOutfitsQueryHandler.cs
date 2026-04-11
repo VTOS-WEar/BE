@@ -2,12 +2,16 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Queries;
 
 /// <summary>
 /// Returns all non-deleted outfits belonging to the logged-in school.
 /// Optional filter: IsAvailable.
+/// Includes CanDelete flag: false if outfit is linked to ANY campaign (Active, Paused,
+/// Locked, Completed, or Cancelled) — parents may have ordered it. School uses "Ẩn"
+/// (set IsAvailable=false) instead of delete in that case.
 /// </summary>
 public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
 {
@@ -39,6 +43,18 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         if (query.IsAvailable.HasValue)
             outfitsQuery = outfitsQuery.Where(o => o.IsAvailable == query.IsAvailable.Value);
 
+        // Outfits linked to ANY campaign (Active, Paused, Locked, Completed, Cancelled)
+        // cannot be deleted — parents may have placed orders in that campaign.
+        // School uses "Ẩn" (hide → set IsAvailable=false) instead of delete.
+        var nonDeletableIds = await _db.CampaignOutfits
+            .AsNoTracking()
+            .Where(co => _db.Outfits.AsNoTracking()
+                .Any(o => o.Id == co.OutfitID && o.SchoolID == schoolMgr.SchoolID && !o.IsDeleted))
+            .Select(co => co.OutfitID)
+            .ToListAsync(ct);
+
+        var nonDeletableSet = new HashSet<Guid>(nonDeletableIds);
+
         var outfits = await outfitsQuery
             .OrderByDescending(o => o.CreatedAt)
             .Select(o => new OutfitDto
@@ -56,6 +72,10 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
                 UpdatedAt = o.UpdatedAt
             })
             .ToListAsync(ct);
+
+        // Set CanDelete — false if outfit is in ANY campaign (should use "Ẩn" instead)
+        foreach (var outfit in outfits)
+            outfit.CanDelete = !nonDeletableSet.Contains(outfit.OutfitId);
 
         return Result<OutfitListResponse>.Success(new OutfitListResponse
         {
