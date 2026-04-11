@@ -73,6 +73,9 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     // In-App Notifications
     public DbSet<InAppNotification> InAppNotifications { get; set; }
 
+    // Bodygram Scans
+    public DbSet<BodygramScanLog> BodygramScanLogs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

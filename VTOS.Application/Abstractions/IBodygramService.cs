@@ -30,10 +30,17 @@ public interface IBodygramService
     Task<BodygramScanResponse> GetScanAsync(string scanId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Generates a scan token for client-side scanning
+    /// Generates a scan token for a specific child after validating parent permissions
     /// </summary>
-    /// <param name="request">Request parameters for scan token</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Token and Expiry</returns>
-    Task<GenerateScanTokenResponse> GenerateScanTokenAsync(GenerateScanTokenRequest request, CancellationToken cancellationToken = default);
+    Task<GenerateScanTokenResponse> GenerateScanTokenForChildAsync(Guid childId, Guid parentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Completes the scan session, logs the results and updates the child profile
+    /// </summary>
+    Task CompleteScanAsync(Guid childId, Guid parentId, string customScanId, string bodygramScanId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves scan session status for a specific child owned by the current parent
+    /// </summary>
+    Task<BodygramScanStatusResponse> GetScanStatusAsync(string customScanId, Guid parentId, CancellationToken cancellationToken = default);
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.API.Controllers.Dtos;
 using VTOS.Application.Abstractions;
@@ -11,16 +12,20 @@ namespace VTOS.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/bodygram")]
+[Authorize(Roles = "Parent")]
 public class BodygramController : ControllerBase
 {
     private readonly IBodygramService _bodygramService;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<BodygramController> _logger;
 
     public BodygramController(
         IBodygramService bodygramService,
+        ICurrentUserService currentUserService,
         ILogger<BodygramController> logger)
     {
         _bodygramService = bodygramService;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -287,23 +292,25 @@ public class BodygramController : ControllerBase
     }
 
     /// <summary>
-    /// Generates a scan token for Bodygram SDK client
+    /// Generates a scan token for Bodygram SDK client based on a specific child ID
     /// </summary>
     [HttpPost("scan-tokens")]
+    [Authorize]
     public async Task<ActionResult<GenerateScanTokenResponse>> GenerateScanToken(
-        [FromBody] GenerateScanTokenRequest request,
+        [FromBody] ClientGenerateScanTokenRequest request,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.CustomScanId))
-                request.CustomScanId = $"scan_{Guid.NewGuid()}";
+            var userId = _currentUserService.UserId;
+            
+            var response = await _bodygramService.GenerateScanTokenForChildAsync(request.ChildId, userId, cancellationToken);
 
-            if (request.Scope == null || request.Scope.Count == 0)
-                request.Scope = new List<string> { "api.platform.bodygram.com/scans:create" };
-
-            var response = await _bodygramService.GenerateScanTokenAsync(request, cancellationToken);
             return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
         }
         catch (HttpRequestException ex)
         {
@@ -313,6 +320,65 @@ public class BodygramController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error generating scan token");
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Completed a scan and updates the child profile logically
+    /// </summary>
+    [HttpPost("scans/complete")]
+    [Authorize]
+    public async Task<IActionResult> CompleteScan(
+        [FromBody] CompleteScanRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId;
+            
+            await _bodygramService.CompleteScanAsync(request.ChildId, userId, request.CustomScanId, request.BodygramScanId, cancellationToken);
+
+            return Ok(new { message = "Bodygram scan results saved successfully." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error completing scan update");
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+        }
+    }
+
+    [HttpGet("scans/status")]
+    [Authorize]
+    public async Task<ActionResult<BodygramScanStatusResponse>> GetScanStatus(
+        [FromQuery] string customScanId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = _currentUserService.UserId;
+            var response = await _bodygramService.GetScanStatusAsync(customScanId, userId, cancellationToken);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving scan status");
             return StatusCode(500, new { error = "Internal server error", details = ex.Message });
         }
     }

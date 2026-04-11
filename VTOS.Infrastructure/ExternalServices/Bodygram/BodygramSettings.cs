@@ -30,6 +30,16 @@ public class BodygramSettings
     /// Base URL for Bodygram API
     /// </summary>
     public string BaseUrl { get; set; } = "https://platform.bodygram.com/api";
+
+    /// <summary>
+    /// Public URL used to open the hosted Bodygram scanner UI
+    /// </summary>
+    public string ScannerBaseUrl { get; set; } = "https://platform.bodygram.com";
+
+    /// <summary>
+    /// Locale used when building hosted scanner links
+    /// </summary>
+    public string Locale { get; set; } = "en";
     
     /// <summary>
     /// List of credential pairs (primary + fallback) for retry logic.

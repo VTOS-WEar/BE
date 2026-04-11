@@ -1,9 +1,11 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common.Models.BodygramDTOs;
+using VTOS.Domain.Entities;
 using VTOS.Infrastructure.Bodygram.Helpers;
 
 namespace VTOS.Infrastructure.Bodygram;
@@ -16,6 +18,7 @@ public class BodygramService : IBodygramService
     private readonly HttpClient _httpClient;
     private readonly BodygramSettings _settings;
     private readonly ILogger<BodygramService> _logger;
+    private readonly IApplicationDbContext _dbContext;
 
     // Shared JsonSerializerOptions
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -30,11 +33,13 @@ public class BodygramService : IBodygramService
     public BodygramService(
         HttpClient httpClient,
         IOptions<BodygramSettings> options,
-        ILogger<BodygramService> logger)
+        ILogger<BodygramService> logger,
+        IApplicationDbContext dbContext)
     {
         _httpClient = httpClient;
         _settings = options.Value;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -109,23 +114,33 @@ public class BodygramService : IBodygramService
     {
         try
         {
-            _logger.LogInformation("Retrieving scans for organization: {OrganizationId}", _settings.OrganizationId);
-
-            var url = $"{_settings.BaseUrl}/orgs/{_settings.OrganizationId}/scans";
-            var httpRequest = CreateAuthenticatedRequest(HttpMethod.Get, url);
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
-            
-            if (!response.IsSuccessStatusCode)
+            foreach (var credential in GetAvailableCredentials())
             {
-                await HandleErrorResponseAsync(response, "Retrieve scans", cancellationToken);
+                _logger.LogInformation("Retrieving scans for organization: {OrganizationId}", credential.OrganizationId);
+
+                var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans";
+                var httpRequest = CreateAuthenticatedRequest(HttpMethod.Get, url, credential);
+
+                var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        continue;
+                    }
+
+                    await HandleErrorResponseAsync(response, "Retrieve scans", cancellationToken);
+                }
+
+                var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+                var scansResponse = DeserializeResponse<ScanListResponse>(jsonResponse);
+
+                _logger.LogInformation("Retrieved {ScanCount} scans", scansResponse?.Results.Count ?? 0);
+                return scansResponse;
             }
 
-            var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-            var scansResponse = DeserializeResponse<ScanListResponse>(jsonResponse);
-
-            _logger.LogInformation("Retrieved {ScanCount} scans", scansResponse?.Results.Count ?? 0);
-            return scansResponse;
+            return new ScanListResponse();
         }
         catch (Exception ex)
         {
@@ -143,21 +158,38 @@ public class BodygramService : IBodygramService
         {
             _logger.LogInformation("Retrieving scan with ID: {ScanId}", scanId);
 
-            var url = $"{_settings.BaseUrl}/orgs/{_settings.OrganizationId}/scans/{scanId}";
-            var httpRequest = CreateAuthenticatedRequest(HttpMethod.Get, url);
-
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
-            
-            if (!response.IsSuccessStatusCode)
+            HttpResponseMessage? lastResponse = null;
+            foreach (var credential in GetAvailableCredentials())
             {
-                await HandleErrorResponseAsync(response, $"Retrieve scan {scanId}", cancellationToken);
+                var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans/{scanId}";
+                var httpRequest = CreateAuthenticatedRequest(HttpMethod.Get, url, credential);
+
+                var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+                lastResponse = response;
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        continue;
+                    }
+
+                    await HandleErrorResponseAsync(response, $"Retrieve scan {scanId}", cancellationToken);
+                }
+
+                var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+                var scanResponse = DeserializeResponse<BodygramScanResponse>(jsonResponse);
+
+                _logger.LogInformation("Retrieved scan {ScanId} with status: {Status}", scanId, scanResponse?.Entry?.Status);
+                return scanResponse;
             }
 
-            var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-            var scanResponse = DeserializeResponse<BodygramScanResponse>(jsonResponse);
+            if (lastResponse != null)
+            {
+                await HandleErrorResponseAsync(lastResponse, $"Retrieve scan {scanId}", cancellationToken);
+            }
 
-            _logger.LogInformation("Retrieved scan {ScanId} with status: {Status}", scanId, scanResponse?.Entry?.Status);
-            return scanResponse;
+            return new BodygramScanResponse();
         }
         catch (Exception ex)
         {
@@ -167,13 +199,29 @@ public class BodygramService : IBodygramService
     }
 
     /// <summary>
-    /// Generates a scan token for client-side scanning
+    /// Generates a scan token for a specific child after validating parent permissions
     /// </summary>
-    public async Task<GenerateScanTokenResponse> GenerateScanTokenAsync(GenerateScanTokenRequest request, CancellationToken cancellationToken = default)
+    public async Task<GenerateScanTokenResponse> GenerateScanTokenForChildAsync(Guid childId, Guid parentId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Generating Bodygram scan token for custom ID: {CustomScanId}", request.CustomScanId);
+            var child = await _dbContext.ChildProfiles
+                .FirstOrDefaultAsync(c => c.Id == childId && c.ParentUserID == parentId, cancellationToken);
+                
+            if (child == null)
+            {
+                throw new UnauthorizedAccessException("You do not have permission to perform a scan for this student.");
+            }
+
+            var customScanId = $"child:{childId}:{Guid.NewGuid()}";
+
+            var request = new GenerateScanTokenRequest
+            {
+                CustomScanId = customScanId,
+                Scope = new List<string> { "api.platform.bodygram.com/scans:create", "api.platform.bodygram.com/scans:read" }
+            };
+
+            _logger.LogInformation("Generating Bodygram scan token for custom ID: {CustomScanId}", customScanId);
 
             int maxRetries = GetAvailableCredentials().Count;
             HttpResponseMessage response = null;
@@ -190,6 +238,21 @@ public class BodygramService : IBodygramService
                 {
                     var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
                     var tokenResponse = DeserializeResponse<GenerateScanTokenResponse>(jsonResponse);
+                    
+                    // Log scan to DB as pending
+                    var scanLog = new BodygramScanLog
+                    {
+                        ChildId = childId,
+                        CustomScanId = customScanId,
+                        Status = VTOS.Domain.Enums.BodygramScanStatus.Pending
+                    };
+                    
+                    _dbContext.BodygramScanLogs.Add(scanLog);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+
+                    tokenResponse.CustomScanId = customScanId;
+                    tokenResponse.ScannerUrl = BuildScannerUrl(tokenResponse.Token, credential.OrganizationId);
+
                     _logger.LogInformation("Bodygram scan token generated successfully");
                     return tokenResponse;
                 }
@@ -227,11 +290,148 @@ public class BodygramService : IBodygramService
     }
 
     /// <summary>
+    /// Completes the scan session, logs the results and updates the child profile
+    /// </summary>
+    public async Task CompleteScanAsync(Guid childId, Guid parentId, string customScanId, string bodygramScanId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var scanLog = await _dbContext.BodygramScanLogs
+                .Include(l => l.Child)
+                .FirstOrDefaultAsync(l => l.CustomScanId == customScanId && l.ChildId == childId, cancellationToken);
+
+            if (scanLog == null)
+            {
+                throw new KeyNotFoundException("Bodygram session not found.");
+            }
+
+            if (scanLog.Child.ParentUserID != parentId)
+            {
+                throw new UnauthorizedAccessException("You do not have permission to perform operations on this student.");
+            }
+
+            // Retrieve data to save it locally
+            if (!string.IsNullOrWhiteSpace(bodygramScanId))
+            {
+                var response = await GetScanAsync(bodygramScanId, cancellationToken);
+                if (response?.Entry != null && response.Entry.CustomScanId != customScanId)
+                {
+                    throw new InvalidOperationException("Bodygram scan does not belong to the requested session.");
+                }
+
+                if (response?.Entry != null)
+                {
+                    var heightMeasurement = response.Entry.Measurements?.FirstOrDefault(x => x.Name == "height");
+                    var weightMeasurement = response.Entry.Measurements?.FirstOrDefault(x => x.Name == "weight");
+
+                    if (heightMeasurement != null)
+                    {
+                        scanLog.Child.HeightCm = (int)(heightMeasurement.Value / 10.0); // mm -> cm
+                    }
+                    else if (response.Entry.Input?.PhotoScan?.Height > 0)
+                    {
+                        scanLog.Child.HeightCm = (int)(response.Entry.Input.PhotoScan.Height / 10.0); // mm -> cm
+                    }
+
+                    if (weightMeasurement != null)
+                    {
+                        scanLog.Child.WeightKg = (float)(weightMeasurement.Value / 1000.0); // g -> kg
+                    }
+                    else if (response.Entry.Input?.PhotoScan?.Weight > 0)
+                    {
+                        scanLog.Child.WeightKg = (float)(response.Entry.Input.PhotoScan.Weight / 1000.0); // g -> kg
+                    }
+                }
+            }
+
+            scanLog.Status = VTOS.Domain.Enums.BodygramScanStatus.Completed;
+            scanLog.BodygramScanId = bodygramScanId;
+            
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Bodygram scan {CustomScanId} completed successfully.", customScanId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error completing Bodygram scan");
+            throw;
+        }
+    }
+
+    public async Task<BodygramScanStatusResponse> GetScanStatusAsync(string customScanId, Guid parentId, CancellationToken cancellationToken = default)
+    {
+        var scanLog = await _dbContext.BodygramScanLogs
+            .Include(l => l.Child)
+            .FirstOrDefaultAsync(l => l.CustomScanId == customScanId, cancellationToken);
+
+        if (scanLog == null)
+        {
+            throw new KeyNotFoundException("Bodygram session not found.");
+        }
+
+        if (scanLog.Child.ParentUserID != parentId)
+        {
+            throw new UnauthorizedAccessException("You do not have permission to view this scan session.");
+        }
+
+        if (scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Pending)
+        {
+            await TrySyncPendingScanAsync(scanLog, parentId, cancellationToken);
+        }
+
+        return new BodygramScanStatusResponse
+        {
+            Status = scanLog.Status.ToString(),
+            ChildId = scanLog.ChildId,
+            BodygramScanId = scanLog.BodygramScanId,
+            HeightCm = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Completed ? scanLog.Child.HeightCm : null,
+            WeightKg = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Completed ? scanLog.Child.WeightKg : null,
+        };
+    }
+
+    private async Task TrySyncPendingScanAsync(BodygramScanLog scanLog, Guid parentId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var scans = await GetScansAsync(cancellationToken);
+            var matchedScan = scans.Results
+                .FirstOrDefault(scan => string.Equals(scan.CustomScanId, scanLog.CustomScanId, StringComparison.Ordinal));
+
+            if (matchedScan == null)
+            {
+                return;
+            }
+
+            if (string.Equals(matchedScan.Status, "success", StringComparison.OrdinalIgnoreCase))
+            {
+                await CompleteScanAsync(scanLog.ChildId, parentId, scanLog.CustomScanId, matchedScan.Id, cancellationToken);
+                return;
+            }
+
+            if (string.Equals(matchedScan.Status, "failure", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(matchedScan.Status, "failed", StringComparison.OrdinalIgnoreCase))
+            {
+                scanLog.Status = VTOS.Domain.Enums.BodygramScanStatus.Failed;
+                scanLog.BodygramScanId = matchedScan.Id;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unable to sync Bodygram pending scan {CustomScanId} during status polling.", scanLog.CustomScanId);
+        }
+    }
+
+    /// <summary>
     /// Helper: Create HTTP request with authorization header
     /// </summary>
     private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url)
     {
         var credential = GetCurrentCredential();
+        return CreateAuthenticatedRequest(method, url, credential);
+    }
+
+    private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url, BodygramCredential credential)
+    {
         var request = new HttpRequestMessage(method, url);
         request.Headers.Add("Authorization", credential.ApiKey);
         return request;
@@ -286,6 +486,15 @@ public class BodygramService : IBodygramService
     private T DeserializeResponse<T>(string jsonResponse) where T : new()
     {
         return JsonSerializer.Deserialize<T>(jsonResponse, JsonOptions) ?? new T();
+    }
+
+    private string BuildScannerUrl(string token, string organizationId)
+    {
+        var locale = string.IsNullOrWhiteSpace(_settings.Locale) ? "en" : _settings.Locale.Trim();
+        var baseUrl = _settings.ScannerBaseUrl.TrimEnd('/');
+        var encodedToken = Uri.EscapeDataString(token);
+
+        return $"{baseUrl}/{locale}/{organizationId}/scan?token={encodedToken}&system=metric&tap=true";
     }
 
     /// <summary>

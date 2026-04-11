@@ -50,6 +50,7 @@ public interface IApplicationDbContext
     DbSet<AccountRequest> AccountRequests { get; }
     DbSet<NotificationLog> NotificationLogs { get; }
     DbSet<InAppNotification> InAppNotifications { get; }
+    DbSet<BodygramScanLog> BodygramScanLogs { get; }
 
     DbSet<T> Set<T>() where T : class;
     
