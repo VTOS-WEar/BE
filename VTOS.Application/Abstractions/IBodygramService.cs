@@ -45,9 +45,16 @@ public interface IBodygramService
     Task<BodygramScanStatusResponse> GetScanStatusAsync(string customScanId, Guid parentId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Retrieves saved Bodygram scan history for a child owned by the current parent.
+    /// Retrieves saved Bodygram scan history for a child owned by the current parent with pagination and filtering.
     /// </summary>
-    Task<IReadOnlyList<BodygramScanHistoryItemResponse>> GetChildScanHistoryAsync(Guid childId, Guid parentId, CancellationToken cancellationToken = default);
+    Task<PaginatedBodygramScanHistoryResponse> GetChildScanHistoryAsync(
+        Guid childId, 
+        Guid parentId, 
+        int pageNumber = 1, 
+        int pageSize = 3, 
+        DateTime? startDate = null, 
+        DateTime? endDate = null, 
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves a saved Bodygram scan detail owned by the current parent.

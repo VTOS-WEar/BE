@@ -50,3 +50,11 @@ public class BodygramScanDetailResponse
     public string? Gender { get; set; }
     public List<BodygramMeasurementDetailItem> Measurements { get; set; } = new();
 }
+
+public class PaginatedBodygramScanHistoryResponse
+{
+    public IReadOnlyList<BodygramScanHistoryItemResponse> Items { get; set; } = new List<BodygramScanHistoryItemResponse>();
+    public int TotalCount { get; set; }
+    public int TotalPages { get; set; }
+    public int CurrentPage { get; set; }
+}

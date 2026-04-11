@@ -385,14 +385,25 @@ public class BodygramController : ControllerBase
 
     [HttpGet("children/{childId:guid}/scans")]
     [Authorize]
-    public async Task<ActionResult<IReadOnlyList<BodygramScanHistoryItemResponse>>> GetChildScans(
+    public async Task<ActionResult<PaginatedBodygramScanHistoryResponse>> GetChildScans(
         Guid childId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 3,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var userId = _currentUserService.UserId;
-            var response = await _bodygramService.GetChildScanHistoryAsync(childId, userId, cancellationToken);
+            var response = await _bodygramService.GetChildScanHistoryAsync(
+                childId, 
+                userId, 
+                pageNumber, 
+                pageSize, 
+                startDate, 
+                endDate, 
+                cancellationToken);
             return Ok(response);
         }
         catch (KeyNotFoundException ex)

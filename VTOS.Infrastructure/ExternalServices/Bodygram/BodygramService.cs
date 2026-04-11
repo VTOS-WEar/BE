@@ -403,7 +403,14 @@ public class BodygramService : IBodygramService
         };
     }
 
-    public async Task<IReadOnlyList<BodygramScanHistoryItemResponse>> GetChildScanHistoryAsync(Guid childId, Guid parentId, CancellationToken cancellationToken = default)
+    public async Task<PaginatedBodygramScanHistoryResponse> GetChildScanHistoryAsync(
+        Guid childId, 
+        Guid parentId, 
+        int pageNumber = 1, 
+        int pageSize = 3, 
+        DateTime? startDate = null, 
+        DateTime? endDate = null, 
+        CancellationToken cancellationToken = default)
     {
         var child = await _dbContext.ChildProfiles
             .AsNoTracking()
@@ -419,14 +426,32 @@ public class BodygramService : IBodygramService
             throw new UnauthorizedAccessException("You do not have permission to view this student's Bodygram history.");
         }
 
-        var records = await _dbContext.BodygramScanRecords
+        var query = _dbContext.BodygramScanRecords
             .AsNoTracking()
             .Include(r => r.Measurements)
-            .Where(r => r.ChildId == childId)
+            .Where(r => r.ChildId == childId);
+
+        if (startDate.HasValue)
+        {
+            var start = startDate.Value.Date;
+            query = query.Where(r => r.ScannedAt >= start);
+        }
+
+        if (endDate.HasValue)
+        {
+            var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(r => r.ScannedAt <= end);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        
+        var records = await query
             .OrderByDescending(r => r.ScannedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return records.Select(record => new BodygramScanHistoryItemResponse
+        var items = records.Select(record => new BodygramScanHistoryItemResponse
         {
             ScanRecordId = record.Id,
             ChildId = record.ChildId,
@@ -441,6 +466,14 @@ public class BodygramService : IBodygramService
             WaistToHipRatio = record.WaistToHipRatio,
             AvatarThumbnailUrl = record.AvatarUrl
         }).ToList();
+
+        return new PaginatedBodygramScanHistoryResponse
+        {
+            Items = items,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            CurrentPage = pageNumber
+        };
     }
 
     public async Task<BodygramScanDetailResponse> GetScanDetailAsync(Guid scanRecordId, Guid parentId, CancellationToken cancellationToken = default)
