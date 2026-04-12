@@ -7,4 +7,6 @@ public class BodygramScanStatusResponse
     public string? BodygramScanId { get; set; }
     public int? HeightCm { get; set; }
     public float? WeightKg { get; set; }
+    public string? Message { get; set; }
+    public int TimeoutMinutes { get; set; }
 }

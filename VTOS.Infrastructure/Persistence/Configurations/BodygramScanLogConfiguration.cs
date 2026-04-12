@@ -19,6 +19,9 @@ public class BodygramScanLogConfiguration : IEntityTypeConfiguration<BodygramSca
         builder.Property(x => x.BodygramScanId)
             .HasMaxLength(100);
 
+        builder.Property(x => x.OrganizationId)
+            .HasMaxLength(100);
+
         builder.Property(x => x.Status)
             .IsRequired()
             .HasConversion<string>()
