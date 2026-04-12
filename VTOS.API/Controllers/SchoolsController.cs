@@ -706,7 +706,8 @@ public class SchoolsController : ControllerBase
                 request.Size,
                 request.ColorVariant,
                 request.MaterialType,
-                request.SKUCode
+                request.SKUCode,
+                request.Measurements
             ), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return StatusCode(StatusCodes.Status201Created, result.Value);
@@ -727,7 +728,8 @@ public class SchoolsController : ControllerBase
                 request.Size,
                 request.ColorVariant,
                 request.MaterialType,
-                request.SKUCode
+                request.SKUCode,
+                request.Measurements
             ), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);

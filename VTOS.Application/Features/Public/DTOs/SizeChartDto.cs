@@ -1,13 +1,16 @@
 namespace VTOS.Application.Features.Public.DTOs;
 
+public record SizeChartMeasurementDto(
+    string FieldKey,
+    string DisplayName,
+    string Unit,
+    decimal? MinValue,
+    decimal? MaxValue
+);
+
 public record SizeChartDetailDto(
     string SizeLabel,
-    decimal? ChestMin,
-    decimal? ChestMax,
-    decimal? WaistMin,
-    decimal? WaistMax,
-    decimal? HeightMin,
-    decimal? HeightMax
+    IEnumerable<SizeChartMeasurementDto> Measurements
 );
 
 public record SizeChartDto(

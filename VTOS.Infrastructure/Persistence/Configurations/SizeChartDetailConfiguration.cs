@@ -20,38 +20,15 @@ public class SizeChartDetailConfiguration : IEntityTypeConfiguration<SizeChartDe
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(scd => scd.ChestMin)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.ChestMax)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.WaistMin)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.WaistMax)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.HipMin)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.HipMax)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.HeightMin)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.HeightMax)
-            .HasColumnType("decimal(5,2)");
-
-        builder.Property(scd => scd.OtherMeasurements)
-            .HasMaxLength(1000);
-
         // Relationships
         builder.HasOne(scd => scd.SizeChart)
             .WithMany(sc => sc.SizeChartDetails)
             .HasForeignKey(scd => scd.SizeChartID)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(scd => scd.Measurements)
+            .WithOne(m => m.SizeChartDetail)
+            .HasForeignKey(m => m.SizeChartDetailId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
-

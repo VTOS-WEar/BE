@@ -21,6 +21,7 @@ public class GetOutfitDetailQueryHandler
             .Include(o => o.ProductVariants.Where(pv => !pv.IsDeleted))
             .Include(o => o.SizeChart)
                 .ThenInclude(sc => sc!.SizeChartDetails)
+                    .ThenInclude(detail => detail.Measurements)
             .Include(o => o.OutfitCategories)
                 .ThenInclude(oc => oc.Category)
             .FirstOrDefaultAsync(o => o.Id == query.OutfitId, ct);
@@ -41,19 +42,24 @@ public class GetOutfitDetailQueryHandler
         // Calculate average rating
         var averageRating = feedbacks.Any() ? (decimal)feedbacks.Average(f => f.Rating) : 0m;
 
-        // Build size chart DTO
+        // Build size chart DTO — now fully dynamic via SizeChartMeasurement
         SizeChartDto? sizeChartDto = null;
         if (outfit.SizeChart != null)
         {
             var details = outfit.SizeChart.SizeChartDetails
                 .Select(d => new SizeChartDetailDto(
                     d.SizeLabel,
-                    d.ChestMin,
-                    d.ChestMax,
-                    d.WaistMin,
-                    d.WaistMax,
-                    d.HeightMin,
-                    d.HeightMax
+                    d.Measurements
+                        .OrderBy(m => m.DisplayName)
+                        .ThenBy(m => m.FieldKey)
+                        .Select(m => new SizeChartMeasurementDto(
+                            m.FieldKey,
+                            m.DisplayName,
+                            m.Unit,
+                            m.MinCm,
+                            m.MaxCm
+                        ))
+                        .ToList()
                 ))
                 .ToList();
 

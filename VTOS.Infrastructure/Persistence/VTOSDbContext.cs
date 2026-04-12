@@ -25,6 +25,7 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<SizeChart> SizeCharts { get; set; }
     public DbSet<SizeChartDetail> SizeChartDetails { get; set; }
+    public DbSet<SizeChartMeasurement> SizeChartMeasurements { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<OutfitCategory> OutfitCategories { get; set; }
 

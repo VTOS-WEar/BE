@@ -14,7 +14,8 @@ public record UpdateVariantCommand(
     string? Size,
     string? ColorVariant,
     string? MaterialType,
-    string? SKUCode
+    string? SKUCode,
+    IReadOnlyCollection<VariantMeasurementInputDto>? Measurements
 );
 
 public interface IUpdateVariantCommandHandler
