@@ -14,92 +14,92 @@ namespace VTOS.Infrastructure.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "Address",
                 table: "School",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "Phone",
                 table: "School",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "RepresentativeName",
                 table: "School",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "RepresentativeTitle",
                 table: "School",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "TaxCode",
                 table: "School",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "RepresentativeTitle",
                 table: "Provider",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "TaxCode",
                 table: "Provider",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "ContractNumber",
                 table: "Contract",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: false,
                 defaultValue: "");
 
             migrationBuilder.AddColumn<string>(
                 name: "ProviderSignature",
                 table: "Contract",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "ProviderSignedAt",
                 table: "Contract",
-                type: "datetime2",
+                type: "timestamp",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "SchoolSignature",
                 table: "Contract",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "SchoolSignedAt",
                 table: "Contract",
-                type: "datetime2",
+                type: "timestamp",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "SigningOTPCode",
                 table: "Contract",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "SigningOTPExpiry",
                 table: "Contract",
-                type: "datetime2",
+                type: "timestamp",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "SigningOTPFor",
                 table: "Contract",
-                type: "nvarchar(max)",
+                type: "text",
                 nullable: true);
         }
 

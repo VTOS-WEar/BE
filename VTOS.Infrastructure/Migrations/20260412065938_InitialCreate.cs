@@ -15,12 +15,12 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Category",
                 columns: table => new
                 {
-                    CategoryID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CategoryName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    CategoryID = table.Column<Guid>(type: "uuid", nullable: false),
+                    CategoryName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -31,13 +31,13 @@ namespace VTOS.Infrastructure.Migrations
                 name: "EmailVerification",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    OTPCode = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsVerified = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Purpose = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Registration")
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    OTPCode = table.Column<string>(type: "character varying(6)", maxLength: 6, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    IsVerified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    Purpose = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false, defaultValue: "Registration")
                 },
                 constraints: table =>
                 {
@@ -48,11 +48,11 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Role",
                 columns: table => new
                 {
-                    RoleID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    IsSystemRole = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    RoleID = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoleName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    IsSystemRole = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -63,14 +63,14 @@ namespace VTOS.Infrastructure.Migrations
                 name: "SizeChart",
                 columns: table => new
                 {
-                    SizeChartID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChartName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Unit = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "cm"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    SizeChartID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChartName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Unit = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "cm"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -81,17 +81,17 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Wallets",
                 columns: table => new
                 {
-                    WalletID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OwnerID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    WalletID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OwnerID = table.Column<Guid>(type: "uuid", nullable: false),
                     OwnerType = table.Column<int>(type: "int", nullable: false),
                     Balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    BankCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    BankName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    BankAccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    BankAccountName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    BankCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    BankName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    BankAccountNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    BankAccountName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -102,24 +102,24 @@ namespace VTOS.Infrastructure.Migrations
                 name: "User",
                 columns: table => new
                 {
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Avatar = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    RoleID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PasswordResetToken = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
-                    PasswordResetTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    GoogleId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AuthProvider = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsTwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    TwoFactorSecret = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RecoveryCodes = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    FullName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    Phone = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    Avatar = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    RoleID = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    LastLogin = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    PasswordResetToken = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    PasswordResetTokenExpiry = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    GoogleId = table.Column<string>(type: "text", nullable: true),
+                    AuthProvider = table.Column<string>(type: "text", nullable: false),
+                    IsTwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    TwoFactorSecret = table.Column<string>(type: "text", nullable: true),
+                    RecoveryCodes = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -136,9 +136,9 @@ namespace VTOS.Infrastructure.Migrations
                 name: "SizeChartDetail",
                 columns: table => new
                 {
-                    DetailID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SizeChartID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SizeLabel = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    DetailID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SizeChartID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SizeLabel = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     ChestMin = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
                     ChestMax = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
                     WaistMin = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
@@ -147,11 +147,11 @@ namespace VTOS.Infrastructure.Migrations
                     HipMax = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
                     HeightMin = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
                     HeightMax = table.Column<decimal>(type: "decimal(5,2)", nullable: true),
-                    OtherMeasurements = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    OtherMeasurements = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -168,18 +168,18 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Provider",
                 columns: table => new
                 {
-                    ProviderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProviderName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    ContactPersonName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    Phone = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Pending"),
-                    VerificationStatus = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Pending"),
-                    RejectionReason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    VerificationDocumentUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    WalletId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    ProviderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    ContactPersonName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false, defaultValue: "Pending"),
+                    VerificationStatus = table.Column<string>(type: "text", nullable: false, defaultValue: "Pending"),
+                    RejectionReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    VerificationDocumentUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    WalletId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -195,22 +195,22 @@ namespace VTOS.Infrastructure.Migrations
                 name: "School",
                 columns: table => new
                 {
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    LogoURL = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ContactInfo = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    Level = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    CatalogID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Pending"),
-                    VerificationStatus = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Pending"),
-                    RejectionReason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    VerificationDocumentUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    WalletId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    LogoURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ContactInfo = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    Level = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CatalogID = table.Column<Guid>(type: "uuid", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false, defaultValue: "Pending"),
+                    VerificationStatus = table.Column<string>(type: "text", nullable: false, defaultValue: "Pending"),
+                    RejectionReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    VerificationDocumentUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    WalletId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -226,14 +226,14 @@ namespace VTOS.Infrastructure.Migrations
                 name: "WalletWithdrawalRequest",
                 columns: table => new
                 {
-                    WithdrawalID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    WalletID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    WithdrawalID = table.Column<Guid>(type: "uuid", nullable: false),
+                    WalletID = table.Column<Guid>(type: "uuid", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    RequestedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PaidAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    AdminNote = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    Status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    AdminNote = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -250,20 +250,20 @@ namespace VTOS.Infrastructure.Migrations
                 name: "AccountRequests",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ContactEmail = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ContactPhone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    ContactPersonName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrganizationName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ContactEmail = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ContactPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    ContactPersonName = table.Column<string>(type: "text", nullable: true),
                     Type = table.Column<int>(type: "int", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    RejectionReason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    ProcessedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ProcessedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    RejectionReason = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ProcessedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -284,17 +284,17 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ChatMessages",
                 columns: table => new
                 {
-                    ChatMessageID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ChatMessageID = table.Column<Guid>(type: "uuid", nullable: false),
                     ChannelType = table.Column<int>(type: "int", nullable: false),
-                    ChannelId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SenderUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SenderName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ChannelId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SenderUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SenderName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Content = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    SentAt = table.Column<DateTime>(type: "timestamp", nullable: false),
                     MessageType = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
-                    ImageUrl = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    ProposalStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    ProposalOutfitName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    ImageUrl = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ProposalStatus = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    ProposalOutfitName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -311,16 +311,16 @@ namespace VTOS.Infrastructure.Migrations
                 name: "InAppNotifications",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    RelatedEntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    RelatedEntityType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ActionUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Message = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    RelatedEntityId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RelatedEntityType = table.Column<string>(type: "text", nullable: true),
+                    ActionUrl = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -337,14 +337,14 @@ namespace VTOS.Infrastructure.Migrations
                 name: "NotificationLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     NotificationType = table.Column<int>(type: "int", nullable: false),
-                    ReferenceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsSuccess = table.Column<bool>(type: "bit", nullable: false),
-                    ErrorMessage = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    ReferenceId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Email = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    SentAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    IsSuccess = table.Column<bool>(type: "boolean", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -361,18 +361,18 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ParentBankAccount",
                 columns: table => new
                 {
-                    BankAccountID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ParentUserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BankName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    BankCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    AccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    AccountHolderName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    IsVerified = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                    BankAccountID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentUserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BankName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    BankCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    AccountNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    AccountHolderName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsVerified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -389,10 +389,10 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ParentProfile",
                 columns: table => new
                 {
-                    ParentProfileID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ParentProfileID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
                     DOB = table.Column<DateTime>(type: "date", nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
+                    Gender = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -409,9 +409,9 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ProviderManager",
                 columns: table => new
                 {
-                    ProviderManagerID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProviderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ProviderManagerID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderID = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -434,17 +434,17 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Campaign",
                 columns: table => new
                 {
-                    CampaignID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CampaignName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    CampaignID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    CampaignName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -461,17 +461,17 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Children",
                 columns: table => new
                 {
-                    ChildID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ParentUserID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ParentPhone = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FullName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    ChildID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ParentUserID = table.Column<Guid>(type: "uuid", nullable: true),
+                    ParentPhone = table.Column<string>(type: "text", nullable: true),
+                    FullName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Age = table.Column<int>(type: "int", nullable: false),
-                    Grade = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Gender = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    Grade = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Gender = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DOB = table.Column<DateTime>(type: "date", nullable: true),
-                    Avatar = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Avatar = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     HeightCm = table.Column<int>(type: "int", nullable: false),
                     WeightKg = table.Column<float>(type: "real", nullable: false)
                 },
@@ -496,16 +496,16 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Contract",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProviderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Pending"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RejectedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "Pending"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    RejectedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    RejectionReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -528,14 +528,14 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ImportBatches",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    FileName = table.Column<string>(type: "text", nullable: false),
                     TotalRows = table.Column<int>(type: "int", nullable: false),
                     SuccessCount = table.Column<int>(type: "int", nullable: false),
                     SkippedCount = table.Column<int>(type: "int", nullable: false),
                     ErrorCount = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -552,21 +552,21 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Outfit",
                 columns: table => new
                 {
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OutfitName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OutfitName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    OutfitType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    MainImageURL = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    SizeChartID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    IsAvailable = table.Column<bool>(type: "bit", nullable: false),
-                    IsCustomizable = table.Column<bool>(type: "bit", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    OutfitType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    MainImageURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SizeChartID = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
+                    IsCustomizable = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -589,9 +589,9 @@ namespace VTOS.Infrastructure.Migrations
                 name: "SchoolManager",
                 columns: table => new
                 {
-                    SchoolManagerID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    SchoolManagerID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -614,20 +614,20 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ProductionBatch",
                 columns: table => new
                 {
-                    BatchID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CampaignID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProviderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    BatchID = table.Column<Guid>(type: "uuid", nullable: false),
+                    CampaignID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BatchName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     TotalQuantity = table.Column<int>(type: "int", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "timestamp", nullable: false),
                     Status = table.Column<int>(type: "int", maxLength: 20, nullable: false),
-                    DeliveryDeadline = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RejectionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ProcessedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeliveryDeadline = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    RejectionReason = table.Column<string>(type: "text", nullable: true),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeliveredQuantity = table.Column<int>(type: "int", nullable: false),
-                    DeliveryConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeliveryNote = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    DeliveryConfirmedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    DeliveryNote = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -650,15 +650,15 @@ namespace VTOS.Infrastructure.Migrations
                 name: "BodygramScanLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChildId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CustomScanId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    BodygramScanId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChildId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CustomScanId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BodygramScanId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -675,25 +675,25 @@ namespace VTOS.Infrastructure.Migrations
                 name: "BodygramScanRecords",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChildId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BodygramScanId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CustomScanId = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ScannedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChildId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BodygramScanId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CustomScanId = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ScannedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
                     CreatedAtUnix = table.Column<long>(type: "bigint", nullable: false),
                     HeightCm = table.Column<int>(type: "int", nullable: false),
                     WeightKg = table.Column<float>(type: "real", nullable: false),
-                    AvatarUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    AvatarFormat = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    AvatarType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    RawInputJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RawMeasurementsJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AvatarUrl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    AvatarFormat = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    AvatarType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    RawInputJson = table.Column<string>(type: "text", nullable: true),
+                    RawMeasurementsJson = table.Column<string>(type: "text", nullable: true),
                     WaistToHipRatio = table.Column<double>(type: "float", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -710,20 +710,20 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Order",
                 columns: table => new
                 {
-                    OrderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ChildProfileID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    OrderStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    OrderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ChildProfileID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderDate = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    OrderStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    ShippingAddress = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    CampaignID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    DeliveryMethod = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CancelReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsProviderPaid = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    ShippingAddress = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    CampaignID = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeliveryMethod = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CancelReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsProviderPaid = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -746,20 +746,20 @@ namespace VTOS.Infrastructure.Migrations
                 name: "StudentDataImport",
                 columns: table => new
                 {
-                    ImportID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    StudentCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    FullName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Class = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    ParentPhone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    IsRegistered = table.Column<bool>(type: "bit", nullable: false),
-                    MatchedChildID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    ImportID = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    StudentCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    FullName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Class = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ParentPhone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    Gender = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    IsRegistered = table.Column<bool>(type: "boolean", nullable: false),
+                    MatchedChildID = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -782,11 +782,11 @@ namespace VTOS.Infrastructure.Migrations
                 name: "CampaignOutfit",
                 columns: table => new
                 {
-                    CampaignOutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CampaignID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProviderID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ContractID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CampaignOutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    CampaignID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderID = table.Column<Guid>(type: "uuid", nullable: true),
+                    ContractID = table.Column<Guid>(type: "uuid", nullable: true),
                     CampaignPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     MaxQuantity = table.Column<int>(type: "int", nullable: true)
                 },
@@ -823,9 +823,9 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ContractItem",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ContractID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContractID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
                     PricePerUnit = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     MinQuantity = table.Column<int>(type: "int", nullable: false),
                     MaxQuantity = table.Column<int>(type: "int", nullable: false)
@@ -851,8 +851,8 @@ namespace VTOS.Infrastructure.Migrations
                 name: "OutfitCategory",
                 columns: table => new
                 {
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CategoryID = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    CategoryID = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -875,15 +875,15 @@ namespace VTOS.Infrastructure.Migrations
                 name: "OutfitRecommendation",
                 columns: table => new
                 {
-                    RecommendationID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RecommendationID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
                     RecommendationScore = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    RuleConfigID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    RuleConfigID = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -906,16 +906,16 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ProductVariant",
                 columns: table => new
                 {
-                    ProductVariantID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Size = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    ColorVariant = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    MaterialType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ProductVariantID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    Size = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ColorVariant = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    MaterialType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     StockQuantity = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    SKUCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    VariantImageURL = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    SKUCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    VariantImageURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -932,20 +932,20 @@ namespace VTOS.Infrastructure.Migrations
                 name: "TryOnHistory",
                 columns: table => new
                 {
-                    TryOnID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GuestSessionID = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ChildID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UploadedPhotoURL = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    ResultPhotoURL = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    TryOnTimestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    AlignmentAdjustment = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    SourcePlatform = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    TryOnID = table.Column<Guid>(type: "uuid", nullable: false),
+                    GuestSessionID = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: true),
+                    ChildID = table.Column<Guid>(type: "uuid", nullable: true),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UploadedPhotoURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ResultPhotoURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    TryOnTimestamp = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    AlignmentAdjustment = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SourcePlatform = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -974,22 +974,22 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Complaints",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CampaignID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    SchoolID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProviderID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CampaignID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BatchID = table.Column<Guid>(type: "uuid", nullable: true),
+                    SchoolID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProviderID = table.Column<Guid>(type: "uuid", nullable: true),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    Response = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RespondedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ProofImageUrls = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Response = table.Column<string>(type: "text", nullable: true),
+                    RespondedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    ResolvedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    ProofImageUrls = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1022,20 +1022,20 @@ namespace VTOS.Infrastructure.Migrations
                 name: "DeliveryRecord",
                 columns: table => new
                 {
-                    DeliveryRecordID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DeliveryRecordID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BatchID = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    DeliveredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    DeliveredAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    IsConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    ConfirmedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
                     AcceptedQuantity = table.Column<int>(type: "int", nullable: true),
                     DefectiveQuantity = table.Column<int>(type: "int", nullable: true),
-                    DefectNote = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    DefectNote = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1052,15 +1052,15 @@ namespace VTOS.Infrastructure.Migrations
                 name: "DistributionSchedules",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ScheduledDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Method = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TimeSlot = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    BatchID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ScheduledDate = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    Method = table.Column<string>(type: "text", nullable: false),
+                    TimeSlot = table.Column<string>(type: "text", nullable: false),
+                    Note = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1077,10 +1077,10 @@ namespace VTOS.Infrastructure.Migrations
                 name: "ProductionBatchItems",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OutfitID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Size = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    BatchID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OutfitID = table.Column<Guid>(type: "uuid", nullable: false),
+                    Size = table.Column<string>(type: "text", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
@@ -1105,10 +1105,10 @@ namespace VTOS.Infrastructure.Migrations
                 name: "BodygramMeasurementRecords",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ScanRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Unit = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ScanRecordId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Unit = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Value = table.Column<double>(type: "float", nullable: false)
                 },
                 constraints: table =>
@@ -1126,19 +1126,19 @@ namespace VTOS.Infrastructure.Migrations
                 name: "DistributionRecord",
                 columns: table => new
                 {
-                    DistributionRecordID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DistributedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Method = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    ShippingCompany = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    TrackingCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ProofImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    DistributionRecordID = table.Column<Guid>(type: "uuid", nullable: false),
+                    BatchID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    DistributedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    Method = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    ShippingCompany = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    TrackingCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ProofImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1161,14 +1161,14 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Invoice",
                 columns: table => new
                 {
-                    InvoiceID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    IssueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    InvoiceDataURL = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    InvoiceID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    IssueDate = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    InvoiceDataURL = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1185,21 +1185,21 @@ namespace VTOS.Infrastructure.Migrations
                 name: "PaymentTransaction",
                 columns: table => new
                 {
-                    PaymentID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrderID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    WalletID = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    PaymentLinkId = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    TransactionType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    GatewayType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    TransactionStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    PaymentID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderID = table.Column<Guid>(type: "uuid", nullable: true),
+                    WalletID = table.Column<Guid>(type: "uuid", nullable: true),
+                    PaymentLinkId = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    TransactionType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    GatewayType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    TransactionStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    TransactionTimestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TransactionLog = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    TransactionTimestamp = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    TransactionLog = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1222,18 +1222,18 @@ namespace VTOS.Infrastructure.Migrations
                 name: "OrderItem",
                 columns: table => new
                 {
-                    OrderItemID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrderID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductVariantID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrderItemID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderID = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductVariantID = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    SizeOrdered = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    IsCustomOrder = table.Column<bool>(type: "bit", nullable: false),
-                    CustomMeasurements = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    SizeOrdered = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    IsCustomOrder = table.Column<bool>(type: "boolean", nullable: false),
+                    CustomMeasurements = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1256,16 +1256,16 @@ namespace VTOS.Infrastructure.Migrations
                 name: "AIFitAnalysis",
                 columns: table => new
                 {
-                    AnalysisID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TryOnID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DetectedBodyProportions = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    SuggestedSize = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    AnalysisID = table.Column<Guid>(type: "uuid", nullable: false),
+                    TryOnID = table.Column<Guid>(type: "uuid", nullable: false),
+                    DetectedBodyProportions = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SuggestedSize = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     FitScore = table.Column<int>(type: "int", nullable: true),
-                    AlgorithmVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    AlgorithmVersion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1282,15 +1282,15 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Refund",
                 columns: table => new
                 {
-                    RefundID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PaymentID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RefundID = table.Column<Guid>(type: "uuid", nullable: false),
+                    PaymentID = table.Column<Guid>(type: "uuid", nullable: false),
                     RefundAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    RefundStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    DisputeReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    RefundStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    DisputeReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1307,19 +1307,19 @@ namespace VTOS.Infrastructure.Migrations
                 name: "Feedback",
                 columns: table => new
                 {
-                    FeedbackID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrderItemID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FeedbackID = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserID = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrderItemID = table.Column<Guid>(type: "uuid", nullable: false),
                     Rating = table.Column<int>(type: "int", nullable: false),
-                    Comment = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModerationStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CampaignId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ProductVariantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Comment = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    ModerationStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    CampaignId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ProductVariantId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
