@@ -37,6 +37,8 @@ public class BodygramService : IBodygramService
         ["calfGirthR"] = "Calf"
     };
     private const int TrialScanLimit = 5;
+    private const int PollingTimeoutMinutes = 10;
+    private static readonly TimeSpan PollingTimeout = TimeSpan.FromMinutes(PollingTimeoutMinutes);
 
     // Track current credential index for fallback strategy (sequential)
     private static int _currentCredentialIndex = 0;
@@ -260,6 +262,8 @@ public class BodygramService : IBodygramService
                     {
                         ChildId = childId,
                         CustomScanId = customScanId,
+                        OrganizationId = credential.OrganizationId,
+                        CreatedAt = DateTime.UtcNow,
                         Status = VTOS.Domain.Enums.BodygramScanStatus.Pending
                     };
                     
@@ -329,7 +333,9 @@ public class BodygramService : IBodygramService
             // Retrieve data to save it locally
             if (!string.IsNullOrWhiteSpace(bodygramScanId))
             {
-                var response = await GetScanAsync(bodygramScanId, cancellationToken);
+                var response = !string.IsNullOrWhiteSpace(scanLog.OrganizationId)
+                    ? await GetScanAsync(bodygramScanId, scanLog.OrganizationId, cancellationToken)
+                    : await GetScanAsync(bodygramScanId, cancellationToken);
                 if (response?.Entry != null && response.Entry.CustomScanId != customScanId)
                 {
                     throw new InvalidOperationException("Bodygram scan does not belong to the requested session.");
@@ -364,7 +370,9 @@ public class BodygramService : IBodygramService
 
             scanLog.Status = VTOS.Domain.Enums.BodygramScanStatus.Completed;
             scanLog.BodygramScanId = bodygramScanId;
+            scanLog.UpdatedAt = DateTime.UtcNow;
             
+            await CleanupRedundantScanLogsAsync(scanLog.ChildId, scanLog.CustomScanId, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Bodygram scan {CustomScanId} completed successfully.", customScanId);
         }
@@ -393,7 +401,21 @@ public class BodygramService : IBodygramService
 
         if (scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Pending)
         {
-            await TrySyncPendingScanAsync(scanLog, parentId, cancellationToken);
+            var createdAtUtc = scanLog.CreatedAt == default
+                ? DateTime.UtcNow
+                : DateTime.SpecifyKind(scanLog.CreatedAt, DateTimeKind.Utc);
+
+            if (DateTime.UtcNow - createdAtUtc >= PollingTimeout)
+            {
+                scanLog.Status = VTOS.Domain.Enums.BodygramScanStatus.Failed;
+                scanLog.UpdatedAt = DateTime.UtcNow;
+                await CleanupRedundantScanLogsAsync(scanLog.ChildId, scanLog.CustomScanId, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                await TrySyncPendingScanAsync(scanLog, parentId, cancellationToken);
+            }
         }
 
         return new BodygramScanStatusResponse
@@ -403,6 +425,10 @@ public class BodygramService : IBodygramService
             BodygramScanId = scanLog.BodygramScanId,
             HeightCm = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Completed ? scanLog.Child.HeightCm : null,
             WeightKg = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Completed ? scanLog.Child.WeightKg : null,
+            Message = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Failed && string.IsNullOrWhiteSpace(scanLog.BodygramScanId)
+                ? $"Khong nhan duoc ket qua scan sau {PollingTimeoutMinutes} phut polling. Vui long tao phien quet moi."
+                : null,
+            TimeoutMinutes = PollingTimeoutMinutes
         };
     }
 
@@ -540,7 +566,9 @@ public class BodygramService : IBodygramService
     {
         try
         {
-            var scans = await GetScansAsync(cancellationToken);
+            var scans = !string.IsNullOrWhiteSpace(scanLog.OrganizationId)
+                ? await GetScansAsync(scanLog.OrganizationId, cancellationToken)
+                : await GetScansAsync(cancellationToken);
             var matchedScan = scans.Results
                 .FirstOrDefault(scan => string.Equals(scan.CustomScanId, scanLog.CustomScanId, StringComparison.Ordinal));
 
@@ -560,6 +588,8 @@ public class BodygramService : IBodygramService
             {
                 scanLog.Status = VTOS.Domain.Enums.BodygramScanStatus.Failed;
                 scanLog.BodygramScanId = matchedScan.Id;
+                scanLog.UpdatedAt = DateTime.UtcNow;
+                await CleanupRedundantScanLogsAsync(scanLog.ChildId, scanLog.CustomScanId, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
         }
@@ -567,6 +597,22 @@ public class BodygramService : IBodygramService
         {
             _logger.LogWarning(ex, "Unable to sync Bodygram pending scan {CustomScanId} during status polling.", scanLog.CustomScanId);
         }
+    }
+
+    private async Task<ScanListResponse> GetScansAsync(string organizationId, CancellationToken cancellationToken = default)
+    {
+        var credential = GetCredentialByOrganizationId(organizationId);
+        return credential == null
+            ? await GetScansAsync(cancellationToken)
+            : await GetScansForCredentialAsync(credential, cancellationToken);
+    }
+
+    private async Task<BodygramScanResponse> GetScanAsync(string scanId, string organizationId, CancellationToken cancellationToken = default)
+    {
+        var credential = GetCredentialByOrganizationId(organizationId);
+        return credential == null
+            ? await GetScanAsync(scanId, cancellationToken)
+            : await GetScanForCredentialAsync(scanId, credential, cancellationToken);
     }
 
     private async Task UpsertScanRecordAsync(ChildProfile child, ScanEntry entry, CancellationToken cancellationToken)
@@ -632,6 +678,24 @@ public class BodygramService : IBodygramService
 
             _dbContext.BodygramMeasurementRecords.AddRange(measurements);
         }
+    }
+
+    private async Task CleanupRedundantScanLogsAsync(Guid childId, string currentCustomScanId, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var logsToRemove = await _dbContext.BodygramScanLogs
+            .Where(l => l.ChildId == childId && l.CustomScanId != currentCustomScanId)
+            .Where(l =>
+                l.Status != VTOS.Domain.Enums.BodygramScanStatus.Pending ||
+                (l.CreatedAt != default && now - l.CreatedAt >= PollingTimeout))
+            .ToListAsync(cancellationToken);
+
+        if (logsToRemove.Count == 0)
+        {
+            return;
+        }
+
+        _dbContext.BodygramScanLogs.RemoveRange(logsToRemove);
     }
 
     private static double? GetMeasurementCm(IEnumerable<BodygramMeasurementRecord> measurements, string measurementName)
@@ -791,22 +855,7 @@ public class BodygramService : IBodygramService
 
     private async Task<int> GetScanCountForCredentialAsync(BodygramCredential credential, CancellationToken cancellationToken)
     {
-        var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans";
-        var request = CreateAuthenticatedRequest(HttpMethod.Get, url, credential);
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return 0;
-            }
-
-            await HandleErrorResponseAsync(response, $"Retrieve scans for organization {credential.OrganizationId}", cancellationToken);
-        }
-
-        var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-        var scansResponse = DeserializeResponse<ScanListResponse>(jsonResponse);
+        var scansResponse = await GetScansForCredentialAsync(credential, cancellationToken);
         return scansResponse?.Results?.Count ?? 0;
     }
 
@@ -887,5 +936,46 @@ public class BodygramService : IBodygramService
         }
 
         return new List<BodygramCredential>();
+    }
+
+    private BodygramCredential? GetCredentialByOrganizationId(string organizationId)
+    {
+        return GetAvailableCredentials()
+            .FirstOrDefault(c => string.Equals(c.OrganizationId, organizationId, StringComparison.Ordinal));
+    }
+
+    private async Task<ScanListResponse> GetScansForCredentialAsync(BodygramCredential credential, CancellationToken cancellationToken)
+    {
+        var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans";
+        var request = CreateAuthenticatedRequest(HttpMethod.Get, url, credential);
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new ScanListResponse();
+            }
+
+            await HandleErrorResponseAsync(response, $"Retrieve scans for organization {credential.OrganizationId}", cancellationToken);
+        }
+
+        var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+        return DeserializeResponse<ScanListResponse>(jsonResponse);
+    }
+
+    private async Task<BodygramScanResponse> GetScanForCredentialAsync(string scanId, BodygramCredential credential, CancellationToken cancellationToken)
+    {
+        var url = $"{_settings.BaseUrl}/orgs/{credential.OrganizationId}/scans/{scanId}";
+        var httpRequest = CreateAuthenticatedRequest(HttpMethod.Get, url, credential);
+        var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            await HandleErrorResponseAsync(response, $"Retrieve scan {scanId} for organization {credential.OrganizationId}", cancellationToken);
+        }
+
+        var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+        return DeserializeResponse<BodygramScanResponse>(jsonResponse);
     }
 }

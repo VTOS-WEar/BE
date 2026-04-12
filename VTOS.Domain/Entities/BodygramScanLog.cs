@@ -9,6 +9,7 @@ public class BodygramScanLog : AuditableEntity
     public Guid ChildId { get; set; }
     public string CustomScanId { get; set; } = string.Empty;
     public string? BodygramScanId { get; set; }
+    public string? OrganizationId { get; set; }
     public BodygramScanStatus Status { get; set; } = BodygramScanStatus.Pending;
 
     [ForeignKey("ChildId")]
