@@ -48,7 +48,7 @@ public class GetProfileQueryHandler : IGetProfileQueryHandler
             user.Email,
             user.FullName,
             user.Phone ?? string.Empty,
-            user.ParentProfile?.DOB ?? DateTime.Now.AddYears(-18),
+            user.ParentProfile?.DOB ?? DateTime.UtcNow.AddYears(-18),
             (user.ParentProfile?.Gender ?? Domain.Enums.Gender.Other).ToString(),
             user.Role.RoleName,
             user.IsActive,

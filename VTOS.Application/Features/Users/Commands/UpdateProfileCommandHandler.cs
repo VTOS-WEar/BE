@@ -73,7 +73,7 @@ namespace VTOS.Application.Features.Users.Commands
                 isUpdated = true;
             }
 
-            var dob = user.ParentProfile?.DOB ?? DateTime.Now.AddYears(-18);
+            var dob = user.ParentProfile?.DOB ?? DateTime.UtcNow.AddYears(-18);
             var gender = (user.ParentProfile?.Gender ?? Gender.Other).ToString();
 
             if (!isUpdated)

@@ -39,14 +39,21 @@ public static class DependencyInjection
 
         // Add DbContext — supports SQL Server (dev) and PostgreSQL (prod)
         var dbProvider = configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
+
+        // Npgsql 6+ strict UTC: DateTime with Kind=Unspecified is rejected for 'timestamp with time zone'.
+        // Enable legacy behavior so Npgsql treats Unspecified as UTC (prevents ArgumentException on user-supplied dates).
+        if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+        {
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        }
+
         services.AddDbContext<VTOSDbContext>(options =>
         {
             if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
             {
                 options.UseNpgsql(
                     configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName))
-                    .MapDateTimeAsUtc();
+                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName));
             }
             else
             {
