@@ -153,7 +153,7 @@ public class GoogleLoginCommandHandler : IGoogleLoginCommandHandler
         return Result<LoginResponse>.Success(new LoginResponse(
             token,
             expiresIn,
-            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, providerId)
+            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, providerId, user.IsTwoFactorEnabled)
         ));
     }
 }

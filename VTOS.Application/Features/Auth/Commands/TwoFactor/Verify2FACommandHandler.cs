@@ -75,7 +75,7 @@ public class Verify2FACommandHandler : IVerify2FACommandHandler
         return Result<LoginResponse>.Success(new LoginResponse(
             token,
             expiresIn,
-            new UserDto(user.Id, user.Email, user.FullName, user.Role.RoleName, user.Phone, providerId)
+            new UserDto(user.Id, user.Email, user.FullName, user.Role.RoleName, user.Phone, providerId, user.IsTwoFactorEnabled)
         ));
     }
 }

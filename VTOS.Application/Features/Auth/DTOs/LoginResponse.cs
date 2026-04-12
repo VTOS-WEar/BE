@@ -24,5 +24,6 @@ public record UserDto(
     string FullName,
     string Role,
     string? Phone = null,
-    Guid? ProviderId = null
+    Guid? ProviderId = null,
+    bool? TwoFactorEnabled = null
 );

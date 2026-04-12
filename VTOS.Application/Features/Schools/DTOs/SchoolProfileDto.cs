@@ -13,6 +13,8 @@ public class SchoolProfileDto
     public Guid? CatalogID { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    /// <summary>User's 2FA status (from the School-manager user account)</summary>
+    public bool TwoFactorEnabled { get; set; }
 }
 
 /// <summary>

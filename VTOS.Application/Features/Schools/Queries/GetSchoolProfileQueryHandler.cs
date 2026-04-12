@@ -45,7 +45,8 @@ public class GetSchoolProfileQueryHandler : IGetSchoolProfileQueryHandler
             Level = school.Level,
             CatalogID = school.CatalogID,
             CreatedAt = school.CreatedAt,
-            UpdatedAt = school.UpdatedAt
+            UpdatedAt = school.UpdatedAt,
+            TwoFactorEnabled = user.IsTwoFactorEnabled
         };
 
         return Result<SchoolProfileDto>.Success(dto);
