@@ -45,7 +45,8 @@ public static class DependencyInjection
             {
                 options.UseNpgsql(
                     configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName));
+                    b => b.MigrationsAssembly(typeof(VTOSDbContext).Assembly.FullName))
+                    .MapDateTimeAsUtc();
             }
             else
             {
