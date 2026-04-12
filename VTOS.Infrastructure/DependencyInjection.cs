@@ -290,6 +290,12 @@ public static class DependencyInjection
 
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
             VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateCampaignCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateCampaignCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishDraftCommandHandler,
+            VTOS.Application.Features.Schools.Commands.PublishDraftCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteCampaignCommandHandler,
+            VTOS.Application.Features.Schools.Commands.DeleteCampaignCommandHandler>();
 
         // School Module - UC 3.9.x: Pre-Order & Production Management
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignListQueryHandler,

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Public.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Public.Queries;
 
@@ -39,7 +40,10 @@ public class GetSchoolDetailQueryHandler
                 s.ContactInfo,
                 s.Outfits.Count(o => o.IsAvailable && !o.IsDeleted),
                 s.Campaigns
-                    .Where(c => c.EndDate >= DateTime.UtcNow)
+                    .Where(c => c.EndDate >= DateTime.UtcNow
+                        && (c.Status == CampaignStatus.Active
+                            || c.Status == CampaignStatus.Completed
+                            || c.Status == CampaignStatus.Locked))
                     .Select(c => new SchoolCampaignDto(
                         c.Id,
                         c.CampaignName,

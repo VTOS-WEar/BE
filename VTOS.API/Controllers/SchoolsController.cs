@@ -52,6 +52,9 @@ public class SchoolsController : ControllerBase
     private readonly IGetCampaignOrderedItemsQueryHandler _getCampaignOrderedItemsHandler;
     private readonly IGetCampaignSelectedSizesQueryHandler _getCampaignSelectedSizesHandler;
     private readonly ILockCampaignCommandHandler _lockCampaignHandler;
+    private readonly IUpdateCampaignCommandHandler _updateCampaignHandler;
+    private readonly IPublishDraftCommandHandler _publishDraftHandler;
+    private readonly IDeleteCampaignCommandHandler _deleteCampaignHandler;
     private readonly IGetCampaignSummaryQueryHandler _getCampaignSummaryHandler;
     private readonly IGetCampaignTotalQuantityQueryHandler _getCampaignTotalQuantityHandler;
     private readonly IGenerateProductionOrderCommandHandler _generateProductionOrderHandler;
@@ -126,6 +129,9 @@ public class SchoolsController : ControllerBase
         IGetCampaignOrderedItemsQueryHandler getCampaignOrderedItemsHandler,
         IGetCampaignSelectedSizesQueryHandler getCampaignSelectedSizesHandler,
         ILockCampaignCommandHandler lockCampaignHandler,
+        IUpdateCampaignCommandHandler updateCampaignHandler,
+        IPublishDraftCommandHandler publishDraftHandler,
+        IDeleteCampaignCommandHandler deleteCampaignHandler,
         IGetCampaignSummaryQueryHandler getCampaignSummaryHandler,
         IGetCampaignTotalQuantityQueryHandler getCampaignTotalQuantityHandler,
         IGenerateProductionOrderCommandHandler generateProductionOrderHandler,
@@ -197,6 +203,9 @@ public class SchoolsController : ControllerBase
         _getCampaignOrderedItemsHandler = getCampaignOrderedItemsHandler;
         _getCampaignSelectedSizesHandler = getCampaignSelectedSizesHandler;
         _lockCampaignHandler = lockCampaignHandler;
+        _updateCampaignHandler = updateCampaignHandler;
+        _publishDraftHandler = publishDraftHandler;
+        _deleteCampaignHandler = deleteCampaignHandler;
         _getCampaignSummaryHandler = getCampaignSummaryHandler;
         _getCampaignTotalQuantityHandler = getCampaignTotalQuantityHandler;
         _generateProductionOrderHandler = generateProductionOrderHandler;
@@ -1015,6 +1024,52 @@ public class SchoolsController : ControllerBase
         var result = await _lockCampaignHandler.HandleAsync(new LockCampaignCommand(_currentUser.UserId, id), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { message = result.Value });
+    }
+
+    /// <summary>UC 3.9.5c — Edit a draft campaign.</summary>
+    [HttpPut("me/campaigns/{id:guid}")]
+    [ProducesResponseType(typeof(CampaignDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCampaign(Guid id, [FromBody] UpdateCampaignRequest request, CancellationToken ct)
+    {
+        var command = new UpdateCampaignCommand(
+            _currentUser.UserId,
+            id,
+            request.CampaignName,
+            request.Description,
+            request.StartDate,
+            request.EndDate,
+            request.Outfits.Select(o => new CampaignOutfitInput(
+                o.OutfitId, o.ProviderId, o.CampaignPrice, o.MaxQuantity
+            )).ToList()
+        );
+
+        var result = await _updateCampaignHandler.HandleAsync(command, ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.5d — Publish a draft campaign, making it Active and open for orders.</summary>
+    [HttpPost("me/campaigns/{id:guid}/publish")]
+    [ProducesResponseType(typeof(PublishCampaignResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> PublishDraft(Guid id, CancellationToken ct)
+    {
+        var result = await _publishDraftHandler.HandleAsync(new PublishDraftCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.5e — Delete a draft campaign (no orders only).</summary>
+    [HttpDelete("me/campaigns/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteCampaign(Guid id, CancellationToken ct)
+    {
+        var result = await _deleteCampaignHandler.HandleAsync(new DeleteCampaignCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return NoContent();
     }
 
     /// <summary>UC 3.9.6 — View pre-order summary for a campaign.</summary>
