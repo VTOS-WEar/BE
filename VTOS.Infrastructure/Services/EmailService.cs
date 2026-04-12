@@ -407,6 +407,53 @@ public class EmailService : IEmailService
         await client.DisconnectAsync(true, cancellationToken);
     }
 
+    // ── Contract Signing OTP ──
+
+    public async Task SendContractSignOTPAsync(
+        string toEmail, string toName,
+        string otpCode, string contractName, string contractNumber,
+        int expiresInMinutes,
+        CancellationToken cancellationToken = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"VTOS - ✍️ Mã xác thực ký hợp đồng {contractNumber}";
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = $@"
+                <html><body style='font-family: Arial, sans-serif;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #6938EF;'>✍️ Xác thực ký hợp đồng điện tử</h2>
+                    <p>Xin chào <strong>{toName}</strong>,</p>
+                    <p>Bạn đã yêu cầu ký hợp đồng điện tử sau:</p>
+                    <div style='background-color: #F0EAFF; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #C4B5FD;'>
+                        <p style='margin: 5px 0;'><strong>Hợp đồng:</strong> {contractName}</p>
+                        <p style='margin: 5px 0;'><strong>Số HĐ:</strong> {contractNumber}</p>
+                    </div>
+                    <p>Mã xác thực (OTP) của bạn là:</p>
+                    <div style='background-color: #1A1A2E; color: #fff; padding: 20px; text-align: center; font-size: 36px; font-weight: bold; letter-spacing: 10px; margin: 20px 0; border-radius: 8px;'>
+                        {otpCode}
+                    </div>
+                    <p>Mã có hiệu lực trong <strong>{expiresInMinutes} phút</strong>.</p>
+                    <p style='color: #e74c3c;'>⚠️ Không chia sẻ mã này với bất kỳ ai. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email này.</p>
+                    <hr style='margin-top: 30px; border: none; border-top: 1px solid #ddd;'>
+                    <p style='color: #888; font-size: 12px;'>VTOS - Virtual Try-On System</p>
+                </div>
+                </body></html>",
+            TextBody = $"Mã OTP ký hợp đồng {contractNumber}: {otpCode} (hiệu lực {expiresInMinutes} phút). Không chia sẻ mã này."
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort,
+            _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken);
+        await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
+
     // ── Phase 03: Admin Notification Digest ──
 
     public async Task SendAdminDigestEmailAsync(

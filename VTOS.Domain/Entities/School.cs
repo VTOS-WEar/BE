@@ -10,6 +10,13 @@ public class School : AuditableEntity
     public string? ContactInfo { get; set; }
     public string? Level { get; set; }
     public bool IsDeleted { get; set; }
+
+    // ── Contract template fields (filled by school admin in profile) ─────────
+    public string? Address { get; set; }
+    public string? TaxCode { get; set; }
+    public string? RepresentativeName { get; set; }
+    public string? RepresentativeTitle { get; set; }
+    public string? Phone { get; set; }
     public Guid? CatalogID { get; set; }
     
     // Status

@@ -89,6 +89,8 @@ public class SchoolsController : ControllerBase
     private readonly IGetContractsQueryHandler _getContractsHandler;
     private readonly IGetContractDetailQueryHandler _getContractDetailHandler;
     private readonly ICancelContractCommandHandler _cancelContractHandler;
+    private readonly IRequestSignOTPCommandHandler _requestSignOTPHandler;
+    private readonly ISignContractBySchoolCommandHandler _signContractBySchoolHandler;
     // Phase 4 — Delivery & Distribution
     private readonly IConfirmDeliveryCommandHandler _confirmDeliveryHandler;
     private readonly IGetVerifyQuantityQueryHandler _getVerifyQuantityHandler;
@@ -166,6 +168,8 @@ public class SchoolsController : ControllerBase
         IGetContractsQueryHandler getContractsHandler,
         IGetContractDetailQueryHandler getContractDetailHandler,
         ICancelContractCommandHandler cancelContractHandler,
+        IRequestSignOTPCommandHandler requestSignOTPHandler,
+        ISignContractBySchoolCommandHandler signContractBySchoolHandler,
         // Phase 4
         IConfirmDeliveryCommandHandler confirmDeliveryHandler,
         IGetVerifyQuantityQueryHandler getVerifyQuantityHandler,
@@ -240,6 +244,8 @@ public class SchoolsController : ControllerBase
         _getContractsHandler = getContractsHandler;
         _getContractDetailHandler = getContractDetailHandler;
         _cancelContractHandler = cancelContractHandler;
+        _requestSignOTPHandler = requestSignOTPHandler;
+        _signContractBySchoolHandler = signContractBySchoolHandler;
         _confirmDeliveryHandler = confirmDeliveryHandler;
         _getVerifyQuantityHandler = getVerifyQuantityHandler;
         _reportDefectHandler = reportDefectHandler;
@@ -1379,6 +1385,30 @@ public class SchoolsController : ControllerBase
     {
         var result = await _cancelContractHandler.HandleAsync(
             new CancelContractCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Request a 6-digit OTP to be sent to the school's email for signing.</summary>
+    [HttpPost("me/contracts/{id}/request-sign-otp")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RequestSignOTP(Guid id, CancellationToken ct)
+    {
+        var result = await _requestSignOTPHandler.HandleAsync(
+            new RequestSignOTPCommand(_currentUser.UserId, id, "School"), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { success = result.Value });
+    }
+
+    /// <summary>Sign the contract using OTP + base64 signature image (PendingSchoolSign → PendingProviderSign).</summary>
+    [HttpPut("me/contracts/{id}/sign")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SignContract(Guid id, [FromBody] SignContractRequest request, CancellationToken ct)
+    {
+        var result = await _signContractBySchoolHandler.HandleAsync(
+            new SignContractBySchoolCommand(_currentUser.UserId, id, request), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }

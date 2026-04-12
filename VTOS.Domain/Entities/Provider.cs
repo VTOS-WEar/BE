@@ -15,6 +15,10 @@ public class Provider : BaseEntity
     public string? Email { get; set; }
     public string? Address { get; set; }
     public bool IsDeleted { get; set; }
+
+    // ── Contract template fields ──────────────────────────────────────────────
+    public string? TaxCode { get; set; }
+    public string? RepresentativeTitle { get; set; }
     
     // Status
     public ProviderStatus Status { get; set; } = ProviderStatus.Pending;

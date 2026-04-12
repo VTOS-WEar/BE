@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -124,9 +125,20 @@ using (var scope = app.Services.CreateScope())
 }
 
 
+// Ensure wwwroot/contracts folder exists and serve it as static files
+var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+Directory.CreateDirectory(Path.Combine(wwwrootPath, "contracts"));
+
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
+
+// Serve contract PDFs: GET /contracts/{id}.pdf → wwwroot/contracts/{id}.pdf
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(wwwrootPath),
+    RequestPath = "",
+});
 
 // Support reverse proxy (Nginx) forwarded headers
 app.UseForwardedHeaders(new ForwardedHeadersOptions
