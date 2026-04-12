@@ -79,7 +79,7 @@ public class LoginQueryHandler : ILoginQueryHandler
         if (user.IsTwoFactorEnabled)
         {
             var tempToken = _jwtTokenGenerator.GenerateTwoFactorToken(user.Id);
-            var userDto = new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone);
+            var userDto = new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, null, user.IsTwoFactorEnabled);
             return Result<LoginResponse>.Success(new LoginResponse(
                 "", 0, userDto,
                 RequiresTwoFactor: true,
@@ -109,7 +109,7 @@ public class LoginQueryHandler : ILoginQueryHandler
         return Result<LoginResponse>.Success(new LoginResponse(
             jwtToken,
             jwtExpiry,
-            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, pid),
+            new UserDto(user.Id, user.Email, user.FullName, roleName, user.Phone, pid, user.IsTwoFactorEnabled),
             ShouldSetup2FA: shouldSetup2FA
         ));
     }

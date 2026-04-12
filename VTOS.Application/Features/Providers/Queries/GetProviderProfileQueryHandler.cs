@@ -36,7 +36,8 @@ public class GetProviderProfileQueryHandler : IGetProviderProfileQueryHandler
             p.Phone,
             p.Email,
             p.Address,
-            p.Status.ToString()
+            p.Status.ToString(),
+            user.IsTwoFactorEnabled
         ));
     }
 }

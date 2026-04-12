@@ -10,5 +10,7 @@ public record ProviderProfileDto(
     string? Phone,
     string? Email,
     string? Address,
-    string Status
+    string Status,
+    /// <summary>User's 2FA status (from the Provider-manager user account)</summary>
+    bool TwoFactorEnabled
 );

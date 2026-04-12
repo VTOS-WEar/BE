@@ -31,12 +31,16 @@ public class Setup2FACommandHandler : ISetup2FACommandHandler
         if (user.IsTwoFactorEnabled)
             return Result<Setup2FAResponse>.Failure("2FA is already enabled", "2FA_ALREADY_ENABLED");
 
-        // Generate a new TOTP secret (don't save yet — wait for confirmation)
-        var secret = _totp.GenerateSecret();
-
-        // Store temporarily in TwoFactorSecret (not yet enabled)
-        user.TwoFactorSecret = secret;
-        await _db.SaveChangesAsync(ct);
+        // If a pending secret already exists (user scanned but hasn't confirmed yet),
+        // return the existing secret so 2fa.live / authenticator stays in sync.
+        // Re-generating would overwrite the secret, invalidating the QR code already scanned.
+        var secret = user.TwoFactorSecret;
+        if (string.IsNullOrEmpty(secret))
+        {
+            secret = _totp.GenerateSecret();
+            user.TwoFactorSecret = secret;
+            await _db.SaveChangesAsync(ct);
+        }
 
         var qrUri = _totp.GetQrCodeUri(secret, user.Email);
         return Result<Setup2FAResponse>.Success(new Setup2FAResponse(qrUri, secret));
