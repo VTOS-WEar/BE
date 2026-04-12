@@ -59,6 +59,15 @@ public interface IEmailService
         string contractName, string action, string respondentName,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sends a 6-digit OTP to the signer's email for contract signing verification.
+    /// </summary>
+    Task SendContractSignOTPAsync(
+        string toEmail, string toName,
+        string otpCode, string contractName, string contractNumber,
+        int expiresInMinutes,
+        CancellationToken cancellationToken = default);
+
     // ── Phase 03: Admin Notification Digest ──
 
     /// <summary>

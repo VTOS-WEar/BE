@@ -28,6 +28,8 @@ public class ProvidersController : ControllerBase
     private readonly IGetContractDetailQueryHandler _getContractDetailHandler;
     private readonly IApproveContractCommandHandler _approveContractHandler;
     private readonly IRejectContractCommandHandler _rejectContractHandler;
+    private readonly IRequestSignOTPCommandHandler _requestSignOTPHandler;
+    private readonly ISignContractByProviderCommandHandler _signContractByProviderHandler;
     // Phase 3 — Production Orders
     private readonly IGetProviderProductionOrderListQueryHandler _getProductionOrderListHandler;
     private readonly IGetProviderProductionOrderDetailQueryHandler _getProductionOrderDetailHandler;
@@ -54,6 +56,8 @@ public class ProvidersController : ControllerBase
         IGetContractDetailQueryHandler getContractDetailHandler,
         IApproveContractCommandHandler approveContractHandler,
         IRejectContractCommandHandler rejectContractHandler,
+        IRequestSignOTPCommandHandler requestSignOTPHandler,
+        ISignContractByProviderCommandHandler signContractByProviderHandler,
         // Phase 3
         IGetProviderProductionOrderListQueryHandler getProductionOrderListHandler,
         IGetProviderProductionOrderDetailQueryHandler getProductionOrderDetailHandler,
@@ -77,6 +81,8 @@ public class ProvidersController : ControllerBase
         _getContractDetailHandler = getContractDetailHandler;
         _approveContractHandler = approveContractHandler;
         _rejectContractHandler = rejectContractHandler;
+        _requestSignOTPHandler = requestSignOTPHandler;
+        _signContractByProviderHandler = signContractByProviderHandler;
         _getProductionOrderListHandler = getProductionOrderListHandler;
         _getProductionOrderDetailHandler = getProductionOrderDetailHandler;
         _acceptProductionOrderHandler = acceptProductionOrderHandler;
@@ -177,6 +183,32 @@ public class ProvidersController : ControllerBase
     {
         var result = await _rejectContractHandler.HandleAsync(
             new RejectContractCommand(_currentUser.UserId, id, request.Reason), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Request a 6-digit OTP to be sent to the provider's email for signing.</summary>
+    [HttpPost("me/contracts/{id}/request-sign-otp")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RequestSignOTP(Guid id, CancellationToken ct)
+    {
+        var result = await _requestSignOTPHandler.HandleAsync(
+            new RequestSignOTPCommand(_currentUser.UserId, id, "Provider"), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { success = result.Value });
+    }
+
+    /// <summary>Sign the contract using OTP + base64 signature image (PendingProviderSign → Active).</summary>
+    [HttpPut("me/contracts/{id}/sign")]
+    [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SignContract(Guid id, [FromBody] SignContractRequest request, CancellationToken ct)
+    {
+        var result = await _signContractByProviderHandler.HandleAsync(
+            new SignContractByProviderCommand(_currentUser.UserId, id, request), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);

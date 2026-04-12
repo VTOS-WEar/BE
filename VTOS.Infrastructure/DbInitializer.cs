@@ -100,6 +100,8 @@ public static class DbInitializer
     private static readonly Guid CTR2 = Guid.Parse("FF100002-0000-0000-0000-000000000002");
     private static readonly Guid CTR3 = Guid.Parse("FF100003-0000-0000-0000-000000000003");
     private static readonly Guid CTR4 = Guid.Parse("FF100004-0000-0000-0000-000000000004");
+    private static readonly Guid CTR5 = Guid.Parse("FF100005-0000-0000-0000-000000000005");
+    private static readonly Guid CTR6 = Guid.Parse("FF100006-0000-0000-0000-000000000006");
 
     // Wallets (need fixed IDs for PaymentTransaction.WalletID)
     private static readonly Guid WALLET1 = Guid.Parse("FFA00001-0000-0000-0000-000000000001");
@@ -275,14 +277,70 @@ public static class DbInitializer
         // ── CONTRACTS (must exist BEFORE campaigns — define production prices)
         // ══════════════════════════════════════════════════════════════════════
         db.Set<Contract>().AddRange(
-            // CTR1: PCT ↔ Hoàng Gia — Approved (active, used for CAM1 & CAM4)
-            new Contract { Id = CTR1, SchoolID = SCH1, ProviderID = PRV1, ContractName = "HĐ May đồng phục PCT - Hoàng Gia 2025-2026", Status = "Approved", CreatedAt = now.AddDays(-60), ApprovedAt = now.AddDays(-55) },
-            // CTR2: TP ↔ Sơn Trà — Approved (active, used for CAM2)
-            new Contract { Id = CTR2, SchoolID = SCH2, ProviderID = PRV2, ContractName = "HĐ May đồng phục TP - Sơn Trà 2025-2026", Status = "Approved", CreatedAt = now.AddDays(-50), ApprovedAt = now.AddDays(-45) },
-            // CTR3: NH ↔ Thanh Khê — Approved (active, used for CAM3)
-            new Contract { Id = CTR3, SchoolID = SCH3, ProviderID = PRV3, ContractName = "HĐ May áo thể dục NH - Thanh Khê 2025-2026", Status = "Approved", CreatedAt = now.AddDays(-45), ApprovedAt = now.AddDays(-40) },
-            // CTR4: PCT ↔ Sơn Trà — Pending (for testing pending contract flow)
-            new Contract { Id = CTR4, SchoolID = SCH1, ProviderID = PRV2, ContractName = "HĐ May áo khoác PCT - Sơn Trà (chờ duyệt)", Status = "Pending", CreatedAt = now.AddDays(-3) }
+            // CTR1: PCT ↔ Hoàng Gia — Active (fully signed, used for CAM1 & CAM4)
+            new Contract
+            {
+                Id = CTR1, SchoolID = SCH1, ProviderID = PRV1,
+                ContractName = "HĐ May đồng phục PCT - Hoàng Gia 2025-2026",
+                ContractNumber = $"HĐ-{now.Year}-A1B2C3",
+                Status = "Active", CreatedAt = now.AddDays(-60), ApprovedAt = now.AddDays(-55),
+                ExpiresAt = now.AddYears(1),
+                SchoolSignature = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+                SchoolSignedAt = now.AddDays(-54),
+                ProviderSignature = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+                ProviderSignedAt = now.AddDays(-53)
+            },
+            // CTR2: TP ↔ Sơn Trà — Active (fully signed, used for CAM2)
+            new Contract
+            {
+                Id = CTR2, SchoolID = SCH2, ProviderID = PRV2,
+                ContractName = "HĐ May đồng phục TP - Sơn Trà 2025-2026",
+                ContractNumber = $"HĐ-{now.Year}-D4E5F6",
+                Status = "Active", CreatedAt = now.AddDays(-50), ApprovedAt = now.AddDays(-45),
+                ExpiresAt = now.AddYears(1),
+                SchoolSignature = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+                SchoolSignedAt = now.AddDays(-44),
+                ProviderSignature = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+                ProviderSignedAt = now.AddDays(-43)
+            },
+            // CTR3: NH ↔ Thanh Khê — PendingSchoolSign (Provider approved, waiting for school to sign)
+            new Contract
+            {
+                Id = CTR3, SchoolID = SCH3, ProviderID = PRV3,
+                ContractName = "HĐ May áo thể dục NH - Thanh Khê 2025-2026",
+                ContractNumber = $"HĐ-{now.Year}-G7H8I9",
+                Status = "PendingSchoolSign", CreatedAt = now.AddDays(-5), ApprovedAt = now.AddDays(-2),
+                ExpiresAt = now.AddYears(1)
+            },
+            // CTR4: PCT ↔ Sơn Trà — Pending (sent, waiting for Provider to approve)
+            new Contract
+            {
+                Id = CTR4, SchoolID = SCH1, ProviderID = PRV2,
+                ContractName = "HĐ May áo khoác PCT - Sơn Trà (chờ duyệt)",
+                ContractNumber = $"HĐ-{now.Year}-J0K1L2",
+                Status = "Pending", CreatedAt = now.AddDays(-3),
+                ExpiresAt = now.AddYears(1)
+            },
+            // CTR5: TP ↔ Hoàng Gia — PendingProviderSign (school signed, waiting for provider1 to sign)
+            new Contract
+            {
+                Id = CTR5, SchoolID = SCH2, ProviderID = PRV1,
+                ContractName = "HĐ May đồng phục TP - Hoàng Gia 2025-2026",
+                ContractNumber = $"HĐ-{now.Year}-M3N4O5",
+                Status = "PendingProviderSign", CreatedAt = now.AddDays(-7), ApprovedAt = now.AddDays(-5),
+                ExpiresAt = now.AddYears(1),
+                SchoolSignature = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+                SchoolSignedAt = now.AddDays(-4)
+            },
+            // CTR6: PCT ↔ Hoàng Gia — PendingSchoolSign (provider approved, waiting for school1 to sign)
+            new Contract
+            {
+                Id = CTR6, SchoolID = SCH1, ProviderID = PRV1,
+                ContractName = "HĐ May áo dài PCT - Hoàng Gia 2025-2026 (v2)",
+                ContractNumber = $"HĐ-{now.Year}-P6Q7R8",
+                Status = "PendingSchoolSign", CreatedAt = now.AddDays(-4), ApprovedAt = now.AddDays(-2),
+                ExpiresAt = now.AddYears(1)
+            }
         );
         await db.SaveChangesAsync();
 
@@ -297,7 +355,11 @@ public static class DbInitializer
             // CTR3: NH ↔ Thanh Khê — áo thể dục
             new ContractItem { Id = Guid.NewGuid(), ContractID = CTR3, OutfitID = OFT3, PricePerUnit = 75_000, MinQuantity = 50, MaxQuantity = 350 },
             // CTR4: Pending — áo khoác from different provider
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR4, OutfitID = OFT5, PricePerUnit = 175_000, MinQuantity = 20, MaxQuantity = 200 }
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR4, OutfitID = OFT5, PricePerUnit = 175_000, MinQuantity = 20, MaxQuantity = 200 },
+            // CTR5: TP ↔ Hoàng Gia — quần tây (PendingProviderSign — provider1 can sign directly)
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR5, OutfitID = OFT2, PricePerUnit = 130_000, MinQuantity = 40, MaxQuantity = 400 },
+            // CTR6: PCT ↔ Hoàng Gia — áo dài (PendingSchoolSign — school1 can sign)
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR6, OutfitID = OFT4, PricePerUnit = 235_000, MinQuantity = 30, MaxQuantity = 180 }
         );
         await db.SaveChangesAsync();
 

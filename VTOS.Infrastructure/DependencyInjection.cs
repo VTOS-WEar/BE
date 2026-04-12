@@ -436,6 +436,13 @@ public static class DependencyInjection
             VTOS.Application.Features.Contracts.Commands.RejectContractCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Commands.ICancelContractCommandHandler,
             VTOS.Application.Features.Contracts.Commands.CancelContractCommandHandler>();
+        // Contract Signing Flow (OTP + Digital Signature)
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.IRequestSignOTPCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.RequestSignOTPCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.ISignContractBySchoolCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.SignContractBySchoolCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.ISignContractByProviderCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.SignContractByProviderCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractsQueryHandler,
             VTOS.Application.Features.Contracts.Queries.GetContractsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Queries.IGetContractDetailQueryHandler,

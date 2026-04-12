@@ -47,7 +47,7 @@ public class GetContractsQueryHandler : IGetContractsQueryHandler
         var contracts = await q.ToListAsync(ct);
 
         return Result<List<ContractDto>>.Success(
-            contracts.Select(ContractMapper.MapToDto).ToList()
+            contracts.Select(c => ContractMapper.MapToDto(c)).ToList()
         );
     }
 }
