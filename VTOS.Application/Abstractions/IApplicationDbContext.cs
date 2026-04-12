@@ -20,6 +20,7 @@ public interface IApplicationDbContext
     DbSet<ProductVariant> ProductVariants { get; }
     DbSet<SizeChart> SizeCharts { get; }
     DbSet<SizeChartDetail> SizeChartDetails { get; }
+    DbSet<SizeChartMeasurement> SizeChartMeasurements { get; }
     DbSet<OutfitCategory> OutfitCategories { get; }
     DbSet<TryOnHistory> TryOnHistories { get; }
     DbSet<Order> Orders { get; }

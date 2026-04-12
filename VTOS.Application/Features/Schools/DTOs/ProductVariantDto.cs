@@ -14,6 +14,25 @@ public class ProductVariantDto
     public string? MaterialType { get; set; }
     public string? SKUCode { get; set; }
     public string? VariantImageURL { get; set; }
+    public List<VariantMeasurementDto> Measurements { get; set; } = new();
+}
+
+public class VariantMeasurementDto
+{
+    public string FieldKey { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Unit { get; set; } = "cm";
+    public decimal? MinCm { get; set; }
+    public decimal? MaxCm { get; set; }
+}
+
+public class VariantMeasurementInputDto
+{
+    public string FieldKey { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Unit { get; set; } = "cm";
+    public decimal? MinCm { get; set; }
+    public decimal? MaxCm { get; set; }
 }
 
 /// <summary>
@@ -25,6 +44,7 @@ public class CreateVariantRequest
     public string? ColorVariant { get; set; }
     public string? MaterialType { get; set; }
     public string? SKUCode { get; set; }
+    public List<VariantMeasurementInputDto> Measurements { get; set; } = new();
 }
 
 /// <summary>
@@ -36,4 +56,5 @@ public class UpdateVariantRequest
     public string? ColorVariant { get; set; }
     public string? MaterialType { get; set; }
     public string? SKUCode { get; set; }
+    public List<VariantMeasurementInputDto>? Measurements { get; set; }
 }

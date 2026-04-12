@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Public.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Public.Queries;
 
@@ -21,6 +22,7 @@ public class GetOutfitDetailQueryHandler
             .Include(o => o.ProductVariants.Where(pv => !pv.IsDeleted))
             .Include(o => o.SizeChart)
                 .ThenInclude(sc => sc!.SizeChartDetails)
+                    .ThenInclude(detail => detail.Measurements)
             .Include(o => o.OutfitCategories)
                 .ThenInclude(oc => oc.Category)
             .FirstOrDefaultAsync(o => o.Id == query.OutfitId, ct);
@@ -41,19 +43,24 @@ public class GetOutfitDetailQueryHandler
         // Calculate average rating
         var averageRating = feedbacks.Any() ? (decimal)feedbacks.Average(f => f.Rating) : 0m;
 
-        // Build size chart DTO
+        // Build size chart DTO — now fully dynamic via SizeChartMeasurement
         SizeChartDto? sizeChartDto = null;
         if (outfit.SizeChart != null)
         {
             var details = outfit.SizeChart.SizeChartDetails
                 .Select(d => new SizeChartDetailDto(
                     d.SizeLabel,
-                    d.ChestMin,
-                    d.ChestMax,
-                    d.WaistMin,
-                    d.WaistMax,
-                    d.HeightMin,
-                    d.HeightMax
+                    d.Measurements
+                        .OrderBy(m => m.DisplayName)
+                        .ThenBy(m => m.FieldKey)
+                        .Select(m => new SizeChartMeasurementDto(
+                            m.FieldKey,
+                            m.DisplayName,
+                            m.Unit,
+                            m.MinCm,
+                            m.MaxCm
+                        ))
+                        .ToList()
                 ))
                 .ToList();
 
@@ -84,6 +91,28 @@ public class GetOutfitDetailQueryHandler
             .Select(oc => oc.Category.CategoryName)
             .ToList();
 
+        var now = DateTime.UtcNow;
+        var campaignOptions = await _context.CampaignOutfits
+            .AsNoTracking()
+            .Where(co =>
+                co.OutfitID == query.OutfitId &&
+                co.Campaign.Status == CampaignStatus.Active &&
+                co.Campaign.StartDate <= now &&
+                co.Campaign.EndDate >= now)
+            .OrderBy(co => co.Campaign.EndDate)
+            .ThenBy(co => co.Campaign.CampaignName)
+            .Select(co => new OutfitCampaignOptionDto(
+                co.CampaignID,
+                co.Campaign.CampaignName,
+                co.Campaign.Status.ToString(),
+                co.Campaign.StartDate,
+                co.Campaign.EndDate,
+                co.Id,
+                co.CampaignPrice,
+                co.MaxQuantity
+            ))
+            .ToListAsync(ct);
+
         // Build review DTOs
         var reviews = feedbacks
             .Select(f => new ReviewDto(
@@ -108,6 +137,7 @@ public class GetOutfitDetailQueryHandler
             new OutfitSchoolDto(outfit.School.Id, outfit.School.SchoolName, outfit.School.LogoURL),
             variants,
             sizeChartDto,
+            campaignOptions,
             categories,
             Math.Round(averageRating, 1),
             feedbacks.Count,

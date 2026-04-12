@@ -426,7 +426,7 @@ public class BodygramService : IBodygramService
             HeightCm = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Completed ? scanLog.Child.HeightCm : null,
             WeightKg = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Completed ? scanLog.Child.WeightKg : null,
             Message = scanLog.Status == VTOS.Domain.Enums.BodygramScanStatus.Failed && string.IsNullOrWhiteSpace(scanLog.BodygramScanId)
-                ? $"Khong nhan duoc ket qua scan sau {PollingTimeoutMinutes} phut polling. Vui long tao phien quet moi."
+                ? $"Không nhận được kết quả quét sau {PollingTimeoutMinutes} phút. Vui lòng tạo phiên quét mới."
                 : null,
             TimeoutMinutes = PollingTimeoutMinutes
         };

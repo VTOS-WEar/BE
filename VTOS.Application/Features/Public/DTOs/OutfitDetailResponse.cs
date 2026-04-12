@@ -6,6 +6,17 @@ public record OutfitSchoolDto(
     string? LogoURL
 );
 
+public record OutfitCampaignOptionDto(
+    Guid CampaignId,
+    string CampaignName,
+    string Status,
+    DateTime StartDate,
+    DateTime EndDate,
+    Guid CampaignOutfitId,
+    decimal CampaignPrice,
+    int? MaxQuantity
+);
+
 public record OutfitDetailResponse(
     Guid OutfitId,
     string OutfitName,
@@ -18,6 +29,7 @@ public record OutfitDetailResponse(
     OutfitSchoolDto School,
     IEnumerable<ProductVariantDto> Variants,
     SizeChartDto? SizeChart,
+    IEnumerable<OutfitCampaignOptionDto> CampaignOptions,
     IEnumerable<string> Categories,
     decimal AverageRating,
     int FeedbackCount,

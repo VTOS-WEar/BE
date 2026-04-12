@@ -21,6 +21,7 @@ public class PublicController : ControllerBase
     private readonly GetUniformListQueryHandler _getUniformListHandler;
     private readonly GetPublicCampaignDetailQueryHandler _getPublicCampaignDetailHandler;
     private readonly PublicSearchQueryHandler _publicSearchHandler;
+    private readonly GetUniformWarehouseQueryHandler _getUniformWarehouseHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
@@ -29,7 +30,8 @@ public class PublicController : ControllerBase
         GetSchoolDetailQueryHandler getSchoolDetailHandler,
         GetUniformListQueryHandler getUniformListHandler,
         GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler,
-        PublicSearchQueryHandler publicSearchHandler)
+        PublicSearchQueryHandler publicSearchHandler,
+        GetUniformWarehouseQueryHandler getUniformWarehouseHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
@@ -38,6 +40,7 @@ public class PublicController : ControllerBase
         _getUniformListHandler = getUniformListHandler;
         _getPublicCampaignDetailHandler = getPublicCampaignDetailHandler;
         _publicSearchHandler = publicSearchHandler;
+        _getUniformWarehouseHandler = getUniformWarehouseHandler;
     }
 
     /// <summary>
@@ -173,6 +176,20 @@ public class PublicController : ControllerBase
         if (result == null)
             return NotFound(new { message = "Campaign not found" });
 
+        return Ok(result);
+    }
+    /// <summary>
+    /// Get summary data for the Uniform Warehouse page.
+    /// Includes active campaigns, featured outfits, and all available outfits.
+    /// </summary>
+    [HttpGet("uniform-warehouse")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUniformWarehouse(
+        [FromQuery] int pageSize = 12,
+        CancellationToken ct = default)
+    {
+        var query = new GetUniformWarehouseQuery(pageSize);
+        var result = await _getUniformWarehouseHandler.HandleAsync(query, ct);
         return Ok(result);
     }
 }

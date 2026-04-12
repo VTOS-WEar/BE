@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Helpers;
 
 namespace VTOS.Application.Features.Schools.Queries;
 
@@ -42,6 +43,12 @@ public class GetOutfitVariantsQueryHandler : IGetOutfitVariantsQueryHandler
         if (outfit.SchoolID != schoolMgr.SchoolID)
             return Result<List<ProductVariantDto>>.Failure("You do not have permission to view this outfit.", "OUTFIT_NOT_FOUND");
 
+        var sizeDetails = await _db.SizeChartDetails
+            .AsNoTracking()
+            .Where(detail => detail.SizeChartID == outfit.SizeChartID)
+            .Include(detail => detail.Measurements)
+            .ToListAsync(ct);
+
         var variants = await _db.ProductVariants
             .AsNoTracking()
             .Where(v => v.OutfitID == query.OutfitId && !v.IsDeleted)
@@ -59,6 +66,12 @@ public class GetOutfitVariantsQueryHandler : IGetOutfitVariantsQueryHandler
                 VariantImageURL = v.VariantImageURL,
             })
             .ToListAsync(ct);
+
+        foreach (var variant in variants)
+        {
+            var detail = sizeDetails.FirstOrDefault(d => d.SizeLabel == variant.Size);
+            variant.Measurements = VariantSizeChartSyncHelper.ToDtos(detail);
+        }
 
         return Result<List<ProductVariantDto>>.Success(variants);
     }

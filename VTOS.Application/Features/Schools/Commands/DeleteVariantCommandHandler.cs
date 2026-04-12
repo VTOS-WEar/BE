@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Features.Schools.Commands;
 
@@ -33,7 +34,6 @@ public class DeleteVariantCommandHandler : IDeleteVariantCommandHandler
 
         // Verify outfit belongs to this school
         var outfit = await _db.Outfits
-            .AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == command.OutfitId && !o.IsDeleted, ct);
 
         if (outfit == null)
@@ -50,6 +50,18 @@ public class DeleteVariantCommandHandler : IDeleteVariantCommandHandler
             return Result<bool>.Failure("Variant not found.", "VARIANT_NOT_FOUND");
 
         variant.IsDeleted = true;
+
+        if (outfit.SizeChartID != null)
+        {
+            var detail = await _db.SizeChartDetails
+                .Include(d => d.Measurements)
+                .FirstOrDefaultAsync(d => d.SizeChartID == outfit.SizeChartID && d.SizeLabel == variant.Size, ct);
+            if (detail != null)
+            {
+                _db.SizeChartDetails.Remove(detail);
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
 
         return Result<bool>.Success(true);
