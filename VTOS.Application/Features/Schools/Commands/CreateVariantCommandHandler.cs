@@ -69,7 +69,29 @@ public class CreateVariantCommandHandler : ICreateVariantCommandHandler
         var detail = await EnsureSizeChartDetailAsync(outfit, command.Size, ct);
         var measurements = UpsertMeasurements(detail.Id, command.Measurements, null);
 
-        await _db.SaveChangesAsync(ct);
+        int retries = 3;
+        bool saveSuccess = false;
+        while (retries > 0 && !saveSuccess)
+        {
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+                saveSuccess = true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                retries--;
+                if (retries == 0) throw;
+
+                // Reload SizeChartDetail so we can re-sync measurements
+                var entry = ((DbContext)_db).Entry(detail);
+                await entry.ReloadAsync(ct);
+                await entry.Collection("Measurements").LoadAsync(ct);
+
+                // Re-run the reconciliation logic with the latest measurement list from DB
+                measurements = UpsertMeasurements(detail.Id, command.Measurements, detail.Measurements.ToList());
+            }
+        }
 
         return Result<ProductVariantDto>.Success(new ProductVariantDto
         {

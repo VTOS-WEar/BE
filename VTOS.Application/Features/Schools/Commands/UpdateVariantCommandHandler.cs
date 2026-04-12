@@ -77,7 +77,31 @@ public class UpdateVariantCommandHandler : IUpdateVariantCommandHandler
             ? UpsertMeasurements(detail.Id, command.Measurements, existingMeasurements)
             : existingMeasurements;
 
-        await _db.SaveChangesAsync(ct);
+        int retries = 3;
+        bool saveSuccess = false;
+        while (retries > 0 && !saveSuccess)
+        {
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+                saveSuccess = true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                retries--;
+                if (retries == 0) throw;
+
+                // Reload fresh data from DB to reconcile again
+                var entry = ((DbContext)_db).Entry(detail);
+                await entry.ReloadAsync(ct);
+                await entry.Collection("Measurements").LoadAsync(ct);
+                
+                // Re-run reconciliation with latest database state
+                measurements = command.Measurements != null
+                    ? UpsertMeasurements(detail.Id, command.Measurements, detail.Measurements.ToList())
+                    : detail.Measurements.ToList();
+            }
+        }
 
         return Result<ProductVariantDto>.Success(new ProductVariantDto
         {
