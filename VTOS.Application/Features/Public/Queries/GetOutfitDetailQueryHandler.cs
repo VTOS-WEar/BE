@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Public.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Public.Queries;
 
@@ -90,6 +91,28 @@ public class GetOutfitDetailQueryHandler
             .Select(oc => oc.Category.CategoryName)
             .ToList();
 
+        var now = DateTime.UtcNow;
+        var campaignOptions = await _context.CampaignOutfits
+            .AsNoTracking()
+            .Where(co =>
+                co.OutfitID == query.OutfitId &&
+                co.Campaign.Status == CampaignStatus.Active &&
+                co.Campaign.StartDate <= now &&
+                co.Campaign.EndDate >= now)
+            .OrderBy(co => co.Campaign.EndDate)
+            .ThenBy(co => co.Campaign.CampaignName)
+            .Select(co => new OutfitCampaignOptionDto(
+                co.CampaignID,
+                co.Campaign.CampaignName,
+                co.Campaign.Status.ToString(),
+                co.Campaign.StartDate,
+                co.Campaign.EndDate,
+                co.Id,
+                co.CampaignPrice,
+                co.MaxQuantity
+            ))
+            .ToListAsync(ct);
+
         // Build review DTOs
         var reviews = feedbacks
             .Select(f => new ReviewDto(
@@ -114,6 +137,7 @@ public class GetOutfitDetailQueryHandler
             new OutfitSchoolDto(outfit.School.Id, outfit.School.SchoolName, outfit.School.LogoURL),
             variants,
             sizeChartDto,
+            campaignOptions,
             categories,
             Math.Round(averageRating, 1),
             feedbacks.Count,
