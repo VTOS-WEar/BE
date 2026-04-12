@@ -182,6 +182,7 @@ public static class DependencyInjection
         services.AddScoped<GetUniformListQueryHandler>();
         services.AddScoped<GetPublicCampaignDetailQueryHandler>();
         services.AddScoped<PublicSearchQueryHandler>();
+        services.AddScoped<GetUniformWarehouseQueryHandler>();
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
