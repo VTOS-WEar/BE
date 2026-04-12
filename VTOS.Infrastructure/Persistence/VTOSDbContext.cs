@@ -73,6 +73,11 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     // In-App Notifications
     public DbSet<InAppNotification> InAppNotifications { get; set; }
 
+    // Bodygram Scans
+    public DbSet<BodygramScanLog> BodygramScanLogs { get; set; }
+    public DbSet<BodygramScanRecord> BodygramScanRecords { get; set; }
+    public DbSet<BodygramMeasurementRecord> BodygramMeasurementRecords { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

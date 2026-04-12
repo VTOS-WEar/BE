@@ -6,13 +6,13 @@ using VTOS.Domain.Enums;
 namespace VTOS.Application.Features.Payments.Queries;
 
 // ── GetParentPaymentHistoryQuery ────────────────────────────────────
-public record GetParentPaymentHistoryQuery(Guid UserId, int Page = 1, int PageSize = 20);
+public record GetParentPaymentHistoryQuery(Guid UserId, int Page = 1, int PageSize = 20, DateTime? StartDate = null, DateTime? EndDate = null, string? Status = null);
 
 public record ParentPaymentDto(
     Guid PaymentId,
     Guid OrderId,
     decimal Amount,
-    string Status,
+    string PaymentStatus,
     string OrderStatus,
     DateTime Timestamp
 );
@@ -57,10 +57,33 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .Select(o => o.Id)
             .ToListAsync(ct);
 
-        var q = _db.PaymentTransactions.AsNoTracking()
-            .Where(pt => pt.OrderID != null && orderIds.Contains(pt.OrderID.Value) && pt.TransactionType == TransactionType.OrderPayment)
-            .Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o })
-            .OrderByDescending(x => x.pt.TransactionTimestamp);
+        var transactions = _db.PaymentTransactions.AsNoTracking()
+            .Where(pt => pt.OrderID != null && orderIds.Contains(pt.OrderID.Value) && pt.TransactionType == TransactionType.OrderPayment);
+
+        // Apply Date Filters
+        if (query.StartDate.HasValue)
+        {
+            var start = query.StartDate.Value.Date;
+            transactions = transactions.Where(pt => pt.TransactionTimestamp >= start);
+        }
+        if (query.EndDate.HasValue)
+        {
+            var end = query.EndDate.Value.Date.AddDays(1).AddTicks(-1);
+            transactions = transactions.Where(pt => pt.TransactionTimestamp <= end);
+        }
+
+        var q = transactions.Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o });
+
+        // Apply Status Filter
+        if (!string.IsNullOrEmpty(query.Status))
+        {
+            if (Enum.TryParse<OrderStatus>(query.Status, true, out var orderStatus))
+            {
+                q = q.Where(x => x.o.OrderStatus == orderStatus);
+            }
+        }
+
+        q = q.OrderByDescending(x => x.pt.TransactionTimestamp);
 
         // Get total count
         var total = await q.CountAsync(ct);

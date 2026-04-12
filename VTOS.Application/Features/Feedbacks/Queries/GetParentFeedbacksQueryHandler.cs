@@ -50,7 +50,8 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
                 OutfitType = oi.ProductVariant.Outfit.OutfitType.ToString(),
                 Price = oi.UnitPrice,
                 Size = oi.ProductVariant.Size,
-                Quantity = oi.Quantity
+                Quantity = oi.Quantity,
+                OrderDate = oi.Order.OrderDate
             })
             .ToListAsync(ct);
 
@@ -66,28 +67,15 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
                 && orderItemIds.Contains(f.OrderItemID))
             .ToListAsync(ct);
 
-        // Build the complete list
-        var allFeedbackItems = new List<ParentFeedbackDto>();
+        // Build the complete list to calculate filters and counts correctly
+        var baseItems = new List<ParentFeedbackDto>();
 
         foreach (var oi in parentOrderItems)
         {
-            // Apply campaign filter
-            if (query.CampaignId.HasValue && query.CampaignId != oi.CampaignId)
-                continue;
-
             // Find feedback for this order item
             var feedback = feedbacks.FirstOrDefault(f => f.OrderItemID == oi.OrderItemId);
 
-            // Apply rating filter
-            if (query.HasRating.HasValue)
-            {
-                if (query.HasRating.Value && feedback == null)
-                    continue;
-                if (!query.HasRating.Value && feedback != null)
-                    continue;
-            }
-
-            allFeedbackItems.Add(new ParentFeedbackDto(
+            baseItems.Add(new ParentFeedbackDto(
                 FeedbackId: feedback?.Id ?? Guid.Empty,
                 OrderItemId: oi.OrderItemId,
                 CampaignId: oi.CampaignId ?? Guid.Empty,
@@ -98,6 +86,7 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
                 Rating: feedback?.Rating,
                 Comment: feedback?.Comment,
                 FeedbackTimestamp: feedback?.Timestamp,
+                OrderDate: oi.OrderDate,
                 OutfitPrice: oi.Price,
                 OutfitType: oi.OutfitType,
                 Size: oi.Size ?? "N/A",
@@ -105,37 +94,46 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             ));
         }
 
-        // Get total before pagination
-        var total = allFeedbackItems.Count;
-
-        // Order by timestamp (newest first for rated, any for not-rated)
-        var ordered = allFeedbackItems
-            .OrderByDescending(f => f.FeedbackTimestamp ?? DateTime.MinValue)
-            .ToList();
-
-        // Apply pagination
-        var paginated = ordered
-            .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .ToList();
-
-        // Get campaign filter options
-        var campaignFilters = ordered
+        // 1. Calculate Campaign Filters (based on ALL items of the parent)
+        var campaignFilters = baseItems
             .GroupBy(f => new { f.CampaignId, f.CampaignName })
             .Select(g => new CampaignFilterDto(g.Key.CampaignId, g.Key.CampaignName, g.Count()))
             .OrderBy(c => c.CampaignName)
             .ToList();
 
-        // Get rating counts
-        var allCount = ordered.Count;
-        var ratedCount = ordered.Count(f => f.Rating.HasValue);
-        var notRatedCount = ordered.Count(f => !f.Rating.HasValue);
+        // 2. Filter by current campaignId if provided
+        var itemsAfterCampaign = baseItems;
+        if (query.CampaignId.HasValue)
+        {
+            itemsAfterCampaign = baseItems.Where(i => i.CampaignId == query.CampaignId.Value).ToList();
+        }
+
+        // 3. Calculate status counts (ALL, RATED, NOT-RATED) for current selection
+        var allCount = itemsAfterCampaign.Count;
+        var ratedCount = itemsAfterCampaign.Count(f => f.Rating.HasValue);
+        var notRatedCount = itemsAfterCampaign.Count(f => !f.Rating.HasValue);
         var ratingCounts = new List<RatingCountDto>
         {
             new RatingCountDto("all", allCount),
             new RatingCountDto("rated", ratedCount),
             new RatingCountDto("not-rated", notRatedCount)
         };
+
+        // 4. Finally apply the hasRating filter for the main list
+        var filteredItems = itemsAfterCampaign;
+        if (query.HasRating.HasValue)
+        {
+            filteredItems = itemsAfterCampaign.Where(i => i.Rating.HasValue == query.HasRating.Value).ToList();
+        }
+
+        var total = filteredItems.Count;
+
+        // Apply pagination
+        var paginated = filteredItems
+            .OrderByDescending(f => f.FeedbackTimestamp ?? DateTime.MinValue)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
 
         return new ParentFeedbacksResponse(paginated, total, query.Page, query.PageSize, campaignFilters, ratingCounts);
     }

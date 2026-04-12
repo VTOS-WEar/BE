@@ -79,9 +79,15 @@ public class PaymentsController : ControllerBase
     [HttpGet("parent/history")]
     [Authorize(Roles = "Parent")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetParentPaymentHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> GetParentPaymentHistory(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20, 
+        [FromQuery] DateTime? startDate = null, 
+        [FromQuery] DateTime? endDate = null, 
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
     {
-        var result = await _getParentPaymentsHandler.HandleAsync(new GetParentPaymentHistoryQuery(_currentUser.UserId, page, pageSize), ct);
+        var result = await _getParentPaymentsHandler.HandleAsync(new GetParentPaymentHistoryQuery(_currentUser.UserId, page, pageSize, startDate, endDate, status), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
