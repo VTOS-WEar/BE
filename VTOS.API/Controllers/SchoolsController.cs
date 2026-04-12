@@ -306,7 +306,7 @@ public class SchoolsController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadLogo(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> UploadLogo([FromForm] IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
@@ -483,7 +483,7 @@ public class SchoolsController : ControllerBase
     [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [RequestSizeLimit(20 * 1024 * 1024)] // 20MB
-    public async Task<IActionResult> ImportStudents(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ImportStudents([FromForm] IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
@@ -653,7 +653,7 @@ public class SchoolsController : ControllerBase
     [HttpPost("me/outfits/upload-image")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadOutfitImage(IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> UploadOutfitImage([FromForm] IFormFile file, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
