@@ -97,7 +97,7 @@ public class ChildrenController : Controller
     [HttpPut("{id}/avatar")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateChildAvatar([FromRoute] string id, IFormFile avatar, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateChildAvatar([FromRoute] string id, [FromForm] IFormFile avatar, CancellationToken cancellationToken)
     {
         if (avatar == null || avatar.Length == 0)
         {
