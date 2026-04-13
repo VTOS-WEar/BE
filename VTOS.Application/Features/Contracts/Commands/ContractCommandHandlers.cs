@@ -418,7 +418,8 @@ public class RequestSignOTPCommandHandler : IRequestSignOTPCommandHandler
                 .FirstOrDefaultAsync(c => c.Id == command.ContractId && c.SchoolID == mgr.SchoolID, ct);
 
             if (contract == null) return Result<bool>.Failure("Contract not found.", "NOT_FOUND");
-            if (contract.Status != "PendingSchoolSign")
+            // School can request OTP at Pending or PendingSchoolSign
+            if (contract.Status != "Pending" && contract.Status != "PendingSchoolSign")
                 return Result<bool>.Failure("Contract is not awaiting school signature.", "INVALID_STATUS");
         }
         else if (command.Role == "Provider")
@@ -487,7 +488,8 @@ public class SignContractBySchoolCommandHandler : ISignContractBySchoolCommandHa
             .FirstOrDefaultAsync(c => c.Id == command.ContractId && c.SchoolID == mgr.SchoolID, ct);
 
         if (contract == null) return Result<ContractDto>.Failure("Contract not found.", "NOT_FOUND");
-        if (contract.Status != "PendingSchoolSign")
+        // School can sign at Pending (skip approval) or PendingSchoolSign
+        if (contract.Status != "Pending" && contract.Status != "PendingSchoolSign")
             return Result<ContractDto>.Failure("Contract is not awaiting school signature.", "INVALID_STATUS");
 
         // DEV BYPASS: OTP validation skipped for testing — restore when email is working
