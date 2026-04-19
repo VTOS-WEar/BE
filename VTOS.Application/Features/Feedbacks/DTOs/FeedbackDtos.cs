@@ -31,7 +31,8 @@ public record ParentFeedbackDto(
     decimal OutfitPrice,
     string OutfitType,
     string Size,
-    int Quantity
+    int Quantity,
+    string? ProviderName = null
 );
 
 public record RatingCountDto(string Label, int Count);

@@ -95,10 +95,12 @@ public class ChildrenController : Controller
 
     /// <summary>update child avatar by id</summary>
     [HttpPut("{id}/avatar")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateChildAvatar([FromRoute] string id, [FromForm] IFormFile avatar, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateChildAvatar([FromRoute] string id, [FromForm] UpdateChildAvatarRequest request, CancellationToken cancellationToken)
     {
+        var avatar = request.Avatar;
         if (avatar == null || avatar.Length == 0)
         {
             return BadRequest(new { error = "Avatar file is required" });
@@ -136,4 +138,9 @@ public class ChildrenController : Controller
             return BadRequest(new { error = "Invalid child ID format" });
         }
     }
+}
+
+public class UpdateChildAvatarRequest
+{
+    public IFormFile Avatar { get; set; } = null!;
 }

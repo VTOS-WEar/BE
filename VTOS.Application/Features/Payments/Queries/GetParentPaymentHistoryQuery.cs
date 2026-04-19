@@ -14,7 +14,15 @@ public record ParentPaymentDto(
     decimal Amount,
     string PaymentStatus,
     string OrderStatus,
-    DateTime Timestamp
+    DateTime Timestamp,
+    string? CampaignName,
+    string? ProviderName,
+    string? FirstItemImageUrl,
+    int ItemCount,
+    Guid? CampaignId,
+    Guid? ProviderId,
+    string? ChildFullName = null,
+    string? ChildAvatarUrl = null
 );
 
 public record StatusCountDto(string Status, int Count);
@@ -53,7 +61,12 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
                 new ParentPaymentHistoryResponse(new(), 0, 0, new()));
 
         var q = _db.Orders.AsNoTracking()
-            .Where(o => childIds.Contains(o.ChildProfileID))
+            .Include(o => o.ChildProfile)
+            .Include(o => o.Campaign)
+            .Include(o => o.Provider)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(pv => pv.Outfit)
             .Select(o => new 
             {
                 o,
@@ -108,7 +121,15 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
                 x.pt.Amount,
                 x.pt.TransactionStatus.ToString(),
                 x.o.OrderStatus.ToString(),
-                x.pt.TransactionTimestamp
+                x.pt.TransactionTimestamp,
+                x.o.Campaign != null ? x.o.Campaign.CampaignName : null,
+                x.o.Provider != null ? x.o.Provider.ProviderName : null,
+                x.o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
+                x.o.OrderItems.Count,
+                x.o.CampaignID,
+                x.o.ProviderID,
+                x.o.ChildProfile.FullName,
+                x.o.ChildProfile.Avatar
             ))
             .ToListAsync(ct);
 

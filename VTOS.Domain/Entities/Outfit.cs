@@ -8,6 +8,7 @@ public class Outfit : AuditableEntity
     public Guid SchoolID { get; set; }
     public string OutfitName { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? MaterialType { get; set; }
     public decimal Price { get; set; }
     public OutfitType OutfitType { get; set; }
     public string? MainImageURL { get; set; }
@@ -24,5 +25,6 @@ public class Outfit : AuditableEntity
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
     public ICollection<OutfitRecommendation> OutfitRecommendations { get; set; } = new List<OutfitRecommendation>();
     public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
+    public ICollection<SemesterPublicationOutfit> SemesterPublicationOutfits { get; set; } = new List<SemesterPublicationOutfit>();
 }
 

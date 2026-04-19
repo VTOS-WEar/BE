@@ -31,11 +31,15 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
         if (!parentOrderIds.Any())
             return new ParentFeedbacksResponse(new(), 0, query.Page, query.PageSize, new(), new());
 
-        // Get all order items for parent's orders with their campaign and outfit info
+        // Get all order items for parent's orders with their campaign/marketplace and outfit info
         var parentOrderItems = await _db.OrderItems
             .AsNoTracking()
             .Include(oi => oi.Order)
                 .ThenInclude(o => o.Campaign)
+            .Include(oi => oi.Order)
+                .ThenInclude(o => o.SemesterPublication)
+            .Include(oi => oi.Order)
+                .ThenInclude(o => o.Provider)
             .Include(oi => oi.ProductVariant)
                 .ThenInclude(pv => pv.Outfit)
             .Where(oi => parentOrderIds.Contains(oi.OrderID))
@@ -43,7 +47,10 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             {
                 OrderItemId = oi.Id,
                 CampaignId = oi.Order.CampaignID,
-                CampaignName = oi.Order.Campaign!.CampaignName,
+                CampaignName = oi.Order.Campaign != null ? oi.Order.Campaign.CampaignName : null,
+                SemesterPublicationId = oi.Order.SemesterPublicationID,
+                SemesterName = oi.Order.SemesterPublication != null ? (oi.Order.SemesterPublication.Semester + " " + oi.Order.SemesterPublication.AcademicYear) : null,
+                ProviderName = oi.Order.Provider != null ? oi.Order.Provider.ProviderName : null,
                 OutfitId = oi.ProductVariant.OutfitID,
                 OutfitName = oi.ProductVariant.Outfit.OutfitName,
                 OutfitImage = oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL,
@@ -78,8 +85,8 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             baseItems.Add(new ParentFeedbackDto(
                 FeedbackId: feedback?.Id ?? Guid.Empty,
                 OrderItemId: oi.OrderItemId,
-                CampaignId: oi.CampaignId ?? Guid.Empty,
-                CampaignName: oi.CampaignName ?? "Unknown Campaign",
+                CampaignId: oi.CampaignId ?? oi.SemesterPublicationId ?? Guid.Empty,
+                CampaignName: oi.CampaignName ?? oi.SemesterName ?? "Danh mục học kỳ",
                 OutfitId: oi.OutfitId,
                 OutfitName: oi.OutfitName,
                 OutfitImageUrl: oi.OutfitImage ?? "",
@@ -90,11 +97,12 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
                 OutfitPrice: oi.Price,
                 OutfitType: oi.OutfitType,
                 Size: oi.Size ?? "N/A",
-                Quantity: oi.Quantity
+                Quantity: oi.Quantity,
+                ProviderName: oi.ProviderName
             ));
         }
 
-        // 1. Calculate Campaign Filters (based on ALL items of the parent)
+        // 1. Calculate Campaign/Semester Filters
         var campaignFilters = baseItems
             .GroupBy(f => new { f.CampaignId, f.CampaignName })
             .Select(g => new CampaignFilterDto(g.Key.CampaignId, g.Key.CampaignName, g.Count()))
@@ -108,7 +116,7 @@ public class GetParentFeedbacksQueryHandler : IGetParentFeedbacksQueryHandler
             itemsAfterCampaign = baseItems.Where(i => i.CampaignId == query.CampaignId.Value).ToList();
         }
 
-        // 3. Calculate status counts (ALL, RATED, NOT-RATED) for current selection
+        // 3. Calculate status counts
         var allCount = itemsAfterCampaign.Count;
         var ratedCount = itemsAfterCampaign.Count(f => f.Rating.HasValue);
         var notRatedCount = itemsAfterCampaign.Count(f => !f.Rating.HasValue);

@@ -12,6 +12,7 @@ public record UpdateOutfitCommand(
     Guid OutfitId,
     string? OutfitName,
     string? Description,
+    string? MaterialType,
     decimal? Price,
     OutfitType? OutfitType,
     string? MainImageURL,

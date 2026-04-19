@@ -29,6 +29,9 @@ public interface IApplicationDbContext
     DbSet<Refund> Refunds { get; }
     DbSet<Campaign> Campaigns { get; }
     DbSet<CampaignOutfit> CampaignOutfits { get; }
+    DbSet<SemesterPublication> SemesterPublications { get; }
+    DbSet<SemesterPublicationOutfit> SemesterPublicationOutfits { get; }
+    DbSet<SemesterPublicationProvider> SemesterPublicationProviders { get; }
     DbSet<Provider> Providers { get; }
     DbSet<ProductionBatch> ProductionBatches { get; }
     DbSet<ProductionBatchItem> ProductionBatchItems { get; }

@@ -21,6 +21,10 @@ public class OrdersController : ControllerBase
     private readonly IGetOrderDetailForFeedbackQueryHandler _getOrderDetailForFeedbackQueryHandler;
     private readonly IRetryPaymentCommandHandler _retryPaymentCommandHandler;
     private readonly ICancelPaymentTransactionCommandHandler _cancelPaymentTransactionCommandHandler;
+    private readonly ICreateDirectOrderCommandHandler _createDirectOrderCommandHandler;
+    private readonly IGetMyDirectOrdersQueryHandler _getMyDirectOrdersQueryHandler;
+    private readonly IGetMyDirectOrderDetailQueryHandler _getMyDirectOrderDetailQueryHandler;
+    private readonly ICancelDirectOrderCommandHandler _cancelDirectOrderCommandHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
@@ -32,6 +36,10 @@ public class OrdersController : ControllerBase
         IGetOrderDetailForFeedbackQueryHandler getOrderDetailForFeedbackQueryHandler,
         IRetryPaymentCommandHandler retryPaymentCommandHandler,
         ICancelPaymentTransactionCommandHandler cancelPaymentTransactionCommandHandler,
+        ICreateDirectOrderCommandHandler createDirectOrderCommandHandler,
+        IGetMyDirectOrdersQueryHandler getMyDirectOrdersQueryHandler,
+        IGetMyDirectOrderDetailQueryHandler getMyDirectOrderDetailQueryHandler,
+        ICancelDirectOrderCommandHandler cancelDirectOrderCommandHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
@@ -42,6 +50,10 @@ public class OrdersController : ControllerBase
         _getOrderDetailForFeedbackQueryHandler = getOrderDetailForFeedbackQueryHandler;
         _retryPaymentCommandHandler = retryPaymentCommandHandler;
         _cancelPaymentTransactionCommandHandler = cancelPaymentTransactionCommandHandler;
+        _createDirectOrderCommandHandler = createDirectOrderCommandHandler;
+        _getMyDirectOrdersQueryHandler = getMyDirectOrdersQueryHandler;
+        _getMyDirectOrderDetailQueryHandler = getMyDirectOrderDetailQueryHandler;
+        _cancelDirectOrderCommandHandler = cancelDirectOrderCommandHandler;
         _logger = logger;
     }
 
@@ -387,5 +399,77 @@ public class OrdersController : ControllerBase
             _logger.LogError(ex, "Unexpected error during cancel-transaction");
             return StatusCode(StatusCodes.Status500InternalServerError, Result.Failure("Internal server error"));
         }
+    }
+
+    [HttpPost("direct")]
+    [ProducesResponseType(typeof(Result<CreateDirectOrderResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateDirectOrder([FromBody] CreateDirectOrderRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _createDirectOrderCommandHandler.HandleAsync(
+            new CreateDirectOrderCommand(
+                _currentUserService.UserId,
+                request.ChildProfileId,
+                request.SemesterPublicationId,
+                request.ProviderId,
+                request.Items,
+                request.ShippingAddress,
+                request.DeliveryMethod,
+                request.RecipientName,
+                request.RecipientPhone),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpGet("my-orders")]
+    [ProducesResponseType(typeof(Result<MyDirectOrdersResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyDirectOrders(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _getMyDirectOrdersQueryHandler.HandleAsync(
+            new GetMyDirectOrdersQuery(_currentUserService.UserId, page, pageSize, status),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpGet("my-orders/{id:guid}")]
+    [ProducesResponseType(typeof(Result<MyDirectOrderDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyDirectOrderDetail(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await _getMyDirectOrderDetailQueryHandler.HandleAsync(
+            new GetMyDirectOrderDetailQuery(_currentUserService.UserId, id),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return result.ErrorCode == "ORDER_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpPut("{orderId:guid}/cancel-direct")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CancelDirectOrder(Guid orderId, [FromBody] CancelOrderRequest? request, CancellationToken cancellationToken = default)
+    {
+        var result = await _cancelDirectOrderCommandHandler.HandleAsync(
+            new CancelDirectOrderCommand(_currentUserService.UserId, orderId, request?.Reason),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return result.ErrorCode == "ORDER_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+
+        return Ok(result);
     }
 }

@@ -22,6 +22,10 @@ public class PublicController : ControllerBase
     private readonly GetPublicCampaignDetailQueryHandler _getPublicCampaignDetailHandler;
     private readonly PublicSearchQueryHandler _publicSearchHandler;
     private readonly GetUniformWarehouseQueryHandler _getUniformWarehouseHandler;
+    private readonly GetSchoolSemesterCatalogQueryHandler _getSchoolSemesterCatalogHandler;
+    private readonly GetAllSchoolSemesterCatalogsQueryHandler _getAllSchoolSemesterCatalogsHandler;
+    private readonly GetProvidersForPublicationOutfitQueryHandler _getProvidersForPublicationOutfitHandler;
+    private readonly GetProviderPublicProfileQueryHandler _getProviderPublicProfileHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
@@ -31,7 +35,11 @@ public class PublicController : ControllerBase
         GetUniformListQueryHandler getUniformListHandler,
         GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler,
         PublicSearchQueryHandler publicSearchHandler,
-        GetUniformWarehouseQueryHandler getUniformWarehouseHandler)
+        GetUniformWarehouseQueryHandler getUniformWarehouseHandler,
+        GetSchoolSemesterCatalogQueryHandler getSchoolSemesterCatalogHandler,
+        GetAllSchoolSemesterCatalogsQueryHandler getAllSchoolSemesterCatalogsHandler,
+        GetProvidersForPublicationOutfitQueryHandler getProvidersForPublicationOutfitHandler,
+        GetProviderPublicProfileQueryHandler getProviderPublicProfileHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
@@ -41,6 +49,10 @@ public class PublicController : ControllerBase
         _getPublicCampaignDetailHandler = getPublicCampaignDetailHandler;
         _publicSearchHandler = publicSearchHandler;
         _getUniformWarehouseHandler = getUniformWarehouseHandler;
+        _getSchoolSemesterCatalogHandler = getSchoolSemesterCatalogHandler;
+        _getAllSchoolSemesterCatalogsHandler = getAllSchoolSemesterCatalogsHandler;
+        _getProvidersForPublicationOutfitHandler = getProvidersForPublicationOutfitHandler;
+        _getProviderPublicProfileHandler = getProviderPublicProfileHandler;
     }
 
     /// <summary>
@@ -190,6 +202,48 @@ public class PublicController : ControllerBase
     {
         var query = new GetUniformWarehouseQuery(pageSize);
         var result = await _getUniformWarehouseHandler.HandleAsync(query, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("schools/{schoolId:guid}/semester-catalog")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSchoolSemesterCatalog(Guid schoolId, CancellationToken ct = default)
+    {
+        var result = await _getSchoolSemesterCatalogHandler.HandleAsync(new GetSchoolSemesterCatalogQuery(schoolId), ct);
+        if (result == null)
+            return NotFound(new { message = "Active semester catalog not found" });
+        return Ok(result);
+    }
+
+    [HttpGet("schools/{schoolId:guid}/semester-catalogs")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllSchoolSemesterCatalogs(Guid schoolId, CancellationToken ct = default)
+    {
+        var result = await _getAllSchoolSemesterCatalogsHandler.HandleAsync(new GetAllSchoolSemesterCatalogsQuery(schoolId), ct);
+        return Ok(result);
+    }
+
+    [HttpGet("semester-publications/{publicationId:guid}/outfits/{outfitId:guid}/providers")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProvidersForPublicationOutfit(Guid publicationId, Guid outfitId, CancellationToken ct = default)
+    {
+        var result = await _getProvidersForPublicationOutfitHandler.HandleAsync(
+            new GetProvidersForPublicationOutfitQuery(publicationId, outfitId), ct);
+        if (result == null)
+            return NotFound(new { message = "Publication or outfit not found" });
+        return Ok(result);
+    }
+
+    [HttpGet("providers/{providerId:guid}/profile")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProviderPublicProfile(Guid providerId, CancellationToken ct = default)
+    {
+        var result = await _getProviderPublicProfileHandler.HandleAsync(new GetProviderPublicProfileQuery(providerId), ct);
+        if (result == null)
+            return NotFound(new { message = "Provider not found" });
         return Ok(result);
     }
 }

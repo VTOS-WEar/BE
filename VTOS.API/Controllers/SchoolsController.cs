@@ -312,8 +312,9 @@ public class SchoolsController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadLogo([FromForm] IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> UploadLogo([FromForm] UploadSchoolLogoRequest request, CancellationToken ct)
     {
+        var file = request.File;
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
 
@@ -488,9 +489,11 @@ public class SchoolsController : ControllerBase
     [HttpPost("me/students/import")]
     [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(20 * 1024 * 1024)] // 20MB
-    public async Task<IActionResult> ImportStudents([FromForm] IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> ImportStudents([FromForm] ImportStudentsFileRequest request, CancellationToken ct)
     {
+        var file = request.File;
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
 
@@ -590,6 +593,7 @@ public class SchoolsController : ControllerBase
                 userId,
                 request.OutfitName,
                 request.Description,
+                request.MaterialType,
                 request.Price,
                 request.OutfitType,
                 request.MainImageURL,
@@ -627,6 +631,7 @@ public class SchoolsController : ControllerBase
                 userId, id,
                 request.OutfitName,
                 request.Description,
+                request.MaterialType,
                 request.Price,
                 request.OutfitType,
                 request.MainImageURL,
@@ -648,7 +653,7 @@ public class SchoolsController : ControllerBase
     {
         var userId = _currentUser.UserId;
         var result = await _updateOutfitHandler.HandleAsync(
-            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, request.IsAvailable, null), ct);
+            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, null, request.IsAvailable, null), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -659,8 +664,9 @@ public class SchoolsController : ControllerBase
     [HttpPost("me/outfits/upload-image")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadOutfitImage([FromForm] IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> UploadOutfitImage([FromForm] UploadOutfitImageRequest request, CancellationToken ct)
     {
+        var file = request.File;
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file uploaded.", code = "FILE_REQUIRED" });
 
@@ -1578,10 +1584,26 @@ public record DistributeOrdersRequest(
     string? ProofImageUrl,
     string? Note);
 
+public class UploadSchoolLogoRequest
+{
+    public IFormFile File { get; set; } = null!;
+}
+
+public class ImportStudentsFileRequest
+{
+    public IFormFile File { get; set; } = null!;
+}
+
+public class UploadOutfitImageRequest
+{
+    public IFormFile File { get; set; } = null!;
+}
+
 /// <summary>Request body for creating an outfit.</summary>
 public record CreateOutfitRequest(
     string OutfitName,
     string? Description,
+    string? MaterialType,
     decimal Price,
     OutfitType OutfitType,
     string? MainImageURL,
@@ -1593,6 +1615,7 @@ public record CreateOutfitRequest(
 public record UpdateOutfitRequest(
     string? OutfitName = null,
     string? Description = null,
+    string? MaterialType = null,
     decimal? Price = null,
     OutfitType? OutfitType = null,
     string? MainImageURL = null,

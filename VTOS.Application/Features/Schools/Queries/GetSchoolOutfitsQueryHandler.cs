@@ -62,6 +62,7 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
                 OutfitId = o.Id,
                 OutfitName = o.OutfitName,
                 Description = o.Description,
+                MaterialType = o.MaterialType,
                 Price = o.Price,
                 OutfitType = o.OutfitType,
                 MainImageURL = o.MainImageURL,

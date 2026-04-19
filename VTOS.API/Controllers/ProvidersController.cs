@@ -47,6 +47,13 @@ public class ProvidersController : ControllerBase
     private readonly Application.Features.Distribution.IGetProviderDistributionOverviewHandler _distributionOverviewHandler;
     // Withdrawal
     private readonly ICreateProviderWithdrawalRequestCommandHandler _createWithdrawalHandler;
+    private readonly IGetProviderIncomingOrdersQueryHandler _getProviderIncomingOrdersHandler;
+    private readonly IGetProviderDirectOrderDetailQueryHandler _getProviderDirectOrderDetailHandler;
+    private readonly IAcceptDirectOrderCommandHandler _acceptDirectOrderHandler;
+    private readonly IUpdateDirectOrderInProductionCommandHandler _updateDirectOrderInProductionHandler;
+    private readonly IMarkDirectOrderReadyToShipCommandHandler _markDirectOrderReadyToShipHandler;
+    private readonly IShipDirectOrderCommandHandler _shipDirectOrderHandler;
+    private readonly IGetProviderOrderStatsQueryHandler _getProviderOrderStatsHandler;
 
     public ProvidersController(
         ICurrentUserService currentUser,
@@ -72,7 +79,14 @@ public class ProvidersController : ControllerBase
         IGetProviderComplaintDetailQueryHandler getProviderComplaintDetailHandler,
         IRespondComplaintCommandHandler respondComplaintHandler,
         Application.Features.Distribution.IGetProviderDistributionOverviewHandler distributionOverviewHandler,
-        ICreateProviderWithdrawalRequestCommandHandler createWithdrawalHandler)
+        ICreateProviderWithdrawalRequestCommandHandler createWithdrawalHandler,
+        IGetProviderIncomingOrdersQueryHandler getProviderIncomingOrdersHandler,
+        IGetProviderDirectOrderDetailQueryHandler getProviderDirectOrderDetailHandler,
+        IAcceptDirectOrderCommandHandler acceptDirectOrderHandler,
+        IUpdateDirectOrderInProductionCommandHandler updateDirectOrderInProductionHandler,
+        IMarkDirectOrderReadyToShipCommandHandler markDirectOrderReadyToShipHandler,
+        IShipDirectOrderCommandHandler shipDirectOrderHandler,
+        IGetProviderOrderStatsQueryHandler getProviderOrderStatsHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -95,6 +109,13 @@ public class ProvidersController : ControllerBase
         _respondComplaintHandler = respondComplaintHandler;
         _distributionOverviewHandler = distributionOverviewHandler;
         _createWithdrawalHandler = createWithdrawalHandler;
+        _getProviderIncomingOrdersHandler = getProviderIncomingOrdersHandler;
+        _getProviderDirectOrderDetailHandler = getProviderDirectOrderDetailHandler;
+        _acceptDirectOrderHandler = acceptDirectOrderHandler;
+        _updateDirectOrderInProductionHandler = updateDirectOrderInProductionHandler;
+        _markDirectOrderReadyToShipHandler = markDirectOrderReadyToShipHandler;
+        _shipDirectOrderHandler = shipDirectOrderHandler;
+        _getProviderOrderStatsHandler = getProviderOrderStatsHandler;
     }
 
     // ──────── Profile ────────
@@ -381,6 +402,81 @@ public class ProvidersController : ControllerBase
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
+
+    [HttpGet("me/orders")]
+    [ProducesResponseType(typeof(ProviderIncomingOrdersResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIncomingOrders(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getProviderIncomingOrdersHandler.HandleAsync(
+            new GetProviderIncomingOrdersQuery(_currentUser.UserId, page, pageSize, status), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpGet("me/orders/{id:guid}")]
+    [ProducesResponseType(typeof(ProviderDirectOrderDetailDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIncomingOrderDetail(Guid id, CancellationToken ct = default)
+    {
+        var result = await _getProviderDirectOrderDetailHandler.HandleAsync(
+            new GetProviderDirectOrderDetailQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess)
+            return result.ErrorCode == "ORDER_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpPut("me/orders/{id:guid}/accept")]
+    public async Task<IActionResult> AcceptDirectOrder(Guid id, CancellationToken ct = default)
+    {
+        var result = await _acceptDirectOrderHandler.HandleAsync(new AcceptDirectOrderCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = "Order accepted successfully." });
+    }
+
+    [HttpPut("me/orders/{id:guid}/in-production")]
+    public async Task<IActionResult> UpdateDirectOrderInProduction(Guid id, CancellationToken ct = default)
+    {
+        var result = await _updateDirectOrderInProductionHandler.HandleAsync(new UpdateDirectOrderInProductionCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = "Order moved to in-production." });
+    }
+
+    [HttpPut("me/orders/{id:guid}/ready-to-ship")]
+    public async Task<IActionResult> MarkDirectOrderReadyToShip(Guid id, CancellationToken ct = default)
+    {
+        var result = await _markDirectOrderReadyToShipHandler.HandleAsync(new MarkDirectOrderReadyToShipCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = "Order marked ready to ship." });
+    }
+
+    [HttpPut("me/orders/{id:guid}/ship")]
+    public async Task<IActionResult> ShipDirectOrder(Guid id, [FromBody] ShipDirectOrderRequest request, CancellationToken ct = default)
+    {
+        var result = await _shipDirectOrderHandler.HandleAsync(
+            new ShipDirectOrderCommand(_currentUser.UserId, id, request.TrackingCode, request.ShippingCompany), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = "Order shipped successfully." });
+    }
+
+    [HttpGet("me/order-stats")]
+    [ProducesResponseType(typeof(ProviderOrderStatsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDirectOrderStats(CancellationToken ct = default)
+    {
+        var result = await _getProviderOrderStatsHandler.HandleAsync(new GetProviderOrderStatsQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
 }
 
 /// <summary>Request body for delivering uniforms.</summary>
@@ -403,3 +499,6 @@ public record RespondComplaintRequest(string Response, bool MarkResolved = false
 
 /// <summary>Request body for creating a provider withdrawal request.</summary>
 public record CreateProviderWithdrawalRequest(decimal Amount);
+
+/// <summary>Request body for shipping a direct order.</summary>
+public record ShipDirectOrderRequest(string TrackingCode, string ShippingCompany);

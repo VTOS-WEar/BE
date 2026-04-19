@@ -73,5 +73,6 @@ public class Contract : BaseEntity
     public School School { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
     public ICollection<ContractItem> ContractItems { get; set; } = new List<ContractItem>();
+    public ICollection<SemesterPublicationProvider> SemesterPublicationProviders { get; set; } = new List<SemesterPublicationProvider>();
 }
 

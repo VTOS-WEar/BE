@@ -191,6 +191,10 @@ public static class DependencyInjection
         services.AddScoped<GetPublicCampaignDetailQueryHandler>();
         services.AddScoped<PublicSearchQueryHandler>();
         services.AddScoped<GetUniformWarehouseQueryHandler>();
+        services.AddScoped<GetSchoolSemesterCatalogQueryHandler>();
+        services.AddScoped<GetAllSchoolSemesterCatalogsQueryHandler>();
+        services.AddScoped<GetProvidersForPublicationOutfitQueryHandler>();
+        services.AddScoped<GetProviderPublicProfileQueryHandler>();
 
         // TryOn Module Handlers (UC-60)
         services.AddScoped<IGuestTryOnCommandHandler, GuestTryOnCommandHandler>();
@@ -206,6 +210,10 @@ public static class DependencyInjection
         services.AddScoped<IGetOrderDetailForFeedbackQueryHandler, GetOrderDetailForFeedbackQueryHandler>();
         services.AddScoped<IRetryPaymentCommandHandler, RetryPaymentCommandHandler>();
         services.AddScoped<ICancelPaymentTransactionCommandHandler, CancelPaymentTransactionCommandHandler>();
+        services.AddScoped<ICreateDirectOrderCommandHandler, CreateDirectOrderCommandHandler>();
+        services.AddScoped<ICancelDirectOrderCommandHandler, CancelDirectOrderCommandHandler>();
+        services.AddScoped<IGetMyDirectOrdersQueryHandler, GetMyDirectOrdersQueryHandler>();
+        services.AddScoped<IGetMyDirectOrderDetailQueryHandler, GetMyDirectOrderDetailQueryHandler>();
 
         // Background Jobs
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
@@ -399,6 +407,20 @@ public static class DependencyInjection
             VTOS.Application.Features.Providers.Commands.CompleteProductionOrderCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IProviderRejectProductionOrderCommandHandler,
             VTOS.Application.Features.Providers.Commands.ProviderRejectProductionOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderIncomingOrdersQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderIncomingOrdersQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderDirectOrderDetailQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderDirectOrderDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderOrderStatsQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderOrderStatsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IAcceptDirectOrderCommandHandler,
+            VTOS.Application.Features.Providers.Commands.AcceptDirectOrderCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateDirectOrderInProductionCommandHandler,
+            VTOS.Application.Features.Providers.Commands.UpdateDirectOrderInProductionCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IMarkDirectOrderReadyToShipCommandHandler,
+            VTOS.Application.Features.Providers.Commands.MarkDirectOrderReadyToShipCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IShipDirectOrderCommandHandler,
+            VTOS.Application.Features.Providers.Commands.ShipDirectOrderCommandHandler>();
 
         // Provider Module - Delivery (Phase 4)
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IDeliverProductionOrderCommandHandler,
