@@ -52,28 +52,30 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             return Result<ParentPaymentHistoryResponse>.Success(
                 new ParentPaymentHistoryResponse(new(), 0, 0, new()));
 
-        // Get order IDs for this parent's children
-        var orderIds = await _db.Orders.AsNoTracking()
+        var q = _db.Orders.AsNoTracking()
             .Where(o => childIds.Contains(o.ChildProfileID))
-            .Select(o => o.Id)
-            .ToListAsync(ct);
-
-        var transactions = _db.PaymentTransactions.AsNoTracking()
-            .Where(pt => pt.OrderID != null && orderIds.Contains(pt.OrderID.Value) && pt.TransactionType == TransactionType.OrderPayment);
+            .Select(o => new 
+            {
+                o,
+                pt = _db.PaymentTransactions.AsNoTracking()
+                    .Where(pt => pt.OrderID == o.Id && pt.TransactionType == TransactionType.OrderPayment)
+                    .OrderByDescending(pt => pt.TransactionTimestamp)
+                    .ThenByDescending(pt => pt.CreatedAt)
+                    .FirstOrDefault()
+            })
+            .Where(x => x.pt != null);
 
         // Apply Date Filters
         if (query.StartDate.HasValue)
         {
             var start = query.StartDate.Value.Date;
-            transactions = transactions.Where(pt => pt.TransactionTimestamp >= start);
+            q = q.Where(x => x.pt!.TransactionTimestamp >= start);
         }
         if (query.EndDate.HasValue)
         {
             var end = query.EndDate.Value.Date.AddDays(1).AddTicks(-1);
-            transactions = transactions.Where(pt => pt.TransactionTimestamp <= end);
+            q = q.Where(x => x.pt!.TransactionTimestamp <= end);
         }
-
-        var q = transactions.Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o });
 
         // Calculate status counts and total order count BEFORE applying status filter
         var allStatusCounts = await q
@@ -91,7 +93,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             }
         }
 
-        q = q.OrderByDescending(x => x.pt.TransactionTimestamp);
+        q = q.OrderByDescending(x => x.pt!.TransactionTimestamp);
 
         // Get total count (after status filter)
         var total = await q.CountAsync(ct);
@@ -101,7 +103,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(x => new ParentPaymentDto(
-                x.pt.Id,
+                x.pt!.Id,
                 x.pt.OrderID!.Value,
                 x.pt.Amount,
                 x.pt.TransactionStatus.ToString(),

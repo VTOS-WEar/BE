@@ -204,6 +204,8 @@ public static class DependencyInjection
         services.AddScoped<IGetOrderStatusQueryHandler, GetOrderStatusQueryHandler>();
         services.AddScoped<IGetOrderHistoryQueryHandler, GetOrderHistoryQueryHandler>();
         services.AddScoped<IGetOrderDetailForFeedbackQueryHandler, GetOrderDetailForFeedbackQueryHandler>();
+        services.AddScoped<IRetryPaymentCommandHandler, RetryPaymentCommandHandler>();
+        services.AddScoped<ICancelPaymentTransactionCommandHandler, CancelPaymentTransactionCommandHandler>();
 
         // Background Jobs
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();

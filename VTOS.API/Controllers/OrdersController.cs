@@ -19,6 +19,8 @@ public class OrdersController : ControllerBase
     private readonly IGetOrderStatusQueryHandler _getOrderStatusQueryHandler;
     private readonly IGetOrderHistoryQueryHandler _getOrderHistoryQueryHandler;
     private readonly IGetOrderDetailForFeedbackQueryHandler _getOrderDetailForFeedbackQueryHandler;
+    private readonly IRetryPaymentCommandHandler _retryPaymentCommandHandler;
+    private readonly ICancelPaymentTransactionCommandHandler _cancelPaymentTransactionCommandHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
@@ -28,6 +30,8 @@ public class OrdersController : ControllerBase
         IGetOrderStatusQueryHandler getOrderStatusQueryHandler,
         IGetOrderHistoryQueryHandler getOrderHistoryQueryHandler,
         IGetOrderDetailForFeedbackQueryHandler getOrderDetailForFeedbackQueryHandler,
+        IRetryPaymentCommandHandler retryPaymentCommandHandler,
+        ICancelPaymentTransactionCommandHandler cancelPaymentTransactionCommandHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
@@ -36,6 +40,8 @@ public class OrdersController : ControllerBase
         _getOrderStatusQueryHandler = getOrderStatusQueryHandler;
         _getOrderHistoryQueryHandler = getOrderHistoryQueryHandler;
         _getOrderDetailForFeedbackQueryHandler = getOrderDetailForFeedbackQueryHandler;
+        _retryPaymentCommandHandler = retryPaymentCommandHandler;
+        _cancelPaymentTransactionCommandHandler = cancelPaymentTransactionCommandHandler;
         _logger = logger;
     }
 
@@ -307,6 +313,79 @@ public class OrdersController : ControllerBase
                 Result<OrderDetailForFeedbackDto>.Failure(
                     "An unexpected error occurred",
                     "INTERNAL_SERVER_ERROR"));
+        }
+    }
+
+    /// <summary>
+    /// Retry payment for a cancelled or pending order.
+    /// Creates a new PayOS payment link and resets the order to Pending.
+    /// </summary>
+    /// <param name="orderId">The ID of the order to retry payment for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>New payment link and transaction details</returns>
+    [HttpPost("{orderId}/retry-payment")]
+    [ProducesResponseType(typeof(Result<RetryPaymentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RetryPayment(
+        [FromRoute] Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Retry payment initiated: OrderId={OrderId}", orderId);
+
+            var command = new RetryPaymentCommand(_currentUserService.UserId, orderId);
+            var result = await _retryPaymentCommandHandler.HandleAsync(command, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Retry payment failed: {Error}", result.Error);
+                return result.ErrorCode == "ORDER_NOT_FOUND"
+                    ? NotFound(result)
+                    : BadRequest(result);
+            }
+
+            _logger.LogInformation("Retry payment created: OrderId={OrderId}", orderId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during retry payment");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                Result<RetryPaymentResponse>.Failure(
+                    "An unexpected error occurred during retry payment",
+                    "INTERNAL_SERVER_ERROR"));
+        }
+    }
+
+    /// <summary>
+    /// Cancel only the payment transaction, keeping the order in Pending state.
+    /// Useful when the user returns from PayOS via cancel flow.
+    /// </summary>
+    [HttpPut("{orderId}/cancel-transaction")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelPaymentTransaction(
+        [FromRoute] Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var command = new CancelPaymentTransactionCommand(_currentUserService.UserId, orderId);
+            var result = await _cancelPaymentTransactionCommandHandler.HandleAsync(command, cancellationToken);
+            if (!result.IsSuccess)
+            {
+                return result.ErrorCode == "ORDER_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            }
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during cancel-transaction");
+            return StatusCode(StatusCodes.Status500InternalServerError, Result.Failure("Internal server error"));
         }
     }
 }
