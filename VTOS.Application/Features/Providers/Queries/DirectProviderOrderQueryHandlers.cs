@@ -143,6 +143,7 @@ public class GetProviderDirectOrderDetailQueryHandler : IGetProviderDirectOrderD
             {
                 OrderItemId = oi.Id,
                 OutfitName = oi.ProductVariant.Outfit.OutfitName,
+                ImageUrl = oi.ProductVariant.Outfit.MainImageURL,
                 Size = oi.SizeOrdered,
                 Quantity = oi.Quantity,
                 UnitPrice = oi.UnitPrice
@@ -183,7 +184,8 @@ public class GetProviderOrderStatsQueryHandler : IGetProviderOrderStatsQueryHand
             PaidOrders = orders.Count(o => o.OrderStatus == OrderStatus.Paid),
             InProgressOrders = orders.Count(o => o.OrderStatus == OrderStatus.Accepted || o.OrderStatus == OrderStatus.InProduction || o.OrderStatus == OrderStatus.ReadyToShip),
             CompletedShipmentOrders = orders.Count(o => o.OrderStatus == OrderStatus.Shipped || o.OrderStatus == OrderStatus.Delivered),
-            TotalRevenue = orders.Where(o => o.OrderStatus != OrderStatus.Cancelled && o.OrderStatus != OrderStatus.Refunded).Sum(o => o.TotalAmount)
+            TotalRevenue = orders.Where(o => o.OrderStatus != OrderStatus.Cancelled && o.OrderStatus != OrderStatus.Refunded).Sum(o => o.TotalAmount),
+            StatusCounts = orders.GroupBy(o => o.OrderStatus.ToString()).ToDictionary(g => g.Key, g => g.Count())
         });
     }
 }

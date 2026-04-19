@@ -43,6 +43,7 @@ public class ProviderDirectOrderDetailItemDto
 {
     public Guid OrderItemId { get; set; }
     public string OutfitName { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     public string Size { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
@@ -56,4 +57,5 @@ public class ProviderOrderStatsDto
     public int InProgressOrders { get; set; }
     public int CompletedShipmentOrders { get; set; }
     public decimal TotalRevenue { get; set; }
+    public Dictionary<string, int> StatusCounts { get; set; } = new();
 }
