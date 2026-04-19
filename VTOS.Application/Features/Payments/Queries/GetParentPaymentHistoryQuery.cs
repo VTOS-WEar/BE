@@ -22,6 +22,7 @@ public record StatusCountDto(string Status, int Count);
 public record ParentPaymentHistoryResponse(
     List<ParentPaymentDto> Items, 
     int Total,
+    int TotalOrder,
     List<StatusCountDto> StatusCounts
 );
 
@@ -49,7 +50,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
 
         if (!childIds.Any())
             return Result<ParentPaymentHistoryResponse>.Success(
-                new ParentPaymentHistoryResponse(new(), 0, new()));
+                new ParentPaymentHistoryResponse(new(), 0, 0, new()));
 
         // Get order IDs for this parent's children
         var orderIds = await _db.Orders.AsNoTracking()
@@ -74,7 +75,14 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
 
         var q = transactions.Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o });
 
-        // Apply Status Filter
+        // Calculate status counts and total order count BEFORE applying status filter
+        var allStatusCounts = await q
+            .GroupBy(x => x.o.OrderStatus)
+            .Select(g => new StatusCountDto(g.Key.ToString(), g.Count()))
+            .ToListAsync(ct);
+
+        var totalOrder = allStatusCounts.Sum(sc => sc.Count);
+        // Apply Status Filter (only affects total + paginated items, not statusCounts)
         if (!string.IsNullOrEmpty(query.Status))
         {
             if (Enum.TryParse<OrderStatus>(query.Status, true, out var orderStatus))
@@ -85,14 +93,8 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
 
         q = q.OrderByDescending(x => x.pt.TransactionTimestamp);
 
-        // Get total count
+        // Get total count (after status filter)
         var total = await q.CountAsync(ct);
-
-        // Calculate status counts from all orders (not just paginated)
-        var allStatusCounts = await q
-            .GroupBy(x => x.o.OrderStatus)
-            .Select(g => new StatusCountDto(g.Key.ToString(), g.Count()))
-            .ToListAsync(ct);
 
         // Get paginated items
         var items = await q
@@ -109,6 +111,6 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .ToListAsync(ct);
 
         return Result<ParentPaymentHistoryResponse>.Success(
-            new ParentPaymentHistoryResponse(items, total, allStatusCounts));
+            new ParentPaymentHistoryResponse(items, total, totalOrder, allStatusCounts));
     }
 }
