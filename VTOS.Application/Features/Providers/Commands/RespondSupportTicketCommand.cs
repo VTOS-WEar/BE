@@ -11,53 +11,53 @@ namespace VTOS.Application.Features.Providers.Commands;
 /// Sets Response + RespondedAt + transitions status (Open → InProgress).
 /// If markResolved=true, also transitions InProgress → Resolved.
 /// </summary>
-public record RespondComplaintCommand(Guid UserId, Guid ComplaintId, string Response, bool MarkResolved = false);
+public record RespondSupportTicketCommand(Guid UserId, Guid ComplaintId, string Response, bool MarkResolved = false);
 
-public interface IRespondComplaintCommandHandler
+public interface IRespondSupportTicketCommandHandler
 {
-    Task<Result<string>> HandleAsync(RespondComplaintCommand command, CancellationToken ct = default);
+    Task<Result<string>> HandleAsync(RespondSupportTicketCommand command, CancellationToken ct = default);
 }
 
-public class RespondComplaintCommandHandler : IRespondComplaintCommandHandler
+public class RespondSupportTicketCommandHandler : IRespondSupportTicketCommandHandler
 {
     private readonly IApplicationDbContext _db;
     private readonly INotificationService _notificationService;
 
-    public RespondComplaintCommandHandler(IApplicationDbContext db, INotificationService notificationService)
+    public RespondSupportTicketCommandHandler(IApplicationDbContext db, INotificationService notificationService)
     {
         _db = db;
         _notificationService = notificationService;
     }
 
-    public async Task<Result<string>> HandleAsync(RespondComplaintCommand command, CancellationToken ct = default)
+    public async Task<Result<string>> HandleAsync(RespondSupportTicketCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
         var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (providerMgr?.ProviderID == null)
             return Result<string>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
-        var complaint = await _db.Complaints
+        var ticket = await _db.SupportTickets
             .FirstOrDefaultAsync(c => c.Id == command.ComplaintId && c.ProviderID == providerMgr.ProviderID, ct);
 
-        if (complaint == null)
-            return Result<string>.Failure("Complaint not found.", "COMPLAINT_NOT_FOUND");
+        if (ticket == null)
+            return Result<string>.Failure("SupportTicket not found.", "COMPLAINT_NOT_FOUND");
 
-        if (complaint.Status == ComplaintStatus.Closed)
+        if (ticket.Status == SupportTicketStatus.Closed)
             return Result<string>.Failure("Cannot respond to a closed complaint.", "COMPLAINT_CLOSED");
 
         if (string.IsNullOrWhiteSpace(command.Response))
             return Result<string>.Failure("Response is required.", "RESPONSE_REQUIRED");
 
-        complaint.Response = command.Response;
-        complaint.RespondedAt = DateTime.UtcNow;
+        ticket.Response = command.Response;
+        ticket.RespondedAt = DateTime.UtcNow;
 
-        if (complaint.Status == ComplaintStatus.Open)
-            complaint.Status = ComplaintStatus.InProgress;
+        if (ticket.Status == SupportTicketStatus.Open)
+            ticket.Status = SupportTicketStatus.InProgress;
 
-        if (command.MarkResolved && complaint.Status == ComplaintStatus.InProgress)
+        if (command.MarkResolved && ticket.Status == SupportTicketStatus.InProgress)
         {
-            complaint.Status = ComplaintStatus.Resolved;
-            complaint.ResolvedAt = DateTime.UtcNow;
+            ticket.Status = SupportTicketStatus.Resolved;
+            ticket.ResolvedAt = DateTime.UtcNow;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -65,19 +65,19 @@ public class RespondComplaintCommandHandler : IRespondComplaintCommandHandler
         // Notify school about complaint response
         try
         {
-            if (complaint.SchoolID != Guid.Empty)
+            if (ticket.SchoolID != Guid.Empty)
             {
                 var statusMsg = command.MarkResolved ? "và đánh dấu đã giải quyết" : "";
-                await _notificationService.NotifySchoolAsync(complaint.SchoolID,
+                await _notificationService.NotifySchoolAsync(ticket.SchoolID,
                     "💬 NCC phản hồi khiếu nại",
-                    $"NCC đã phản hồi khiếu nại: {complaint.Title} {statusMsg}".Trim(),
-                    "Complaint", complaint.Id, "Complaint",
+                    $"NCC đã phản hồi khiếu nại: {ticket.Title} {statusMsg}".Trim(),
+                    "SupportTicket", ticket.Id, "SupportTicket",
                     "/school/complaints", ct);
             }
         }
         catch { /* Don't fail */ }
 
-        var msg = command.MarkResolved ? "Complaint responded and resolved." : "Complaint responded.";
+        var msg = command.MarkResolved ? "SupportTicket responded and resolved." : "SupportTicket responded.";
         return Result<string>.Success(msg);
     }
 }

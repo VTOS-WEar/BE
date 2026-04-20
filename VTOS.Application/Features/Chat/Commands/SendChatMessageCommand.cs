@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Chat.Queries;
@@ -81,9 +81,9 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
         var schoolId = schoolMgr?.SchoolID;
         var providerId = providerMgr?.ProviderID;
 
-        if (channelType == ChatChannelType.Complaint)
+        if (channelType == ChatChannelType.SupportTicket)
         {
-            return await _db.Complaints.AsNoTracking().AnyAsync(c =>
+            return await _db.SupportTickets.AsNoTracking().AnyAsync(c =>
                 c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
         else if (channelType == ChatChannelType.Contract)

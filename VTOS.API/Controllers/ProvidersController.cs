@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Contracts.Commands;
@@ -40,9 +40,9 @@ public class ProvidersController : ControllerBase
     private readonly IDeliverProductionOrderCommandHandler _deliverHandler;
     private readonly IGetDeliveryStatusQueryHandler _getDeliveryStatusHandler;
     // Phase 5 — Complaints
-    private readonly IGetProviderComplaintsQueryHandler _getProviderComplaintsHandler;
-    private readonly IGetProviderComplaintDetailQueryHandler _getProviderComplaintDetailHandler;
-    private readonly IRespondComplaintCommandHandler _respondComplaintHandler;
+    private readonly IGetProviderSupportTicketsQueryHandler _getProviderComplaintsHandler;
+    private readonly IGetProviderSupportTicketDetailQueryHandler _getProviderComplaintDetailHandler;
+    private readonly IRespondSupportTicketCommandHandler _respondComplaintHandler;
     // Phase 5 — Distribution overview
     private readonly Application.Features.Distribution.IGetProviderDistributionOverviewHandler _distributionOverviewHandler;
     // Withdrawal
@@ -75,9 +75,9 @@ public class ProvidersController : ControllerBase
         IDeliverProductionOrderCommandHandler deliverHandler,
         IGetDeliveryStatusQueryHandler getDeliveryStatusHandler,
         // Phase 5
-        IGetProviderComplaintsQueryHandler getProviderComplaintsHandler,
-        IGetProviderComplaintDetailQueryHandler getProviderComplaintDetailHandler,
-        IRespondComplaintCommandHandler respondComplaintHandler,
+        IGetProviderSupportTicketsQueryHandler getProviderComplaintsHandler,
+        IGetProviderSupportTicketDetailQueryHandler getProviderComplaintDetailHandler,
+        IRespondSupportTicketCommandHandler respondComplaintHandler,
         Application.Features.Distribution.IGetProviderDistributionOverviewHandler distributionOverviewHandler,
         ICreateProviderWithdrawalRequestCommandHandler createWithdrawalHandler,
         IGetProviderIncomingOrdersQueryHandler getProviderIncomingOrdersHandler,
@@ -333,11 +333,11 @@ public class ProvidersController : ControllerBase
         return Ok(result.Value);
     }
 
-    // ──────── Complaint Management (Phase 5) ────────
+    // ──────── SupportTicket Management (Phase 5) ────────
 
     /// <summary>List complaints sent to this provider.</summary>
     [HttpGet("me/complaints")]
-    [ProducesResponseType(typeof(GetProviderComplaintsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(GetProviderSupportTicketsResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProviderComplaints(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -345,19 +345,19 @@ public class ProvidersController : ControllerBase
         CancellationToken ct = default)
     {
         var result = await _getProviderComplaintsHandler.HandleAsync(
-            new GetProviderComplaintsQuery(_currentUser.UserId, page, pageSize, status), ct);
+            new GetProviderSupportTicketsQuery(_currentUser.UserId, page, pageSize, status), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
 
     /// <summary>Get complaint detail by ID (provider-scoped).</summary>
     [HttpGet("me/complaints/{id:guid}")]
-    [ProducesResponseType(typeof(Application.Features.Schools.Queries.ComplaintDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Application.Features.Schools.Queries.SupportTicketDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProviderComplaintDetail(Guid id, CancellationToken ct)
     {
         var result = await _getProviderComplaintDetailHandler.HandleAsync(
-            new GetProviderComplaintDetailQuery(_currentUser.UserId, id), ct);
+            new GetProviderSupportTicketDetailQuery(_currentUser.UserId, id), ct);
         if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -369,7 +369,7 @@ public class ProvidersController : ControllerBase
     public async Task<IActionResult> RespondComplaint(Guid id, [FromBody] RespondComplaintRequest request, CancellationToken ct)
     {
         var result = await _respondComplaintHandler.HandleAsync(
-            new RespondComplaintCommand(_currentUser.UserId, id, request.Response, request.MarkResolved), ct);
+            new RespondSupportTicketCommand(_currentUser.UserId, id, request.Response, request.MarkResolved), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { message = result.Value });
     }

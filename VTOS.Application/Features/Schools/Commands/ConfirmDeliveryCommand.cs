@@ -101,7 +101,7 @@ public class ConfirmDeliveryCommandHandler : IConfirmDeliveryCommandHandler
         // Auto-create complaint if defective > 0
         if (defective > 0 && !string.IsNullOrEmpty(command.DefectNote))
         {
-            var complaint = new Domain.Entities.Complaint
+            var ticket = new Domain.Entities.SupportTicket
             {
                 Id = Guid.NewGuid(),
                 CampaignID = batch.CampaignID,
@@ -110,10 +110,10 @@ public class ConfirmDeliveryCommandHandler : IConfirmDeliveryCommandHandler
                 ProviderID = batch.ProviderID,
                 Title = $"Defective uniforms in delivery ({defective} items)",
                 Description = command.DefectNote,
-                Status = Domain.Enums.ComplaintStatus.Open,
+                Status = Domain.Enums.SupportTicketStatus.Open,
                 CreatedAt = DateTime.UtcNow
             };
-            _db.Complaints.Add(complaint);
+            _db.SupportTickets.Add(ticket);
         }
 
         await _db.SaveChangesAsync(ct);

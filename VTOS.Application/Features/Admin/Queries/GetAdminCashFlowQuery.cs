@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
@@ -58,8 +58,8 @@ public class GetAdminCashFlowQueryHandler : IGetAdminCashFlowQueryHandler
 
         var totalCount = await _context.PaymentTransactions.CountAsync(ct);
 
-        var pendingComplaints = await _context.Complaints
-            .CountAsync(c => c.Status == ComplaintStatus.Open || c.Status == ComplaintStatus.InProgress, ct);
+        var pendingComplaints = await _context.SupportTickets
+            .CountAsync(c => c.Status == SupportTicketStatus.Open || c.Status == SupportTicketStatus.InProgress, ct);
 
         var activeCampaigns = await _context.Campaigns
             .CountAsync(c => c.Status == CampaignStatus.Active, ct);

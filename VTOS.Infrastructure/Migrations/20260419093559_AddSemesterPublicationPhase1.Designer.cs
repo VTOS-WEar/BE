@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VTOS.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using VTOS.Infrastructure.Persistence;
 namespace VTOS.Infrastructure.Migrations
 {
     [DbContext(typeof(VTOSDbContext))]
-    partial class VTOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260419093559_AddSemesterPublicationPhase1")]
+    partial class AddSemesterPublicationPhase1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -478,9 +481,6 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid?>("ClassGroupID")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("DOB")
                         .HasColumnType("date");
 
@@ -519,8 +519,6 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClassGroupID");
-
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("ParentUserID");
@@ -528,46 +526,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasIndex("SchoolID");
 
                     b.ToTable("Children", (string)null);
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.ClassGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AcademicYear")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ClassName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Grade")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid?>("HomeroomTeacherID")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SchoolID")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HomeroomTeacherID");
-
-                    b.HasIndex("SchoolID", "ClassName", "AcademicYear")
-                        .IsUnique();
-
-                    b.ToTable("ClassGroups", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Contract", b =>
@@ -2189,14 +2147,6 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
-                    b.Property<string>("HomeroomTeacherEmail")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("HomeroomTeacherName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<bool>("IsRegistered")
                         .HasColumnType("boolean");
 
@@ -2644,11 +2594,6 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.ChildProfile", b =>
                 {
-                    b.HasOne("VTOS.Domain.Entities.ClassGroup", "ClassGroup")
-                        .WithMany("Students")
-                        .HasForeignKey("ClassGroupID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("VTOS.Domain.Entities.User", "ParentUser")
                         .WithMany("ChildProfiles")
                         .HasForeignKey("ParentUserID")
@@ -2660,27 +2605,7 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("ClassGroup");
-
                     b.Navigation("ParentUser");
-
-                    b.Navigation("School");
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.ClassGroup", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.User", "HomeroomTeacher")
-                        .WithMany("HomeroomClasses")
-                        .HasForeignKey("HomeroomTeacherID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("VTOS.Domain.Entities.School", "School")
-                        .WithMany("ClassGroups")
-                        .HasForeignKey("SchoolID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("HomeroomTeacher");
 
                     b.Navigation("School");
                 });
@@ -3289,11 +3214,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("TryOnHistories");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.ClassGroup", b =>
-                {
-                    b.Navigation("Students");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Contract", b =>
                 {
                     b.Navigation("ContractItems");
@@ -3375,8 +3295,6 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("ChildProfiles");
 
-                    b.Navigation("ClassGroups");
-
                     b.Navigation("Contracts");
 
                     b.Navigation("Outfits");
@@ -3417,8 +3335,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("ChildProfiles");
 
                     b.Navigation("Feedbacks");
-
-                    b.Navigation("HomeroomClasses");
 
                     b.Navigation("OutfitRecommendations");
 

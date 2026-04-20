@@ -11,6 +11,8 @@ public class StudentDataImport : AuditableEntity
     public string? ParentPhone { get; set; }
     public DateTime? DateOfBirth { get; set; }
     public string? Gender { get; set; }
+    public string? HomeroomTeacherName { get; set; }
+    public string? HomeroomTeacherEmail { get; set; }
     public bool IsRegistered { get; set; }
     public Guid? MatchedChildID { get; set; }
 

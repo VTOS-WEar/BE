@@ -1,4 +1,4 @@
-using VTOS.Domain.Common;
+﻿using VTOS.Domain.Common;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
@@ -31,7 +31,7 @@ public class ProductionBatch : BaseEntity
     public Campaign Campaign { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
     public ICollection<ProductionBatchItem> Items { get; set; } = new List<ProductionBatchItem>();
-    public ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
+    public ICollection<SupportTicket> Complaints { get; set; } = new List<SupportTicket>();
     public ICollection<DeliveryRecord> DeliveryRecords { get; set; } = new List<DeliveryRecord>();
     public ICollection<DistributionRecord> DistributionRecords { get; set; } = new List<DistributionRecord>();
 }

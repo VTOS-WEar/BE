@@ -49,4 +49,5 @@ public class User : BaseEntity
     public ICollection<OutfitRecommendation> OutfitRecommendations { get; set; } = new List<OutfitRecommendation>();
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
     public ICollection<ParentBankAccount> BankAccounts { get; set; } = new List<ParentBankAccount>();
+    public ICollection<ClassGroup> HomeroomClasses { get; set; } = new List<ClassGroup>();
 }

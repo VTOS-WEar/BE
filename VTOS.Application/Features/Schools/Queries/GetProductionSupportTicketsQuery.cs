@@ -1,13 +1,13 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Queries;
 
-public record GetProductionComplaintsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
+public record GetProductionSupportTicketsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
 
-public record ComplaintDto(
+public record SupportTicketDto(
     Guid ComplaintId,
     Guid CampaignId,
     string? CampaignName,
@@ -23,40 +23,40 @@ public record ComplaintDto(
     DateTime? ResolvedAt
 );
 
-public record GetProductionComplaintsResponse(
-    IReadOnlyList<ComplaintDto> Items,
+public record GetProductionSupportTicketsResponse(
+    IReadOnlyList<SupportTicketDto> Items,
     int Total,
     int Page,
     int PageSize
 );
 
-public interface IGetProductionComplaintsQueryHandler
+public interface IGetProductionSupportTicketsQueryHandler
 {
-    Task<Result<GetProductionComplaintsResponse>> HandleAsync(GetProductionComplaintsQuery query, CancellationToken ct = default);
+    Task<Result<GetProductionSupportTicketsResponse>> HandleAsync(GetProductionSupportTicketsQuery query, CancellationToken ct = default);
 }
 
-public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQueryHandler
+public class GetProductionSupportTicketsQueryHandler : IGetProductionSupportTicketsQueryHandler
 {
     private readonly IApplicationDbContext _db;
 
-    public GetProductionComplaintsQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetProductionSupportTicketsQueryHandler(IApplicationDbContext db) => _db = db;
 
-    public async Task<Result<GetProductionComplaintsResponse>> HandleAsync(GetProductionComplaintsQuery query, CancellationToken ct = default)
+    public async Task<Result<GetProductionSupportTicketsResponse>> HandleAsync(GetProductionSupportTicketsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
         var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (schoolMgr?.SchoolID == null)
-            return Result<GetProductionComplaintsResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");
+            return Result<GetProductionSupportTicketsResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var schoolId = schoolMgr.SchoolID;
 
-        var q = _db.Complaints.AsNoTracking()
+        var q = _db.SupportTickets.AsNoTracking()
             .Include(c => c.Campaign)
             .Include(c => c.Provider)
             .Where(c => c.SchoolID == schoolId);
 
         // Status filter
-        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<ComplaintStatus>(query.Status, true, out var statusEnum))
+        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<SupportTicketStatus>(query.Status, true, out var statusEnum))
             q = q.Where(c => c.Status == statusEnum);
 
         q = q.OrderByDescending(c => c.CreatedAt);
@@ -65,7 +65,7 @@ public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQuery
         var items = await q
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(c => new ComplaintDto(
+            .Select(c => new SupportTicketDto(
                 c.Id, c.CampaignID, c.Campaign.CampaignName,
                 c.BatchID, c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
                 c.Title, c.Description, c.Response,
@@ -73,8 +73,8 @@ public class GetProductionComplaintsQueryHandler : IGetProductionComplaintsQuery
             ))
             .ToListAsync(ct);
 
-        return Result<GetProductionComplaintsResponse>.Success(
-            new GetProductionComplaintsResponse(items, total, query.Page, query.PageSize));
+        return Result<GetProductionSupportTicketsResponse>.Success(
+            new GetProductionSupportTicketsResponse(items, total, query.Page, query.PageSize));
     }
 }
 

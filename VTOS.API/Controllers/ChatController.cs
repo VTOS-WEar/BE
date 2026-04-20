@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Features.Chat.Commands;
 using VTOS.Application.Features.Chat.Queries;
@@ -39,7 +39,7 @@ public class ChatController : ControllerBase
         _imageUploadService = imageUploadService;
     }
 
-    /// <summary>Get chat messages for a channel (complaint or contract).</summary>
+    /// <summary>Get chat messages for a channel (ticket or contract).</summary>
     [HttpGet("{channelType}/{channelId:guid}/messages")]
     [ProducesResponseType(typeof(GetChatMessagesResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

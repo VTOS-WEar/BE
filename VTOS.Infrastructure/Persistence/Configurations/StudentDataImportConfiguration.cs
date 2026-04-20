@@ -35,6 +35,12 @@ public class StudentDataImportConfiguration : IEntityTypeConfiguration<StudentDa
         builder.Property(sdi => sdi.Gender)
             .HasMaxLength(10);
 
+        builder.Property(sdi => sdi.HomeroomTeacherName)
+            .HasMaxLength(255);
+
+        builder.Property(sdi => sdi.HomeroomTeacherEmail)
+            .HasMaxLength(255);
+
         builder.Property(sdi => sdi.IsRegistered)
             .IsRequired();
 

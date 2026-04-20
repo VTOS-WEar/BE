@@ -1,6 +1,6 @@
-namespace VTOS.Domain.Enums;
+﻿namespace VTOS.Domain.Enums;
 
-public enum ComplaintStatus
+public enum SupportTicketStatus
 {
     Open = 1,
     InProgress = 2,

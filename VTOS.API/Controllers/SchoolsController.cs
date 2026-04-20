@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using ClosedXML.Excel;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -60,7 +60,7 @@ public class SchoolsController : ControllerBase
     private readonly IGenerateProductionOrderCommandHandler _generateProductionOrderHandler;
     private readonly ISendProductionRequestCommandHandler _sendProductionRequestHandler;
     private readonly IConfirmProductionOrderCommandHandler _confirmProductionOrderHandler;
-    private readonly IGetProductionComplaintsQueryHandler _getProductionComplaintsHandler;
+    private readonly IGetProductionSupportTicketsQueryHandler _getProductionComplaintsHandler;
     private readonly IGetProductionOrderListQueryHandler _getProductionOrderListHandler;
     private readonly IGetProductionOrderDetailQueryHandler _getProductionOrderDetailHandler;
     private readonly IGetProductionOrderItemsQueryHandler _getProductionOrderItemsHandler;
@@ -99,8 +99,8 @@ public class SchoolsController : ControllerBase
     private readonly IGetDistributionStatusQueryHandler _getDistributionStatusHandler;
     private readonly IGetSchoolDeliveryStatusQueryHandler _getSchoolDeliveryStatusHandler;
     // Phase 5 — Complaints
-    private readonly IGetComplaintDetailQueryHandler _getComplaintDetailHandler;
-    private readonly ICloseComplaintCommandHandler _closeComplaintHandler;
+    private readonly IGetSupportTicketDetailQueryHandler _getComplaintDetailHandler;
+    private readonly ICloseSupportTicketCommandHandler _closeComplaintHandler;
     // Phase 5 — Distribution Scheduling
     private readonly Application.Features.Distribution.ICreateDistributionScheduleHandler _createScheduleHandler;
     private readonly Application.Features.Distribution.IGetDistributionSchedulesHandler _getSchedulesHandler;
@@ -139,7 +139,7 @@ public class SchoolsController : ControllerBase
         IGenerateProductionOrderCommandHandler generateProductionOrderHandler,
         ISendProductionRequestCommandHandler sendProductionRequestHandler,
         IConfirmProductionOrderCommandHandler confirmProductionOrderHandler,
-        IGetProductionComplaintsQueryHandler getProductionComplaintsHandler,
+        IGetProductionSupportTicketsQueryHandler getProductionComplaintsHandler,
         IGetProductionOrderListQueryHandler getProductionOrderListHandler,
         IGetProductionOrderDetailQueryHandler getProductionOrderDetailHandler,
         IGetProductionOrderItemsQueryHandler getProductionOrderItemsHandler,
@@ -178,8 +178,8 @@ public class SchoolsController : ControllerBase
         IGetDistributionStatusQueryHandler getDistributionStatusHandler,
         IGetSchoolDeliveryStatusQueryHandler getSchoolDeliveryStatusHandler,
         // Phase 5
-        IGetComplaintDetailQueryHandler getComplaintDetailHandler,
-        ICloseComplaintCommandHandler closeComplaintHandler,
+        IGetSupportTicketDetailQueryHandler getComplaintDetailHandler,
+        ICloseSupportTicketCommandHandler closeComplaintHandler,
         Application.Features.Distribution.ICreateDistributionScheduleHandler createScheduleHandler,
         Application.Features.Distribution.IGetDistributionSchedulesHandler getSchedulesHandler,
         Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler,
@@ -443,7 +443,16 @@ public class SchoolsController : ControllerBase
         var ws = workbook.Worksheets.Add("Import Template");
 
         // --- Header row ---
-        var headers = new[] { "Student Name", "DOB", "Grade", "Gender", "Parent Phone Number" };
+        var headers = new[]
+        {
+            "Student Name",
+            "DOB",
+            "Class",
+            "Gender",
+            "Parent Phone Number",
+            "Homeroom Teacher Name",
+            "Homeroom Teacher Email"
+        };
         for (int i = 0; i < headers.Length; i++)
         {
             var cell = ws.Cell(1, i + 1);
@@ -454,21 +463,32 @@ public class SchoolsController : ControllerBase
         }
 
         // --- Sample data rows ---
-        // Phone column (E) must be Text type to preserve leading zero
+        // Phone and email columns must preserve exact user input.
         var phoneCol = ws.Column(5);
         phoneCol.Style.NumberFormat.NumberFormatId = 49; // @ = Text format
+        ws.Column(7).Style.NumberFormat.NumberFormatId = 49;
 
         ws.Cell(2, 1).Value = "Nguyễn Văn A";
         ws.Cell(2, 2).Value = "15/03/2015";
-        ws.Cell(2, 3).Value = "3A";
+        ws.Cell(2, 3).Value = "6A1";
         ws.Cell(2, 4).Value = "Nam";
         ws.Cell(2, 5).SetValue("0901234567");
+        ws.Cell(2, 6).Value = "Tran Thi Hoa";
+        ws.Cell(2, 7).SetValue("hoa.tran@school.edu.vn");
 
         ws.Cell(3, 1).Value = "Trần Thị B";
         ws.Cell(3, 2).Value = "22/07/2014";
-        ws.Cell(3, 3).Value = "4B";
+        ws.Cell(3, 3).Value = "6A1";
         ws.Cell(3, 4).Value = "Nữ";
         ws.Cell(3, 5).SetValue("0912345678");
+
+        ws.Cell(4, 1).Value = "Le Van C";
+        ws.Cell(4, 2).Value = "10/01/2014";
+        ws.Cell(4, 3).Value = "7B2";
+        ws.Cell(4, 4).Value = "Nam";
+        ws.Cell(4, 5).SetValue("0923456789");
+        ws.Cell(4, 6).Value = "Nguyen Van Minh";
+        ws.Cell(4, 7).SetValue("minh.nguyen@school.edu.vn");
 
         // Auto-fit columns for readability
         ws.Columns().AdjustToContents();
@@ -485,7 +505,7 @@ public class SchoolsController : ControllerBase
     /// <summary>
     /// UC-43: Import student data from a .xlsx file.
     /// </summary>
-    /// <param name="file">.xlsx file (max 20MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Grade, Gender, Parent Phone Number.</param>
+    /// <param name="file">.xlsx file (max 20MB). Row 1 = header, Row 2+ = data. Columns: Student Name, DOB (dd/MM/yyyy), Class, Gender, Parent Phone Number, Teacher Name, Teacher Email.</param>
     [HttpPost("me/students/import")]
     [ProducesResponseType(typeof(ImportStudentResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -764,10 +784,10 @@ public class SchoolsController : ControllerBase
         foreach (var row in ws.RowsUsed())
         {
             if (isHeader) { isHeader = false; continue; } // skip header row
-            if (row.Cells(1, 5).All(c => c.IsEmpty())) continue; // skip fully empty rows
+            if (row.Cells(1, 7).All(c => c.IsEmpty())) continue; // skip fully empty rows
 
-            var cols = new string[5];
-            for (int i = 0; i < 5; i++)
+            var cols = new string[7];
+            for (int i = 0; i < 7; i++)
                 cols[i] = row.Cell(i + 1).IsEmpty() ? string.Empty : row.Cell(i + 1).GetString().Trim();
             rows.Add(cols);
         }
@@ -1142,7 +1162,7 @@ public class SchoolsController : ControllerBase
 
     /// <summary>UC 3.9.11 — View production complaints for the school.</summary>
     [HttpGet("me/complaints")]
-    [ProducesResponseType(typeof(GetProductionComplaintsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(GetProductionSupportTicketsResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProductionComplaints(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -1150,19 +1170,19 @@ public class SchoolsController : ControllerBase
         CancellationToken ct = default)
     {
         var result = await _getProductionComplaintsHandler.HandleAsync(
-            new GetProductionComplaintsQuery(_currentUser.UserId, page, pageSize, status), ct);
+            new GetProductionSupportTicketsQuery(_currentUser.UserId, page, pageSize, status), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
 
     /// <summary>UC 3.10.5 — View complaint detail.</summary>
     [HttpGet("me/complaints/{id:guid}")]
-    [ProducesResponseType(typeof(ComplaintDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SupportTicketDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetComplaintDetail(Guid id, CancellationToken ct)
     {
         var result = await _getComplaintDetailHandler.HandleAsync(
-            new GetComplaintDetailQuery(_currentUser.UserId, id), ct);
+            new GetSupportTicketDetailQuery(_currentUser.UserId, id), ct);
         if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -1174,7 +1194,7 @@ public class SchoolsController : ControllerBase
     public async Task<IActionResult> CloseComplaint(Guid id, CancellationToken ct)
     {
         var result = await _closeComplaintHandler.HandleAsync(
-            new CloseComplaintCommand(_currentUser.UserId, id), ct);
+            new CloseSupportTicketCommand(_currentUser.UserId, id), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { message = result.Value });
     }

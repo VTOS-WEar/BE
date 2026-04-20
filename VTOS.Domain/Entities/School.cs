@@ -32,6 +32,7 @@ public class School : AuditableEntity
     public ICollection<Outfit> Outfits { get; set; } = new List<Outfit>();
     public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
     public ICollection<SemesterPublication> SemesterPublications { get; set; } = new List<SemesterPublication>();
+    public ICollection<ClassGroup> ClassGroups { get; set; } = new List<ClassGroup>();
     public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();
     public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
     public Wallet? Wallet { get; set; }

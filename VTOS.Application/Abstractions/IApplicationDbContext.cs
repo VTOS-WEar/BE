@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Abstractions;
@@ -15,6 +15,7 @@ public interface IApplicationDbContext
     DbSet<ChildProfile> ChildProfiles { get; }
     DbSet<Feedback> Feedbacks { get; }
     DbSet<School> Schools { get; }
+    DbSet<ClassGroup> ClassGroups { get; }
     DbSet<Category> Categories { get; }
     DbSet<Outfit> Outfits { get; }
     DbSet<ProductVariant> ProductVariants { get; }
@@ -37,7 +38,7 @@ public interface IApplicationDbContext
     DbSet<ProductionBatchItem> ProductionBatchItems { get; }
     DbSet<StudentDataImport> StudentDataImports { get; }
     DbSet<ImportBatch> ImportBatches { get; }
-    DbSet<Complaint> Complaints { get; }
+    DbSet<SupportTicket> SupportTickets { get; }
     DbSet<ParentBankAccount> ParentBankAccounts { get; }
     DbSet<Contract> Contracts { get; }
     DbSet<ContractItem> ContractItems { get; }

@@ -32,37 +32,37 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
 
     public async Task<Result<string>> HandleAsync(AdminInterventionCommand command, CancellationToken ct = default)
     {
-        var complaint = await _context.Complaints
+        var ticket = await _context.SupportTickets
             .FirstOrDefaultAsync(c => c.Id == command.ComplaintId, ct);
 
-        if (complaint == null)
-            return Result<string>.Failure("Complaint not found.", "NOT_FOUND");
+        if (ticket == null)
+            return Result<string>.Failure("SupportTicket not found.", "NOT_FOUND");
 
         // Admin can add note (append to response), change status
         var adminNote = $"[Admin - {DateTime.UtcNow:dd/MM/yyyy HH:mm}] {command.Note}";
-        complaint.Response = string.IsNullOrEmpty(complaint.Response)
+        ticket.Response = string.IsNullOrEmpty(ticket.Response)
             ? adminNote
-            : complaint.Response + "\n\n" + adminNote;
+            : ticket.Response + "\n\n" + adminNote;
 
         if (!string.IsNullOrEmpty(command.Action))
         {
             switch (command.Action.ToLower())
             {
                 case "escalate":
-                    complaint.Status = ComplaintStatus.InProgress;
+                    ticket.Status = SupportTicketStatus.InProgress;
                     break;
                 case "resolve":
-                    complaint.Status = ComplaintStatus.Resolved;
-                    complaint.ResolvedAt = DateTime.UtcNow;
+                    ticket.Status = SupportTicketStatus.Resolved;
+                    ticket.ResolvedAt = DateTime.UtcNow;
                     break;
                 case "close":
-                    complaint.Status = ComplaintStatus.Closed;
-                    complaint.ResolvedAt ??= DateTime.UtcNow;
+                    ticket.Status = SupportTicketStatus.Closed;
+                    ticket.ResolvedAt ??= DateTime.UtcNow;
                     break;
             }
         }
 
-        complaint.RespondedAt = DateTime.UtcNow;
+        ticket.RespondedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
 
         // Notify both school and provider about admin intervention
@@ -75,21 +75,21 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
                 "escalate" => "Chuyển tiếp",
                 _ => "Ghi chú"
             };
-            if (complaint.SchoolID != Guid.Empty)
-                await _notificationService.NotifySchoolAsync(complaint.SchoolID,
+            if (ticket.SchoolID != Guid.Empty)
+                await _notificationService.NotifySchoolAsync(ticket.SchoolID,
                     "👨‍⚖️ Admin can thiệp khiếu nại",
-                    $"Admin {statusLabel} khiếu nại: {complaint.Title}",
-                    "Complaint", complaint.Id, "Complaint",
+                    $"Admin {statusLabel} khiếu nại: {ticket.Title}",
+                    "SupportTicket", ticket.Id, "SupportTicket",
                     "/school/complaints", ct);
-            if (complaint.ProviderID.HasValue)
-                await _notificationService.NotifyProviderAsync(complaint.ProviderID.Value,
+            if (ticket.ProviderID.HasValue)
+                await _notificationService.NotifyProviderAsync(ticket.ProviderID.Value,
                     "👨‍⚖️ Admin can thiệp khiếu nại",
-                    $"Admin {statusLabel} khiếu nại: {complaint.Title}",
-                    "Complaint", complaint.Id, "Complaint",
+                    $"Admin {statusLabel} khiếu nại: {ticket.Title}",
+                    "SupportTicket", ticket.Id, "SupportTicket",
                     "/provider/complaints", ct);
         }
         catch { /* Don't fail */ }
 
-        return Result<string>.Success($"Intervention added. Status: {complaint.Status}");
+        return Result<string>.Success($"Intervention added. Status: {ticket.Status}");
     }
 }

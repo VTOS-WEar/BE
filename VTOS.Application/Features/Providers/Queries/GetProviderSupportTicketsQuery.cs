@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.Queries;
@@ -6,41 +6,41 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Providers.Queries;
 
-public record GetProviderComplaintsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
+public record GetProviderSupportTicketsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
 
-public record GetProviderComplaintsResponse(
-    IReadOnlyList<ComplaintDto> Items,
+public record GetProviderSupportTicketsResponse(
+    IReadOnlyList<SupportTicketDto> Items,
     int Total,
     int Page,
     int PageSize
 );
 
-public interface IGetProviderComplaintsQueryHandler
+public interface IGetProviderSupportTicketsQueryHandler
 {
-    Task<Result<GetProviderComplaintsResponse>> HandleAsync(GetProviderComplaintsQuery query, CancellationToken ct = default);
+    Task<Result<GetProviderSupportTicketsResponse>> HandleAsync(GetProviderSupportTicketsQuery query, CancellationToken ct = default);
 }
 
-public class GetProviderComplaintsQueryHandler : IGetProviderComplaintsQueryHandler
+public class GetProviderSupportTicketsQueryHandler : IGetProviderSupportTicketsQueryHandler
 {
     private readonly IApplicationDbContext _db;
 
-    public GetProviderComplaintsQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetProviderSupportTicketsQueryHandler(IApplicationDbContext db) => _db = db;
 
-    public async Task<Result<GetProviderComplaintsResponse>> HandleAsync(GetProviderComplaintsQuery query, CancellationToken ct = default)
+    public async Task<Result<GetProviderSupportTicketsResponse>> HandleAsync(GetProviderSupportTicketsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
         var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (providerMgr?.ProviderID == null)
-            return Result<GetProviderComplaintsResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
+            return Result<GetProviderSupportTicketsResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var providerId = providerMgr.ProviderID;
 
-        var q = _db.Complaints.AsNoTracking()
+        var q = _db.SupportTickets.AsNoTracking()
             .Include(c => c.Campaign)
             .Include(c => c.Provider)
             .Where(c => c.ProviderID == providerId);
 
-        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<ComplaintStatus>(query.Status, true, out var statusEnum))
+        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<SupportTicketStatus>(query.Status, true, out var statusEnum))
             q = q.Where(c => c.Status == statusEnum);
 
         q = q.OrderByDescending(c => c.CreatedAt);
@@ -49,7 +49,7 @@ public class GetProviderComplaintsQueryHandler : IGetProviderComplaintsQueryHand
         var items = await q
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(c => new ComplaintDto(
+            .Select(c => new SupportTicketDto(
                 c.Id, c.CampaignID, c.Campaign.CampaignName,
                 c.BatchID, c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
                 c.Title, c.Description, c.Response,
@@ -57,7 +57,7 @@ public class GetProviderComplaintsQueryHandler : IGetProviderComplaintsQueryHand
             ))
             .ToListAsync(ct);
 
-        return Result<GetProviderComplaintsResponse>.Success(
-            new GetProviderComplaintsResponse(items, total, query.Page, query.PageSize));
+        return Result<GetProviderSupportTicketsResponse>.Success(
+            new GetProviderSupportTicketsResponse(items, total, query.Page, query.PageSize));
     }
 }

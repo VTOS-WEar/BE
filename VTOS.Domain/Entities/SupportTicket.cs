@@ -1,4 +1,4 @@
-using VTOS.Domain.Common;
+﻿using VTOS.Domain.Common;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
@@ -6,9 +6,9 @@ namespace VTOS.Domain.Entities;
 /// <summary>
 /// Represents a production complaint submitted by a school against a provider.
 /// UC 3.9.11: View Production Complaints (School side).
-/// Also used by UC 3.12.x (Complaint & Communication Management).
+/// Also used by UC 3.12.x (SupportTicket & Communication Management).
 /// </summary>
-public class Complaint : AuditableEntity
+public class SupportTicket : AuditableEntity
 {
     public Guid CampaignID { get; set; }
     public Guid? BatchID { get; set; }
@@ -16,7 +16,7 @@ public class Complaint : AuditableEntity
     public Guid? ProviderID { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public ComplaintStatus Status { get; set; } = ComplaintStatus.Open;
+    public SupportTicketStatus Status { get; set; } = SupportTicketStatus.Open;
     public string? Response { get; set; }
     public DateTime? RespondedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }

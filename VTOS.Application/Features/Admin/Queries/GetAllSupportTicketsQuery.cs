@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
@@ -7,7 +7,7 @@ namespace VTOS.Application.Features.Admin.Queries;
 
 // ── DTOs ──
 
-public record AdminComplaintDto
+public record AdminSupportTicketDto
 {
     public Guid Id { get; init; }
     public string Title { get; init; } = string.Empty;
@@ -23,9 +23,9 @@ public record AdminComplaintDto
     public DateTime? ResolvedAt { get; init; }
 }
 
-public record AdminComplaintListResult
+public record AdminSupportTicketListResult
 {
-    public List<AdminComplaintDto> Items { get; init; } = new();
+    public List<AdminSupportTicketDto> Items { get; init; } = new();
     public int TotalCount { get; init; }
     public int Page { get; init; }
     public int PageSize { get; init; }
@@ -36,28 +36,28 @@ public record AdminComplaintListResult
 
 // ── Interface ──
 
-public interface IGetAllComplaintsQueryHandler
+public interface IGetAllSupportTicketsQueryHandler
 {
-    Task<Result<AdminComplaintListResult>> HandleAsync(
+    Task<Result<AdminSupportTicketListResult>> HandleAsync(
         int page = 1, int pageSize = 20,
-        ComplaintStatus? status = null,
+        SupportTicketStatus? status = null,
         CancellationToken ct = default);
 }
 
 // ── Handler ──
 
-public class GetAllComplaintsQueryHandler : IGetAllComplaintsQueryHandler
+public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandler
 {
     private readonly IApplicationDbContext _context;
 
-    public GetAllComplaintsQueryHandler(IApplicationDbContext context) => _context = context;
+    public GetAllSupportTicketsQueryHandler(IApplicationDbContext context) => _context = context;
 
-    public async Task<Result<AdminComplaintListResult>> HandleAsync(
+    public async Task<Result<AdminSupportTicketListResult>> HandleAsync(
         int page = 1, int pageSize = 20,
-        ComplaintStatus? status = null,
+        SupportTicketStatus? status = null,
         CancellationToken ct = default)
     {
-        var query = _context.Complaints
+        var query = _context.SupportTickets
             .Include(c => c.School)
             .Include(c => c.Provider)
             .Include(c => c.Campaign)
@@ -70,16 +70,16 @@ public class GetAllComplaintsQueryHandler : IGetAllComplaintsQueryHandler
         var totalCount = await query.CountAsync(ct);
 
         // Status counts (unfiltered)
-        var allComplaints = _context.Complaints.AsQueryable();
-        var openCount = await allComplaints.CountAsync(c => c.Status == ComplaintStatus.Open, ct);
-        var inProgressCount = await allComplaints.CountAsync(c => c.Status == ComplaintStatus.InProgress, ct);
-        var resolvedCount = await allComplaints.CountAsync(c => c.Status == ComplaintStatus.Resolved, ct);
+        var allComplaints = _context.SupportTickets.AsQueryable();
+        var openCount = await allComplaints.CountAsync(c => c.Status == SupportTicketStatus.Open, ct);
+        var inProgressCount = await allComplaints.CountAsync(c => c.Status == SupportTicketStatus.InProgress, ct);
+        var resolvedCount = await allComplaints.CountAsync(c => c.Status == SupportTicketStatus.Resolved, ct);
 
         var items = await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new AdminComplaintDto
+            .Select(c => new AdminSupportTicketDto
             {
                 Id = c.Id,
                 Title = c.Title,
@@ -96,7 +96,7 @@ public class GetAllComplaintsQueryHandler : IGetAllComplaintsQueryHandler
             })
             .ToListAsync(ct);
 
-        return Result<AdminComplaintListResult>.Success(new AdminComplaintListResult
+        return Result<AdminSupportTicketListResult>.Success(new AdminSupportTicketListResult
         {
             Items = items,
             TotalCount = totalCount,

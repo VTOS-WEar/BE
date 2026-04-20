@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 using VTOS.Infrastructure.Persistence;
@@ -31,6 +31,7 @@ public static class DbInitializer
     private static readonly Guid ROLE_PARENT   = Guid.Parse("22222222-2222-2222-2222-222222222222");
     private static readonly Guid ROLE_SCHOOL   = Guid.Parse("33333333-3333-3333-3333-333333333333");
     private static readonly Guid ROLE_PROVIDER = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private static readonly Guid ROLE_TEACHER  = Guid.Parse("55555555-5555-5555-5555-555555555555");
 
     private static readonly Guid SCH1 = Guid.Parse("6D3CCB42-97FF-44D4-AC8B-68FC56B4DDD9");
     private static readonly Guid SCH2 = Guid.Parse("D25F24A9-29F5-4FD9-B7A7-CD224EA512C5");
@@ -148,6 +149,19 @@ public static class DbInitializer
             }
         }
 
+        if (await db.Roles.AnyAsync() && !await db.Roles.AnyAsync(r => r.RoleName == "HomeroomTeacher"))
+        {
+            db.Roles.Add(new Role
+            {
+                Id = ROLE_TEACHER,
+                RoleName = "HomeroomTeacher",
+                IsSystemRole = true,
+                CreatedAt = DateTime.UtcNow,
+                Description = "Homeroom teacher account created from student import."
+            });
+            await db.SaveChangesAsync();
+        }
+
         // Guard: only seed remaining data when database is empty
         if (await db.Roles.AnyAsync()) return;
 
@@ -159,7 +173,8 @@ public static class DbInitializer
             new Role { Id = ROLE_ADMIN,    RoleName = "Admin",    IsSystemRole = true, CreatedAt = now },
             new Role { Id = ROLE_PARENT,   RoleName = "Parent",   IsSystemRole = true, CreatedAt = now },
             new Role { Id = ROLE_SCHOOL,   RoleName = "School",   IsSystemRole = true, CreatedAt = now },
-            new Role { Id = ROLE_PROVIDER, RoleName = "Provider", IsSystemRole = true, CreatedAt = now }
+            new Role { Id = ROLE_PROVIDER, RoleName = "Provider", IsSystemRole = true, CreatedAt = now },
+            new Role { Id = ROLE_TEACHER,  RoleName = "HomeroomTeacher", IsSystemRole = true, CreatedAt = now }
         );
         await db.SaveChangesAsync();
 
@@ -509,10 +524,10 @@ public static class DbInitializer
         await db.SaveChangesAsync();
 
         // ── Complaints ────────────────────────────────────────────────────────
-        db.Complaints.AddRange(
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Áo sơ mi bị phai màu sau khi giặt", Description = "Một số áo lô đầu bị phai vàng sau 2 lần giặt máy", Status = ComplaintStatus.Open, CreatedAt = now.AddDays(-3) },
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Thiếu hàng size M 3 sản phẩm", Description = "Đơn giao 65 cái size M nhưng chỉ nhận 62, thiếu 3", Status = ComplaintStatus.InProgress, CreatedAt = now.AddDays(-5) },
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Giao hàng trễ hạn 10 ngày", Description = "Hạn giao 01/03 nhưng 11/03 vẫn chưa nhận được hàng", Status = ComplaintStatus.Resolved, CreatedAt = now.AddDays(-12) }
+        db.SupportTickets.AddRange(
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Áo sơ mi bị phai màu sau khi giặt", Description = "Một số áo lô đầu bị phai vàng sau 2 lần giặt máy", Status = SupportTicketStatus.Open, CreatedAt = now.AddDays(-3) },
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Thiếu hàng size M 3 sản phẩm", Description = "Đơn giao 65 cái size M nhưng chỉ nhận 62, thiếu 3", Status = SupportTicketStatus.InProgress, CreatedAt = now.AddDays(-5) },
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Giao hàng trễ hạn 10 ngày", Description = "Hạn giao 01/03 nhưng 11/03 vẫn chưa nhận được hàng", Status = SupportTicketStatus.Resolved, CreatedAt = now.AddDays(-12) }
         );
         await db.SaveChangesAsync();
     }

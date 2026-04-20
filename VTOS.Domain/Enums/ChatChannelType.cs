@@ -1,7 +1,7 @@
-namespace VTOS.Domain.Enums;
+﻿namespace VTOS.Domain.Enums;
 
 public enum ChatChannelType
 {
-    Complaint = 1,
+    SupportTicket = 1,
     Contract = 2
 }
