@@ -3,5 +3,6 @@
 public enum ChatChannelType
 {
     SupportTicket = 1,
-    Contract = 2
+    Contract = 2,
+    ClassGroup = 3
 }

@@ -91,6 +91,13 @@ public class GetChatMessagesQueryHandler : IGetChatMessagesQueryHandler
             return await _db.Contracts.AsNoTracking().AnyAsync(c =>
                 c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
+        else if (channelType == ChatChannelType.ClassGroup)
+        {
+            return await _db.ClassGroups.AsNoTracking().AnyAsync(cg =>
+                       cg.Id == channelId && cg.HomeroomTeacherID == userId, ct)
+                   || await _db.ChildProfiles.AsNoTracking().AnyAsync(cp =>
+                       cp.ClassGroupID == channelId && cp.ParentUserID == userId && !cp.IsDeleted, ct);
+        }
 
         return false;
     }

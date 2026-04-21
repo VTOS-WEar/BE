@@ -90,10 +90,11 @@ public class UpdateCampaignCommandHandler : IUpdateCampaignCommandHandler
         if (outfitsWithProvider.Any())
         {
             var providerIds = outfitsWithProvider.Select(o => o.ProviderId!.Value).Distinct().ToList();
+            var usableContractStatuses = new[] { "Active", "InUse" };
 
             var approvedContracts = await _db.Contracts.AsNoTracking()
                 .Where(c => c.SchoolID == schoolId
-                         && c.Status == "Approved"
+                         && usableContractStatuses.Contains(c.Status)
                          && providerIds.Contains(c.ProviderID))
                 .Include(c => c.ContractItems)
                 .ToListAsync(ct);
@@ -108,7 +109,7 @@ public class UpdateCampaignCommandHandler : IUpdateCampaignCommandHandler
                 {
                     var outfit = schoolOutfits.FirstOrDefault(o => o.Id == input.OutfitId);
                     return Result<CampaignDetailDto>.Failure(
-                        $"Provider '{input.ProviderId}' does not have an approved contract for outfit '{outfit?.OutfitName ?? input.OutfitId.ToString()}'.",
+                        $"Provider '{input.ProviderId}' does not have an active supplier agreement for outfit '{outfit?.OutfitName ?? input.OutfitId.ToString()}'.",
                         "PROVIDER_NO_CONTRACT");
                 }
             }
@@ -130,10 +131,11 @@ public class UpdateCampaignCommandHandler : IUpdateCampaignCommandHandler
 
             if (input.ProviderId.HasValue)
             {
+                var usableContractStatuses = new[] { "Active", "InUse" };
                 var matchingContract = await _db.Contracts
                     .Where(c => c.SchoolID == schoolId
                              && c.ProviderID == input.ProviderId.Value
-                             && c.Status == "Approved")
+                             && usableContractStatuses.Contains(c.Status))
                     .Include(c => c.ContractItems)
                     .FirstOrDefaultAsync(c => c.ContractItems.Any(ci => ci.OutfitID == input.OutfitId), ct);
 

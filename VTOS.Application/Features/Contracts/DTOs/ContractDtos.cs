@@ -51,9 +51,9 @@ public record ContractItemDto(
     Guid ItemId,
     Guid OutfitId,
     string OutfitName,
-    decimal PricePerUnit,
-    int MinQuantity,
-    int MaxQuantity
+    decimal? PricePerUnit,
+    int? MinQuantity,
+    int? MaxQuantity
 );
 
 /// <summary>Request body for creating a contract (School).</summary>
@@ -65,10 +65,7 @@ public record CreateContractRequest(
 );
 
 public record CreateContractItemRequest(
-    Guid OutfitId,
-    decimal PricePerUnit,
-    int MinQuantity,
-    int MaxQuantity
+    Guid OutfitId
 );
 
 /// <summary>Request body for rejecting a contract (Provider).</summary>

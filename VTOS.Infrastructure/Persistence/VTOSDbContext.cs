@@ -18,6 +18,7 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<ProviderManager> ProviderManagers { get; set; }
     public DbSet<School> Schools { get; set; }
     public DbSet<ClassGroup> ClassGroups { get; set; }
+    public DbSet<TeacherReport> TeacherReports { get; set; }
     public DbSet<ChildProfile> ChildProfiles { get; set; }
     public DbSet<EmailVerification> EmailVerifications { get; set; }
 
@@ -40,6 +41,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+    public DbSet<ProviderRating> ProviderRatings { get; set; }
+    public DbSet<PayoutRecord> PayoutRecords { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<Refund> Refunds { get; set; }
     public DbSet<Wallet> Wallets { get; set; }

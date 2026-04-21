@@ -3,7 +3,8 @@ using VTOS.Domain.Common;
 namespace VTOS.Domain.Entities;
 
 /// <summary>
-/// One line item in a Contract — an outfit with negotiated price + quantity range.
+/// One line item in a Contract — an outfit sample attached to the supplier agreement.
+/// Legacy pricing and quantity fields are retained for backward compatibility only.
 /// </summary>
 public class ContractItem : BaseEntity
 {

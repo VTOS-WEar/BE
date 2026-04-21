@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Features.Public.Queries;
+using VTOS.Application.Features.Providers.DTOs;
+using VTOS.Application.Features.Providers.Queries;
 
 namespace VTOS.API.Controllers;
 
@@ -26,6 +28,8 @@ public class PublicController : ControllerBase
     private readonly GetAllSchoolSemesterCatalogsQueryHandler _getAllSchoolSemesterCatalogsHandler;
     private readonly GetProvidersForPublicationOutfitQueryHandler _getProvidersForPublicationOutfitHandler;
     private readonly GetProviderPublicProfileQueryHandler _getProviderPublicProfileHandler;
+    private readonly IGetProviderRatingsQueryHandler _getProviderRatingsHandler;
+    private readonly IGetProviderRankingQueryHandler _getProviderRankingHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
@@ -39,7 +43,9 @@ public class PublicController : ControllerBase
         GetSchoolSemesterCatalogQueryHandler getSchoolSemesterCatalogHandler,
         GetAllSchoolSemesterCatalogsQueryHandler getAllSchoolSemesterCatalogsHandler,
         GetProvidersForPublicationOutfitQueryHandler getProvidersForPublicationOutfitHandler,
-        GetProviderPublicProfileQueryHandler getProviderPublicProfileHandler)
+        GetProviderPublicProfileQueryHandler getProviderPublicProfileHandler,
+        IGetProviderRatingsQueryHandler getProviderRatingsHandler,
+        IGetProviderRankingQueryHandler getProviderRankingHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
@@ -53,6 +59,8 @@ public class PublicController : ControllerBase
         _getAllSchoolSemesterCatalogsHandler = getAllSchoolSemesterCatalogsHandler;
         _getProvidersForPublicationOutfitHandler = getProvidersForPublicationOutfitHandler;
         _getProviderPublicProfileHandler = getProviderPublicProfileHandler;
+        _getProviderRatingsHandler = getProviderRatingsHandler;
+        _getProviderRankingHandler = getProviderRankingHandler;
     }
 
     /// <summary>
@@ -244,6 +252,25 @@ public class PublicController : ControllerBase
         var result = await _getProviderPublicProfileHandler.HandleAsync(new GetProviderPublicProfileQuery(providerId), ct);
         if (result == null)
             return NotFound(new { message = "Provider not found" });
+        return Ok(result);
+    }
+
+    [HttpGet("providers/{providerId:guid}/ratings")]
+    [ProducesResponseType(typeof(ProviderRatingsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProviderRatings(Guid providerId, CancellationToken ct = default)
+    {
+        var result = await _getProviderRatingsHandler.HandleAsync(new GetProviderRatingsQuery(providerId), ct);
+        if (result == null)
+            return NotFound(new { message = "Provider not found" });
+        return Ok(result);
+    }
+
+    [HttpGet("schools/{schoolId:guid}/provider-ranking")]
+    [ProducesResponseType(typeof(ProviderRankingResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProviderRanking(Guid schoolId, CancellationToken ct = default)
+    {
+        var result = await _getProviderRankingHandler.HandleAsync(new GetProviderRankingQuery(schoolId), ct);
         return Ok(result);
     }
 }

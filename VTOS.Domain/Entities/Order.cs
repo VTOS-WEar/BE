@@ -29,5 +29,6 @@ public class Order : AuditableEntity
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+    public ICollection<ProviderRating> ProviderRatings { get; set; } = new List<ProviderRating>();
 }
 

@@ -116,7 +116,10 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
         if (provider == null)
             return Result<ContractDto>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
-        var outfitIds = req.Items.Select(i => i.OutfitId).ToList();
+        if (req.Items == null || req.Items.Count == 0)
+            return Result<ContractDto>.Failure("At least one outfit sample is required.", "ITEMS_REQUIRED");
+
+        var outfitIds = req.Items.Select(i => i.OutfitId).Distinct().ToList();
         var schoolOutfits = await _context.Outfits
             .Where(o => outfitIds.Contains(o.Id) && o.SchoolID == schoolId && !o.IsDeleted)
             .Select(o => o.Id).ToListAsync(ct);
@@ -147,18 +150,6 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
             }
         }
 
-        foreach (var item in req.Items)
-        {
-            if (item.MinQuantity < 0 || item.MaxQuantity < item.MinQuantity)
-                return Result<ContractDto>.Failure(
-                    $"Invalid quantity range for outfit {item.OutfitId}: min={item.MinQuantity}, max={item.MaxQuantity}",
-                    "INVALID_QUANTITY");
-            if (item.PricePerUnit <= 0)
-                return Result<ContractDto>.Failure(
-                    $"Price per unit must be positive for outfit {item.OutfitId}",
-                    "INVALID_PRICE");
-        }
-
         var contractId = Guid.NewGuid();
         var contract = new Contract
         {
@@ -172,16 +163,18 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
             ExpiresAt = req.ExpiresAt,
         };
 
-        foreach (var item in req.Items)
+        foreach (var outfitId in outfitIds)
         {
             contract.ContractItems.Add(new ContractItem
             {
                 Id = Guid.NewGuid(),
                 ContractID = contract.Id,
-                OutfitID = item.OutfitId,
-                PricePerUnit = item.PricePerUnit,
-                MinQuantity = item.MinQuantity,
-                MaxQuantity = item.MaxQuantity,
+                OutfitID = outfitId,
+                // Legacy fields kept as neutral values while the new supplier-agreement
+                // flow stops negotiating price/quantity at contract time.
+                PricePerUnit = 0,
+                MinQuantity = 0,
+                MaxQuantity = 0,
             });
         }
 

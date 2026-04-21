@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Queries;
 
@@ -189,6 +190,9 @@ public class GetTeacherClassesOverviewQueryHandler : IGetTeacherClassesOverviewQ
                 StudentCount = cg.Students.Count(s => !s.IsDeleted),
                 MeasurementReadyCount = cg.Students.Count(s => !s.IsDeleted && s.HeightCm > 0 && s.WeightKg > 0),
                 ParentLinkedCount = cg.Students.Count(s => !s.IsDeleted && s.ParentUserID != null),
+                OrderedStudentCount = cg.Students.Count(s =>
+                    !s.IsDeleted &&
+                    s.Orders.Any(o => o.ProviderID != null && o.SemesterPublicationID != null && o.OrderStatus != OrderStatus.Cancelled)),
             })
             .OrderBy(cg => cg.AcademicYear)
             .ThenBy(cg => cg.ClassName)

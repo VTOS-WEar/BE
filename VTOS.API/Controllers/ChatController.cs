@@ -51,7 +51,7 @@ public class ChatController : ControllerBase
         CancellationToken ct = default)
     {
         if (!Enum.TryParse<ChatChannelType>(channelType, true, out var channelEnum))
-            return BadRequest(new { error = "Invalid channel type. Use 'complaint' or 'contract'.", code = "INVALID_CHANNEL_TYPE" });
+            return BadRequest(new { error = "Invalid channel type. Use 'supportticket', 'contract', or 'classgroup'.", code = "INVALID_CHANNEL_TYPE" });
 
         var result = await _getMessagesHandler.HandleAsync(
             new GetChatMessagesQuery(_currentUser.UserId, channelEnum, channelId, page, pageSize), ct);
@@ -71,7 +71,7 @@ public class ChatController : ControllerBase
         CancellationToken ct = default)
     {
         if (!Enum.TryParse<ChatChannelType>(channelType, true, out var channelEnum))
-            return BadRequest(new { error = "Invalid channel type. Use 'complaint' or 'contract'.", code = "INVALID_CHANNEL_TYPE" });
+            return BadRequest(new { error = "Invalid channel type. Use 'supportticket', 'contract', or 'classgroup'.", code = "INVALID_CHANNEL_TYPE" });
 
         var result = await _sendMessageHandler.HandleAsync(
             new SendChatMessageCommand(_currentUser.UserId, channelEnum, channelId, request.Content), ct);

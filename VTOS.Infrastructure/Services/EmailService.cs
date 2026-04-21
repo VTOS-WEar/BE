@@ -25,6 +25,7 @@ public class EmailService : IEmailService
         message.To.Add(MailboxAddress.Parse(toEmail));
         message.Subject = "VTOS - Email Verification Code";
 
+
         var bodyBuilder = new BodyBuilder
         {
             HtmlBody = $@"
@@ -190,6 +191,11 @@ public class EmailService : IEmailService
         message.Subject = "VTOS - Your Account Has Been Created";
 
         var roleDisplay = roleName == "School" ? "Trường học" : "Nhà cung cấp";
+
+        if (roleName == "HomeroomTeacher")
+        {
+            roleDisplay = "Nhà cung cấp";
+        }
 
         var bodyBuilder = new BodyBuilder
         {

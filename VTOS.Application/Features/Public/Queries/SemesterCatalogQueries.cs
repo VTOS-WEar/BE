@@ -92,9 +92,9 @@ public class GetSchoolSemesterCatalogQueryHandler
                             ProviderName = p.Provider.ProviderName,
                             ContactEmail = p.Provider.Email,
                             Price = contractPrice ?? x.Outfit.Price,
-                            AverageRating = 0,
-                            TotalRatings = 0,
-                            TotalCompletedOrders = 0
+                            AverageRating = p.Provider.AverageRating,
+                            TotalRatings = p.Provider.TotalRatings,
+                            TotalCompletedOrders = p.Provider.TotalCompletedOrders
                         };
                     })
                     .OrderBy(p => p.Price)
@@ -216,9 +216,9 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                                 ProviderName = p.Provider.ProviderName,
                                 ContactEmail = p.Provider.Email,
                                 Price = contractPrice ?? x.Outfit.Price,
-                                AverageRating = 0,
-                                TotalRatings = 0,
-                                TotalCompletedOrders = 0
+                                AverageRating = p.Provider.AverageRating,
+                                TotalRatings = p.Provider.TotalRatings,
+                                TotalCompletedOrders = p.Provider.TotalCompletedOrders
                             };
                         })
                         .OrderBy(p => p.Price)
@@ -316,9 +316,9 @@ public class GetProvidersForPublicationOutfitQueryHandler
                     ProviderName = p.Provider.ProviderName,
                     ContactEmail = p.Provider.Email,
                     Price = contractPrice ?? outfit.Price,
-                    AverageRating = 0,
-                    TotalRatings = 0,
-                    TotalCompletedOrders = 0
+                    AverageRating = p.Provider.AverageRating,
+                    TotalRatings = p.Provider.TotalRatings,
+                    TotalCompletedOrders = p.Provider.TotalCompletedOrders
                 };
             })
             .OrderBy(x => x.Price)
@@ -349,9 +349,9 @@ public class GetProviderPublicProfileQueryHandler
                 Phone = p.Phone,
                 Email = p.Email,
                 Address = p.Address,
-                AverageRating = 0,
-                TotalRatings = 0,
-                TotalCompletedOrders = 0
+                AverageRating = p.AverageRating,
+                TotalRatings = p.TotalRatings,
+                TotalCompletedOrders = p.TotalCompletedOrders
             })
             .FirstOrDefaultAsync(ct);
     }

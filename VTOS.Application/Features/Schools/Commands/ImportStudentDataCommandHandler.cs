@@ -47,11 +47,13 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
         var schoolId = schoolMgr.SchoolID;
         var academicYear = GetCurrentAcademicYear();
 
-        var teacherRole = await _db.Roles
+        var teacherRoleId = await _db.Roles
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.RoleName == "HomeroomTeacher", ct);
+            .Where(r => r.RoleName == "HomeroomTeacher")
+            .Select(r => (Guid?)r.Id)
+            .FirstOrDefaultAsync(ct);
 
-        if (teacherRole == null)
+        if (!teacherRoleId.HasValue)
             return Result<ImportStudentResultDto>.Failure("HomeroomTeacher role is missing.", "ROLE_NOT_FOUND");
 
         var existingChildren = await _db.ChildProfiles
@@ -259,13 +261,12 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                             PasswordHash = _passwordHasher.HashPassword(tempPassword),
                             Phone = null,
                             Avatar = string.Empty,
-                            RoleID = teacherRole.Id,
+                            RoleID = teacherRoleId.Value,
                             IsActive = true,
                             IsDeleted = false,
                             AuthProvider = "Local",
                             CreatedAt = DateTime.UtcNow
                         };
-                        teacher.Role = teacherRole;
 
                         newTeacherUsers.Add(teacher);
                         teacherUsersByEmail[homeroomTeacherEmail] = teacher;

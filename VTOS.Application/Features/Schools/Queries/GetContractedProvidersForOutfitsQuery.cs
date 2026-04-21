@@ -7,7 +7,7 @@ namespace VTOS.Application.Features.Schools.Queries;
 // ── DTOs ──
 
 /// <summary>
-/// A provider available for a specific outfit via an Approved Contract.
+/// A provider available for a specific outfit via an active supplier agreement.
 /// </summary>
 public record ContractedProviderDto(
     Guid ProviderId,
@@ -38,7 +38,7 @@ public interface IGetContractedProvidersForOutfitsQueryHandler
 // ── Handler ──
 
 /// <summary>
-/// Returns ALL approved-contracted providers grouped by outfit for the school.
+/// Returns all usable contracted providers grouped by outfit for the school.
 /// The FE will filter by selected outfits client-side.
 /// This avoids a complex query-string parameter and is simpler for a small dataset.
 /// </summary>
@@ -61,10 +61,10 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
 
         var schoolId = schoolMgr.SchoolID;
 
-        // 2. Lazy expiration — auto-expire Approved contracts past ExpiresAt
+        // 2. Lazy expiration — auto-expire active contracts past ExpiresAt
         var expiredContracts = await _db.Contracts
             .Where(c => c.SchoolID == schoolId
-                     && c.Status == "Approved"
+                     && c.Status == "Active"
                      && c.ExpiresAt <= DateTime.UtcNow)
             .ToListAsync(ct);
 
@@ -75,11 +75,14 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
             await _db.SaveChangesAsync(ct);
         }
 
-        // 3. Query Approved + not expired contracts with their items
+        // 3. Query active + not expired contracts with their items.
+        // Legacy campaign creation still expects a price field, so fall back to
+        // the outfit retail price when new supplier-agreement contracts carry zeroed legacy values.
         var contractData = await _db.Contracts.AsNoTracking()
-            .Where(c => c.SchoolID == schoolId && c.Status == "Approved")
+            .Where(c => c.SchoolID == schoolId && (c.Status == "Active" || c.Status == "InUse"))
             .Include(c => c.Provider)
             .Include(c => c.ContractItems)
+                .ThenInclude(ci => ci.Outfit)
             .SelectMany(c => c.ContractItems.Select(ci => new
             {
                 OutfitId = ci.OutfitID.ToString(),
@@ -87,7 +90,7 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
                 ProviderName = c.Provider.ProviderName,
                 ContractId = c.Id,
                 ContractName = c.ContractName,
-                PricePerUnit = ci.PricePerUnit,
+                PricePerUnit = ci.PricePerUnit > 0 ? ci.PricePerUnit : ci.Outfit.Price,
             }))
             .ToListAsync(ct);
 

@@ -1123,13 +1123,35 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecipientName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("RecipientPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("SemesterPublicationID")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ShippingCompany")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -1142,6 +1164,10 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasIndex("CampaignID");
 
                     b.HasIndex("ChildProfileID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("SemesterPublicationID");
 
                     b.ToTable("Order", (string)null);
                 });
@@ -1227,6 +1253,9 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("MainImageURL")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MaterialType")
+                        .HasColumnType("text");
 
                     b.Property<string>("OutfitName")
                         .IsRequired()
@@ -1425,6 +1454,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("EscrowStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("GatewayType")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1436,6 +1469,9 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("PaymentLinkId")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("PayoutRecordID")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("TransactionLog")
                         .HasMaxLength(2000)
@@ -1467,9 +1503,57 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.HasIndex("OrderID");
 
+                    b.HasIndex("PayoutRecordID");
+
                     b.HasIndex("WalletID");
 
                     b.ToTable("PaymentTransaction", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.PayoutRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("PayoutRecordID");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("OrderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayoutMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderID")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderID");
+
+                    b.ToTable("PayoutRecord", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProductVariant", b =>
@@ -1622,6 +1706,11 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<decimal>("AverageRating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(4,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("ContactPersonName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -1657,6 +1746,16 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("TaxCode")
                         .HasColumnType("text");
+
+                    b.Property<int>("TotalCompletedOrders")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TotalRatings")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("VerificationDocumentUrl")
                         .HasMaxLength(500)
@@ -1701,6 +1800,53 @@ namespace VTOS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ProviderManager", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("ProviderRatingID");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ParentUserID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentUserID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("OrderID", "ParentUserID")
+                        .IsUnique();
+
+                    b.ToTable("ProviderRating", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Refund", b =>
@@ -2848,9 +2994,23 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany("Orders")
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("VTOS.Domain.Entities.SemesterPublication", "SemesterPublication")
+                        .WithMany("Orders")
+                        .HasForeignKey("SemesterPublicationID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Campaign");
 
                     b.Navigation("ChildProfile");
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("SemesterPublication");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.OrderItem", b =>
@@ -2957,6 +3117,11 @@ namespace VTOS.Infrastructure.Migrations
                         .HasForeignKey("OrderID")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("VTOS.Domain.Entities.PayoutRecord", "PayoutRecord")
+                        .WithMany("PaymentTransactions")
+                        .HasForeignKey("PayoutRecordID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("VTOS.Domain.Entities.Wallet", "Wallet")
                         .WithMany("PaymentTransactions")
                         .HasForeignKey("WalletID")
@@ -2964,7 +3129,28 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("Order");
 
+                    b.Navigation("PayoutRecord");
+
                     b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.PayoutRecord", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Provider");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProductVariant", b =>
@@ -3042,6 +3228,33 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Provider");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderRating", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.Order", "Order")
+                        .WithMany("ProviderRatings")
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.User", "ParentUser")
+                        .WithMany("ProviderRatings")
+                        .HasForeignKey("ParentUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany("ProviderRatings")
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ParentUser");
+
+                    b.Navigation("Provider");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Refund", b =>
@@ -3308,6 +3521,8 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("PaymentTransactions");
+
+                    b.Navigation("ProviderRatings");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.OrderItem", b =>
@@ -3335,6 +3550,11 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Refunds");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.PayoutRecord", b =>
+                {
+                    b.Navigation("PaymentTransactions");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.ProductVariant", b =>
                 {
                     b.Navigation("Feedbacks");
@@ -3359,7 +3579,11 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("Contracts");
 
+                    b.Navigation("Orders");
+
                     b.Navigation("ProductionBatches");
+
+                    b.Navigation("ProviderRatings");
 
                     b.Navigation("SemesterPublicationProviders");
                 });
@@ -3388,6 +3612,8 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublication", b =>
                 {
+                    b.Navigation("Orders");
+
                     b.Navigation("Outfits");
 
                     b.Navigation("Providers");
@@ -3425,6 +3651,8 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("ParentProfile");
 
                     b.Navigation("ProviderManager");
+
+                    b.Navigation("ProviderRatings");
 
                     b.Navigation("SchoolManager");
 

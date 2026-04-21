@@ -74,7 +74,17 @@ public class MyDirectOrderDetailDto
     public string? TrackingCode { get; set; }
     public string? ShippingCompany { get; set; }
     public string? PaymentStatusName { get; set; }
+    public bool CanRateProvider { get; set; }
+    public ExistingProviderRatingDto? ExistingProviderRating { get; set; }
     public List<MyDirectOrderDetailItemDto> Items { get; set; } = new();
+}
+
+public class ExistingProviderRatingDto
+{
+    public Guid ProviderRatingId { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public class MyDirectOrderDetailItemDto

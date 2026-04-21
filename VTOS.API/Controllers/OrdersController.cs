@@ -5,6 +5,8 @@ using VTOS.Application.Common;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.DTOs;
 using VTOS.Application.Features.Orders.Queries;
+using VTOS.Application.Features.Providers.Commands;
+using VTOS.Application.Features.Providers.DTOs;
 
 namespace VTOS.API.Controllers;
 
@@ -25,6 +27,8 @@ public class OrdersController : ControllerBase
     private readonly IGetMyDirectOrdersQueryHandler _getMyDirectOrdersQueryHandler;
     private readonly IGetMyDirectOrderDetailQueryHandler _getMyDirectOrderDetailQueryHandler;
     private readonly ICancelDirectOrderCommandHandler _cancelDirectOrderCommandHandler;
+    private readonly IConfirmDirectOrderDeliveryCommandHandler _confirmDirectOrderDeliveryCommandHandler;
+    private readonly ISubmitProviderRatingCommandHandler _submitProviderRatingCommandHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
@@ -40,6 +44,8 @@ public class OrdersController : ControllerBase
         IGetMyDirectOrdersQueryHandler getMyDirectOrdersQueryHandler,
         IGetMyDirectOrderDetailQueryHandler getMyDirectOrderDetailQueryHandler,
         ICancelDirectOrderCommandHandler cancelDirectOrderCommandHandler,
+        IConfirmDirectOrderDeliveryCommandHandler confirmDirectOrderDeliveryCommandHandler,
+        ISubmitProviderRatingCommandHandler submitProviderRatingCommandHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
@@ -54,6 +60,8 @@ public class OrdersController : ControllerBase
         _getMyDirectOrdersQueryHandler = getMyDirectOrdersQueryHandler;
         _getMyDirectOrderDetailQueryHandler = getMyDirectOrderDetailQueryHandler;
         _cancelDirectOrderCommandHandler = cancelDirectOrderCommandHandler;
+        _confirmDirectOrderDeliveryCommandHandler = confirmDirectOrderDeliveryCommandHandler;
+        _submitProviderRatingCommandHandler = submitProviderRatingCommandHandler;
         _logger = logger;
     }
 
@@ -472,4 +480,41 @@ public class OrdersController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPut("{orderId:guid}/confirm-delivery")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmDirectOrderDelivery(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var result = await _confirmDirectOrderDeliveryCommandHandler.HandleAsync(
+            new ConfirmDirectOrderDeliveryCommand(_currentUserService.UserId, orderId),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return result.ErrorCode == "ORDER_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpPost("{orderId:guid}/rate-provider")]
+    [ProducesResponseType(typeof(Result<SubmitProviderRatingResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RateProvider(Guid orderId, [FromBody] SubmitProviderRatingRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _submitProviderRatingCommandHandler.HandleAsync(
+            new SubmitProviderRatingCommand(_currentUserService.UserId, orderId, request.Rating, request.Comment),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return result.ErrorCode == "ORDER_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+
+        return Ok(result);
+    }
+}
+
+public class SubmitProviderRatingRequest
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
 }
