@@ -246,7 +246,7 @@ This document tracks all tasks for the VTOS (Virtual Try-On System) backend impl
 - ✅ PublicController (GetSchools, GetCategories, GetOutfitDetail)
 - ✅ UserController (GetProfile, UpdateProfile, UpdateAvatar, SubmitVerification)
 - ✅ ChildrenController (GetMyChildren, GetChild, UpdateChild)
-- ✅ SchoolsController (Profile, ImportStudents, PublishCampaign, Orders, CampaignProgress, Reports, Outfits CRUD, UC 3.9 Pre-Order & Production — 17 endpoints)
+- ✅ SchoolsController (Profile, ImportStudents, PublishCampaign, CampaignProgress, Reports, Outfits CRUD, UC 3.9 Pre-Order & Production)
 - ✅ TryOnController (GuestTryOn)
 - ✅ AdminController (GetUsers, GetFeedbacks, ApproveUser, SuspendUser, RemoveFeedback)
 - ✅ OrdersController (Checkout, CancelOrder, TrackOrderStatus, OrderHistory)
@@ -307,3 +307,4 @@ This document tracks all tasks for the VTOS (Virtual Try-On System) backend impl
 | Phase 5: Testing | 0 | 5 | 0% |
 | Phase 6: Deployment | 2 | 8 | 25% |
 | **Total** | **~95** | **~170** | **~56%** |
+
