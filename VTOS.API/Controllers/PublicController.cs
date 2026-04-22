@@ -21,7 +21,6 @@ public class PublicController : ControllerBase
     private readonly GetOutfitDetailQueryHandler _getOutfitDetailHandler;
     private readonly GetSchoolDetailQueryHandler _getSchoolDetailHandler;
     private readonly GetUniformListQueryHandler _getUniformListHandler;
-    private readonly GetPublicCampaignDetailQueryHandler _getPublicCampaignDetailHandler;
     private readonly PublicSearchQueryHandler _publicSearchHandler;
     private readonly GetUniformWarehouseQueryHandler _getUniformWarehouseHandler;
     private readonly GetSchoolSemesterCatalogQueryHandler _getSchoolSemesterCatalogHandler;
@@ -37,7 +36,6 @@ public class PublicController : ControllerBase
         GetOutfitDetailQueryHandler getOutfitDetailHandler,
         GetSchoolDetailQueryHandler getSchoolDetailHandler,
         GetUniformListQueryHandler getUniformListHandler,
-        GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler,
         PublicSearchQueryHandler publicSearchHandler,
         GetUniformWarehouseQueryHandler getUniformWarehouseHandler,
         GetSchoolSemesterCatalogQueryHandler getSchoolSemesterCatalogHandler,
@@ -52,7 +50,6 @@ public class PublicController : ControllerBase
         _getOutfitDetailHandler = getOutfitDetailHandler;
         _getSchoolDetailHandler = getSchoolDetailHandler;
         _getUniformListHandler = getUniformListHandler;
-        _getPublicCampaignDetailHandler = getPublicCampaignDetailHandler;
         _publicSearchHandler = publicSearchHandler;
         _getUniformWarehouseHandler = getUniformWarehouseHandler;
         _getSchoolSemesterCatalogHandler = getSchoolSemesterCatalogHandler;
@@ -179,25 +176,6 @@ public class PublicController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Get campaign detail with outfits (for Parent role).
-    /// GET /api/public/campaigns/{campaignId}
-    /// </summary>
-    [HttpGet("campaigns/{campaignId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetPublicCampaignDetail(
-        Guid campaignId,
-        CancellationToken ct = default)
-    {
-        var query = new GetPublicCampaignDetailQuery(campaignId);
-        var result = await _getPublicCampaignDetailHandler.HandleAsync(query, ct);
-
-        if (result == null)
-            return NotFound(new { message = "Campaign not found" });
-
-        return Ok(result);
-    }
     /// <summary>
     /// Get summary data for the Uniform Warehouse page.
     /// Includes active campaigns, featured outfits, and all available outfits.

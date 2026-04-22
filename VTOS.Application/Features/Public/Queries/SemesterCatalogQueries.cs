@@ -91,7 +91,7 @@ public class GetSchoolSemesterCatalogQueryHandler
                             ProviderId = p.ProviderID,
                             ProviderName = p.Provider.ProviderName,
                             ContactEmail = p.Provider.Email,
-                            Price = contractPrice ?? x.Outfit.Price,
+                            Price = contractPrice ?? 0,
                             AverageRating = p.Provider.AverageRating,
                             TotalRatings = p.Provider.TotalRatings,
                             TotalCompletedOrders = p.Provider.TotalCompletedOrders
@@ -107,7 +107,7 @@ public class GetSchoolSemesterCatalogQueryHandler
                     OutfitName = x.Outfit.OutfitName,
                     Description = x.Outfit.Description,
                     MainImageUrl = x.Outfit.MainImageURL,
-                    Price = x.Outfit.Price,
+                    Price = providers.Select(p => p.Price).Where(price => price > 0).DefaultIfEmpty(0).Min(),
                     OutfitType = x.Outfit.OutfitType.ToString(),
                     Sizes = sizes,
                     Providers = providers
@@ -215,7 +215,7 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                                 ProviderId = p.ProviderID,
                                 ProviderName = p.Provider.ProviderName,
                                 ContactEmail = p.Provider.Email,
-                                Price = contractPrice ?? x.Outfit.Price,
+                                Price = contractPrice ?? 0,
                                 AverageRating = p.Provider.AverageRating,
                                 TotalRatings = p.Provider.TotalRatings,
                                 TotalCompletedOrders = p.Provider.TotalCompletedOrders
@@ -231,7 +231,7 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                         OutfitName = x.Outfit.OutfitName,
                         Description = x.Outfit.Description,
                         MainImageUrl = x.Outfit.MainImageURL,
-                        Price = x.Outfit.Price,
+                        Price = providers.Select(p => p.Price).Where(price => price > 0).DefaultIfEmpty(0).Min(),
                         OutfitType = x.Outfit.OutfitType.ToString(),
                         Sizes = sizes,
                         Providers = providers
@@ -315,7 +315,7 @@ public class GetProvidersForPublicationOutfitQueryHandler
                     ProviderId = p.ProviderID,
                     ProviderName = p.Provider.ProviderName,
                     ContactEmail = p.Provider.Email,
-                    Price = contractPrice ?? outfit.Price,
+                    Price = contractPrice ?? 0,
                     AverageRating = p.Provider.AverageRating,
                     TotalRatings = p.Provider.TotalRatings,
                     TotalCompletedOrders = p.Provider.TotalCompletedOrders
