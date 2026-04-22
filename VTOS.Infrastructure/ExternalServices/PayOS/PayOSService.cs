@@ -55,15 +55,16 @@ public partial class PayOSService : IPayOSService
             var signature = CreatePaymentSignature(
                 input.Amount,
                 input.CancelUrl,
-                string.IsNullOrWhiteSpace(input.Description) ? $"Payment for order #{orderCode}" : input.Description,
+                $"Payment for order #{orderCode}",
                 orderCode,
                 input.ReturnUrl);
+
 
             var payload = new
             {
                 orderCode = orderCode,
                 amount = input.Amount,
-                description = string.IsNullOrWhiteSpace(input.Description) ? $"Payment for order #{orderCode}" : input.Description,
+                description = $"Payment for order #{orderCode}",
                 returnUrl = input.ReturnUrl,
                 cancelUrl = input.CancelUrl,
                 signature = signature
@@ -87,7 +88,6 @@ public partial class PayOSService : IPayOSService
 
 
             _logger.LogInformation("Payment link created successfully. Order Code: {OrderCode}", orderCode);
-            
             return new CreatePaymentLinkResponse
             {
                 CheckoutUrl = result?.Data?.CheckoutUrl ?? string.Empty,

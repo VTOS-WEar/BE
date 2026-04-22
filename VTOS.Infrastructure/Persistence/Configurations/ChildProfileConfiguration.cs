@@ -42,6 +42,9 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
 
         builder.Property(cp => cp.SchoolID);
 
+        builder.Property(cp => cp.ClassGroupID)
+            .IsRequired(false);
+
         builder.Property(cp => cp.IsDeleted)
             .IsRequired();
 
@@ -58,5 +61,11 @@ public class ChildProfileConfiguration : IEntityTypeConfiguration<ChildProfile>
             .WithMany(s => s.ChildProfiles)
             .HasForeignKey(cp => cp.SchoolID)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(cp => cp.ClassGroup)
+            .WithMany(cg => cg.Students)
+            .HasForeignKey(cp => cp.ClassGroupID)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

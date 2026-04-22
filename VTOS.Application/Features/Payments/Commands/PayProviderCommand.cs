@@ -5,8 +5,6 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Payments.Commands;
 
-// ── PayProviderCommand ──────────────────────────────────────────────
-// School pays Provider from wallet for a delivered order
 public record PayProviderCommand(Guid UserId, Guid OrderId);
 
 public record PayProviderResponse(Guid PaymentId, decimal Amount, string ProviderName);
@@ -19,25 +17,24 @@ public interface IPayProviderCommandHandler
 public class PayProviderCommandHandler : IPayProviderCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly IProviderPayoutService _providerPayoutService;
 
-    public PayProviderCommandHandler(IApplicationDbContext db)
+    public PayProviderCommandHandler(IApplicationDbContext db, IProviderPayoutService providerPayoutService)
     {
         _db = db;
+        _providerPayoutService = providerPayoutService;
     }
 
     public async Task<Result<PayProviderResponse>> HandleAsync(PayProviderCommand command, CancellationToken ct = default)
     {
-        // 1. Verify school user
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
         if (user == null)
             return Result<PayProviderResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
         var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
-        // 2. Find Order and verify it's from this school
         var order = await _db.Orders
             .Include(o => o.ChildProfile)
-            .Include(o => o.OrderItems).ThenInclude(oi => oi.ProductVariant).ThenInclude(pv => pv.Outfit)
             .FirstOrDefaultAsync(o => o.Id == command.OrderId, ct);
 
         if (order == null)
@@ -48,53 +45,23 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
         if (child == null || child.SchoolID != schoolMgr?.SchoolID)
             return Result<PayProviderResponse>.Failure("Order does not belong to your school.", "ACCESS_DENIED");
 
-        if (order.OrderStatus != OrderStatus.Delivered && order.OrderStatus != OrderStatus.Shipped)
+        if (order.OrderStatus != OrderStatus.Delivered)
             return Result<PayProviderResponse>.Failure("Order must be delivered before paying provider.", "INVALID_STATUS");
 
-        if (order.IsProviderPaid)
-            return Result<PayProviderResponse>.Failure("Provider already paid for this order.", "ALREADY_PAID");
+        var payoutResult = await _providerPayoutService.ReleaseOrderPayoutAsync(
+            order.Id,
+            DateTime.UtcNow,
+            "Manual school-triggered provider payout.",
+            requireDisputeWindow: false,
+            ct);
 
-        // 3. Find wallet and check balance
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
-        if (wallet == null || wallet.Balance < order.TotalAmount)
-            return Result<PayProviderResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
-
-        // 4. Deduct from wallet + create payment record
-        var providerName = "Provider";
-        // Try to find provider from campaign outfits
-        if (order.CampaignID != null)
-        {
-            var campOutfit = await _db.CampaignOutfits
-                .Include(co => co.Provider)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(co => co.CampaignID == order.CampaignID, ct);
-            if (campOutfit?.Provider != null)
-                providerName = campOutfit.Provider.ProviderName;
-        }
-
-        wallet.Balance -= order.TotalAmount;
-        wallet.UpdatedAt = DateTime.UtcNow;
-
-        var payment = new Domain.Entities.PaymentTransaction
-        {
-            Id = Guid.NewGuid(),
-            OrderID = order.Id,
-            WalletID = wallet.Id,
-            TransactionType = TransactionType.ProviderPayment,
-            GatewayType = PaymentGatewayType.Other,
-            TransactionStatus = PaymentStatus.Completed,
-            Amount = order.TotalAmount,
-            TransactionTimestamp = DateTime.UtcNow,
-            Description = $"Thanh toán NCC: {providerName} - Đơn #{order.Id.ToString()[..8]}",
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.PaymentTransactions.Add(payment);
-
-        order.IsProviderPaid = true;
-
-        await _db.SaveChangesAsync(ct);
+        if (!payoutResult.IsSuccess)
+            return Result<PayProviderResponse>.Failure(payoutResult.Error!, payoutResult.ErrorCode);
 
         return Result<PayProviderResponse>.Success(
-            new PayProviderResponse(payment.Id, payment.Amount, providerName));
+            new PayProviderResponse(
+                payoutResult.Value.PayoutRecordId,
+                payoutResult.Value.Amount,
+                payoutResult.Value.ProviderName));
     }
 }

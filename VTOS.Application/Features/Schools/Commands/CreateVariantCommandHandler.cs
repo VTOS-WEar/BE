@@ -55,18 +55,18 @@ public class CreateVariantCommandHandler : ICreateVariantCommandHandler
         {
             Id = Guid.NewGuid(),
             OutfitID = command.OutfitId,
-            Size = command.Size,
+            Size = command.Size.Trim(),
             Price = outfit.Price, // Inherit price from Outfit
             StockQuantity = 0, // Managed by Provider later
-            ColorVariant = command.ColorVariant,
-            MaterialType = command.MaterialType,
-            SKUCode = command.SKUCode,
+            ColorVariant = string.IsNullOrWhiteSpace(command.ColorVariant) ? null : command.ColorVariant.Trim(),
+            MaterialType = string.IsNullOrWhiteSpace(command.MaterialType) ? null : command.MaterialType.Trim(),
+            SKUCode = string.IsNullOrWhiteSpace(command.SKUCode) ? null : command.SKUCode.Trim(),
             IsDeleted = false,
         };
 
         _db.ProductVariants.Add(variant);
 
-        var detail = await EnsureSizeChartDetailAsync(outfit, command.Size, ct);
+        var detail = await EnsureSizeChartDetailAsync(outfit, variant.Size, ct);
         var measurements = UpsertMeasurements(detail.Id, command.Measurements, null);
 
         int retries = 3;

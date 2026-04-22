@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
@@ -8,24 +9,27 @@ using VTOS.Domain.Entities;
 namespace VTOS.Application.Features.Schools.Commands;
 
 /// <summary>
-/// UC-43: Import student data from .xlsx or .csv.
-/// Design:
-///   1. Creates a Children record (ParentUserID = null — not linked to a parent yet)
-///   2. Creates a StudentDataImport log record with MatchedChildID pointing to the Children row
-/// Duplicate detection: load school's Children → HashSet(FullName+DOB) → O(1) per row
+/// UC-43: Import student data from .xlsx.
+/// Session 8 extends the flow with optional homeroom teacher provisioning and class-group creation.
 /// </summary>
 public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly IPasswordHasher _passwordHasher;
+    private readonly IEmailService _emailService;
 
-    public ImportStudentDataCommandHandler(IApplicationDbContext db)
+    public ImportStudentDataCommandHandler(
+        IApplicationDbContext db,
+        IPasswordHasher passwordHasher,
+        IEmailService emailService)
     {
         _db = db;
+        _passwordHasher = passwordHasher;
+        _emailService = emailService;
     }
 
     public async Task<Result<ImportStudentResultDto>> HandleAsync(ImportStudentDataCommand command, CancellationToken ct = default)
     {
-        // 1. Resolve school
         var user = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
@@ -33,11 +37,25 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
         if (user == null)
             return Result<ImportStudentResultDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
-        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        var schoolMgr = await _db.SchoolManagers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+
+        if (schoolMgr == null)
+            return Result<ImportStudentResultDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
         var schoolId = schoolMgr.SchoolID;
+        var academicYear = GetCurrentAcademicYear();
 
-        // 2. Load existing Children for this school → HashSet for O(1) duplicate check
+        var teacherRoleId = await _db.Roles
+            .AsNoTracking()
+            .Where(r => r.RoleName == "HomeroomTeacher")
+            .Select(r => (Guid?)r.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (!teacherRoleId.HasValue)
+            return Result<ImportStudentResultDto>.Failure("HomeroomTeacher role is missing.", "ROLE_NOT_FOUND");
+
         var existingChildren = await _db.ChildProfiles
             .AsNoTracking()
             .Where(c => c.SchoolID == schoolId && !c.IsDeleted)
@@ -48,13 +66,37 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
             .Select(c => MakeKey(c.FullName, c.DOB))
             .ToHashSet();
 
-        // 3. Process rows
-        var result = new ImportStudentResultDto();
-        var newChildren   = new List<ChildProfile>();
-        var newImports    = new List<StudentDataImport>();
-        var errors        = new List<ImportErrorDto>();
+        var teacherEmails = command.Rows
+            .Where(r => r.Length >= 7 && !string.IsNullOrWhiteSpace(r[6]))
+            .Select(r => NormalizeEmail(r[6]))
+            .Where(e => !string.IsNullOrWhiteSpace(e))
+            .Distinct()
+            .ToList();
 
-        int rowNumber = 1; // row 1 = header (excluded by caller)
+        var teacherUsersByEmail = await _db.Users
+            .Include(u => u.Role)
+            .Where(u => teacherEmails.Contains(u.Email.ToLower()))
+            .ToDictionaryAsync(u => u.Email.ToLower(), ct);
+
+        var classNames = command.Rows
+            .Where(r => r.Length >= 3 && !string.IsNullOrWhiteSpace(r[2]))
+            .Select(r => NormalizeClassName(r[2]))
+            .Distinct()
+            .ToList();
+
+        var classGroupsByKey = await _db.ClassGroups
+            .Where(cg => cg.SchoolID == schoolId && cg.AcademicYear == academicYear && classNames.Contains(cg.ClassName.ToUpper()))
+            .ToDictionaryAsync(cg => MakeClassKey(cg.ClassName, cg.AcademicYear), ct);
+
+        var result = new ImportStudentResultDto();
+        var newChildren = new List<ChildProfile>();
+        var newImports = new List<StudentDataImport>();
+        var newTeacherUsers = new List<User>();
+        var newClassGroups = new List<ClassGroup>();
+        var pendingTeacherEmails = new List<(string Email, string TempPassword)>();
+        var errors = new List<ImportErrorDto>();
+
+        int rowNumber = 1;
         foreach (var columns in command.Rows)
         {
             rowNumber++;
@@ -68,56 +110,112 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                     {
                         RowNumber = rowNumber,
                         StudentName = columns.Length > 0 ? columns[0] : null,
-                        ErrorMessage = $"Expected 5 columns, found {columns.Length}."
+                        ErrorMessage = $"Expected at least 5 columns, found {columns.Length}."
                     });
                     result.ErrorCount++;
                     continue;
                 }
 
-                var fullName    = columns[0].Trim();
-                var dobStr      = columns[1].Trim();
-                var grade       = columns[2].Trim();
-                var gender      = columns[3].Trim();
+                var fullName = columns[0].Trim();
+                var dobStr = columns[1].Trim();
+                var className = columns[2].Trim();
+                var gender = columns[3].Trim();
                 var parentPhone = columns[4].Trim();
+                var homeroomTeacherName = columns.Length >= 6 ? columns[5].Trim() : string.Empty;
+                var homeroomTeacherEmail = columns.Length >= 7 ? NormalizeEmail(columns[6]) : string.Empty;
 
-                // Validate FullName
                 if (string.IsNullOrWhiteSpace(fullName))
                 {
                     errors.Add(new ImportErrorDto { RowNumber = rowNumber, ErrorMessage = "Student Name is required." });
                     result.ErrorCount++;
                     continue;
                 }
+
                 if (fullName.Length > 255)
                 {
-                    errors.Add(new ImportErrorDto { RowNumber = rowNumber, StudentName = fullName[..50], ErrorMessage = "Student Name exceeds 255 characters." });
+                    errors.Add(new ImportErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        StudentName = fullName[..50],
+                        ErrorMessage = "Student Name exceeds 255 characters."
+                    });
                     result.ErrorCount++;
                     continue;
                 }
 
-                // Parse DOB
+                if (string.IsNullOrWhiteSpace(className))
+                {
+                    errors.Add(new ImportErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        StudentName = fullName,
+                        ErrorMessage = "Class is required."
+                    });
+                    result.ErrorCount++;
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(homeroomTeacherName) ^ !string.IsNullOrWhiteSpace(homeroomTeacherEmail))
+                {
+                    errors.Add(new ImportErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        StudentName = fullName,
+                        ErrorMessage = "Homeroom Teacher Name and Email must be provided together."
+                    });
+                    result.ErrorCount++;
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(homeroomTeacherEmail) &&
+                    !IsValidEmail(homeroomTeacherEmail))
+                {
+                    errors.Add(new ImportErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        StudentName = fullName,
+                        ErrorMessage = $"Invalid homeroom teacher email '{columns[6].Trim()}'."
+                    });
+                    result.ErrorCount++;
+                    continue;
+                }
+
                 DateTime? dob = null;
                 if (!string.IsNullOrWhiteSpace(dobStr))
                 {
-                    if (DateTime.TryParseExact(dobStr, new[] { "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy" },
-                        CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDob))
+                    if (DateTime.TryParseExact(
+                        dobStr,
+                        new[] { "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy" },
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out var parsedDob))
                     {
                         dob = DateTime.SpecifyKind(parsedDob, DateTimeKind.Utc);
                     }
                     else
                     {
-                        errors.Add(new ImportErrorDto { RowNumber = rowNumber, StudentName = fullName, ErrorMessage = $"Invalid DOB format '{dobStr}'. Expected dd/MM/yyyy." });
+                        errors.Add(new ImportErrorDto
+                        {
+                            RowNumber = rowNumber,
+                            StudentName = fullName,
+                            ErrorMessage = $"Invalid DOB format '{dobStr}'. Expected dd/MM/yyyy."
+                        });
                         result.ErrorCount++;
                         continue;
                     }
                 }
 
-                // Validate phone
                 if (!string.IsNullOrWhiteSpace(parentPhone))
                 {
                     parentPhone = parentPhone.Replace(" ", "").Replace("-", "");
                     if (parentPhone.Length < 10 || parentPhone.Length > 11 || !parentPhone.All(char.IsDigit))
                     {
-                        errors.Add(new ImportErrorDto { RowNumber = rowNumber, StudentName = fullName, ErrorMessage = $"Invalid phone number '{columns[4].Trim()}'. Expected 10-11 digits." });
+                        errors.Add(new ImportErrorDto
+                        {
+                            RowNumber = rowNumber,
+                            StudentName = fullName,
+                            ErrorMessage = $"Invalid phone number '{columns[4].Trim()}'. Expected 10-11 digits."
+                        });
                         result.ErrorCount++;
                         continue;
                     }
@@ -126,50 +224,129 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                 if (!string.IsNullOrWhiteSpace(gender) && gender.Length > 20)
                     gender = gender[..20];
 
-                // Duplicate check (existing DB + current batch)
                 var key = MakeKey(fullName, dob);
-                if (existingSet.Contains(key)) { result.SkippedCount++; continue; }
-                if (newChildren.Any(c => MakeKey(c.FullName, c.DOB) == key)) { result.SkippedCount++; continue; }
+                if (existingSet.Contains(key))
+                {
+                    result.SkippedCount++;
+                    continue;
+                }
 
-                // Calculate age from DOB
+                Guid? homeroomTeacherId = null;
+                if (!string.IsNullOrWhiteSpace(homeroomTeacherEmail))
+                {
+                    if (teacherUsersByEmail.TryGetValue(homeroomTeacherEmail, out var existingTeacher))
+                    {
+                        if (!string.Equals(existingTeacher.Role.RoleName, "HomeroomTeacher", StringComparison.OrdinalIgnoreCase))
+                        {
+                            errors.Add(new ImportErrorDto
+                            {
+                                RowNumber = rowNumber,
+                                StudentName = fullName,
+                                ErrorMessage = $"Email '{columns[6].Trim()}' is already used by another role."
+                            });
+                            result.ErrorCount++;
+                            continue;
+                        }
+
+                        homeroomTeacherId = existingTeacher.Id;
+                    }
+                    else
+                    {
+                        var tempPassword = GenerateTempPassword();
+                        var teacher = new User
+                        {
+                            Id = Guid.NewGuid(),
+                            FullName = homeroomTeacherName,
+                            Email = homeroomTeacherEmail,
+                            PasswordHash = _passwordHasher.HashPassword(tempPassword),
+                            Phone = null,
+                            Avatar = string.Empty,
+                            RoleID = teacherRoleId.Value,
+                            IsActive = true,
+                            IsDeleted = false,
+                            AuthProvider = "Local",
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        newTeacherUsers.Add(teacher);
+                        teacherUsersByEmail[homeroomTeacherEmail] = teacher;
+                        pendingTeacherEmails.Add((teacher.Email, tempPassword));
+                        homeroomTeacherId = teacher.Id;
+                    }
+                }
+
+                var normalizedClassName = NormalizeClassName(className);
+                var classKey = MakeClassKey(normalizedClassName, academicYear);
+                if (!classGroupsByKey.TryGetValue(classKey, out var classGroup))
+                {
+                    classGroup = new ClassGroup
+                    {
+                        Id = Guid.NewGuid(),
+                        SchoolID = schoolId,
+                        ClassName = normalizedClassName,
+                        Grade = ExtractGrade(normalizedClassName),
+                        AcademicYear = academicYear,
+                        HomeroomTeacherID = homeroomTeacherId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    newClassGroups.Add(classGroup);
+                    classGroupsByKey[classKey] = classGroup;
+                }
+                else if (homeroomTeacherId.HasValue)
+                {
+                    if (classGroup.HomeroomTeacherID.HasValue && classGroup.HomeroomTeacherID != homeroomTeacherId)
+                    {
+                        errors.Add(new ImportErrorDto
+                        {
+                            RowNumber = rowNumber,
+                            StudentName = fullName,
+                            ErrorMessage = $"Class '{normalizedClassName}' already maps to a different homeroom teacher."
+                        });
+                        result.ErrorCount++;
+                        continue;
+                    }
+
+                    classGroup.HomeroomTeacherID = homeroomTeacherId;
+                }
+
                 int age = dob.HasValue
                     ? DateTime.UtcNow.Year - dob.Value.Year - (DateTime.UtcNow.DayOfYear < dob.Value.DayOfYear ? 1 : 0)
                     : 0;
 
-                // Parse gender to enum (default Unknown)
                 var genderEnum = ParseGender(gender);
-
-                // --- Create Children record ---
                 var childId = Guid.NewGuid();
-                var child = new ChildProfile
+                newChildren.Add(new ChildProfile
                 {
-                    Id           = childId,
-                    SchoolID     = schoolId,
-                    ParentUserID = null,          // will be linked when Parent registers
-                    FullName     = fullName,
-                    DOB          = dob,
-                    Age          = age,
-                    Grade        = string.IsNullOrWhiteSpace(grade) ? string.Empty : grade,
-                    Gender       = genderEnum,
-                    Avatar       = string.Empty,
-                    IsDeleted    = false,
-                    ParentPhone  = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
-                };
-                newChildren.Add(child);
+                    Id = childId,
+                    SchoolID = schoolId,
+                    ClassGroupID = classGroup.Id,
+                    ParentUserID = null,
+                    FullName = fullName,
+                    DOB = dob,
+                    Age = age,
+                    Grade = normalizedClassName,
+                    Gender = genderEnum,
+                    Avatar = string.Empty,
+                    IsDeleted = false,
+                    ParentPhone = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
+                });
 
-                // --- Create StudentDataImport log record ---
                 newImports.Add(new StudentDataImport
                 {
-                    Id             = Guid.NewGuid(),
-                    SchoolID       = schoolId,
-                    FullName       = fullName,
-                    DateOfBirth    = dob,
-                    Class          = string.IsNullOrWhiteSpace(grade) ? null : grade,
-                    Gender         = string.IsNullOrWhiteSpace(gender) ? null : gender,
-                    ParentPhone    = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
-                    IsRegistered   = false,
+                    Id = Guid.NewGuid(),
+                    SchoolID = schoolId,
+                    FullName = fullName,
+                    DateOfBirth = dob,
+                    Class = normalizedClassName,
+                    Gender = string.IsNullOrWhiteSpace(gender) ? null : gender,
+                    ParentPhone = string.IsNullOrWhiteSpace(parentPhone) ? null : parentPhone,
+                    HomeroomTeacherName = string.IsNullOrWhiteSpace(homeroomTeacherName) ? null : homeroomTeacherName,
+                    HomeroomTeacherEmail = string.IsNullOrWhiteSpace(homeroomTeacherEmail) ? null : homeroomTeacherEmail,
+                    IsRegistered = false,
                     MatchedChildID = childId,
-                    CreatedAt      = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                 });
 
                 existingSet.Add(key);
@@ -177,19 +354,27 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
             }
             catch (Exception ex)
             {
-                errors.Add(new ImportErrorDto { RowNumber = rowNumber, ErrorMessage = $"Unexpected error: {ex.Message}" });
+                errors.Add(new ImportErrorDto
+                {
+                    RowNumber = rowNumber,
+                    ErrorMessage = $"Unexpected error: {ex.Message}"
+                });
                 result.ErrorCount++;
             }
         }
 
-        // 4. Batch insert both tables atomically
+        if (newTeacherUsers.Count > 0)
+            _db.Users.AddRange(newTeacherUsers);
+
+        if (newClassGroups.Count > 0)
+            _db.ClassGroups.AddRange(newClassGroups);
+
         if (newChildren.Count > 0)
         {
             _db.ChildProfiles.AddRange(newChildren);
             _db.StudentDataImports.AddRange(newImports);
         }
 
-        // 5. Create ImportBatch record to track this import session
         var batch = new ImportBatch
         {
             Id = Guid.NewGuid(),
@@ -205,6 +390,18 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
 
         await _db.SaveChangesAsync(ct);
 
+        foreach (var (email, tempPassword) in pendingTeacherEmails)
+        {
+            try
+            {
+                await _emailService.SendAccountCredentialsEmailAsync(email, tempPassword, "HomeroomTeacher", ct);
+            }
+            catch
+            {
+                // Import should not fail if email delivery is unavailable.
+            }
+        }
+
         result.Errors = errors;
         return Result<ImportStudentResultDto>.Success(result);
     }
@@ -212,14 +409,52 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
     private static string MakeKey(string? name, DateTime? dob)
         => $"{name?.Trim().ToLowerInvariant()}|{dob:yyyy-MM-dd}";
 
+    private static string MakeClassKey(string className, string academicYear)
+        => $"{NormalizeClassName(className)}|{academicYear}";
+
+    private static string NormalizeClassName(string raw)
+        => raw.Trim().ToUpperInvariant();
+
+    private static string NormalizeEmail(string raw)
+        => raw.Trim().ToLowerInvariant();
+
+    private static bool IsValidEmail(string email)
+        => email.Contains('@') && email.Contains('.');
+
+    private static string ExtractGrade(string className)
+    {
+        var digits = new string(className.Trim().TakeWhile(char.IsDigit).ToArray());
+        return string.IsNullOrWhiteSpace(digits) ? className.Trim() : digits;
+    }
+
+    private static string GetCurrentAcademicYear()
+    {
+        var now = DateTime.UtcNow;
+        return now.Month >= 8
+            ? $"{now.Year}-{now.Year + 1}"
+            : $"{now.Year - 1}-{now.Year}";
+    }
+
+    private static string GenerateTempPassword()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
+        Span<char> buffer = stackalloc char[10];
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            buffer[i] = chars[RandomNumberGenerator.GetInt32(chars.Length)];
+        }
+
+        return new string(buffer);
+    }
+
     private static VTOS.Domain.Enums.Gender ParseGender(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return VTOS.Domain.Enums.Gender.Other;
         return raw.Trim().ToLowerInvariant() switch
         {
-            "nam" or "male" or "m"          => VTOS.Domain.Enums.Gender.Male,
+            "nam" or "male" or "m" => VTOS.Domain.Enums.Gender.Male,
             "nữ" or "nu" or "female" or "f" => VTOS.Domain.Enums.Gender.Female,
-            _                               => VTOS.Domain.Enums.Gender.Other
+            _ => VTOS.Domain.Enums.Gender.Other
         };
     }
 }

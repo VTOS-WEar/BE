@@ -10,16 +10,19 @@ public class OrderDetailForFeedbackDto
     public string OrderStatus { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
-    public string CampaignName { get; set; } = string.Empty;
+    public string? CampaignName { get; set; }
+    public Guid? CampaignId { get; set; }
+    public string? ProviderName { get; set; }
+    public Guid? ProviderId { get; set; }
     public List<OrderItemForFeedbackDto> Items { get; set; } = new();
 }
 
 public class OrderItemForFeedbackDto
 {
     public Guid OrderItemId { get; set; }
-    public Guid CampaignOutfitId { get; set; }
+    public Guid? CampaignOutfitId { get; set; }
     public Guid ProductVariantId { get; set; }
-    public Guid CampaignId { get; set; }
+    public Guid? CampaignId { get; set; }
     public Guid OutfitId { get; set; }
     public string OutfitName { get; set; } = string.Empty;
     public string? OutfitImage { get; set; }

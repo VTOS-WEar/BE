@@ -57,7 +57,7 @@ public class RejectWithdrawalCommandHandler : IRejectWithdrawalCommandHandler
                     "❌ Rút tiền bị từ chối",
                     $"Yêu cầu rút {withdrawal.Amount:N0}đ bị từ chối.{reason}",
                     "Withdrawal", withdrawal.Id, "WithdrawalRequest",
-                    "/school/wallet", ct);
+                    "/school/dashboard", ct);
             else
                 await _notificationService.NotifyProviderAsync(wallet.OwnerID,
                     "❌ Rút tiền bị từ chối",

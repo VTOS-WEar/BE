@@ -5,7 +5,6 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Payments.Queries;
 
-// ── GetProviderRevenueQuery ─────────────────────────────────────────
 public record GetProviderRevenueQuery(Guid UserId);
 
 public record ProviderRevenueDto(
@@ -31,7 +30,6 @@ public class GetProviderRevenueQueryHandler : IGetProviderRevenueQueryHandler
 
     public async Task<Result<ProviderRevenueDto>> HandleAsync(GetProviderRevenueQuery query, CancellationToken ct = default)
     {
-        // 1. Find the provider linked to this user
         var providerMgr = await _db.ProviderManagers.AsNoTracking()
             .FirstOrDefaultAsync(m => m.UserID == query.UserId, ct);
         if (providerMgr == null)
@@ -39,22 +37,18 @@ public class GetProviderRevenueQueryHandler : IGetProviderRevenueQueryHandler
 
         var providerId = providerMgr.ProviderID;
 
-        // 2. Find provider's wallet
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == providerId
-                                   && w.OwnerType == WalletOwnerType.Provider, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == providerId && w.OwnerType == WalletOwnerType.Provider, ct);
 
-        // 3. Revenue from PaymentTransactions (single source of truth, matches Wallet)
-        decimal totalRevenue = 0;
-        int totalPaidOrders = 0;
         var paidOrderIds = new HashSet<Guid>();
+        decimal totalRevenue = 0;
 
         if (wallet != null)
         {
-            // Get all completed ProviderPayment transactions for this wallet
             var providerPayments = await _db.PaymentTransactions.AsNoTracking()
                 .Where(pt => pt.WalletID == wallet.Id
-                          && pt.TransactionType == TransactionType.ProviderPayment
+                          && (pt.TransactionType == TransactionType.ProviderPayout
+                           || pt.TransactionType == TransactionType.ProviderPayment)
                           && pt.TransactionStatus == PaymentStatus.Completed)
                 .ToListAsync(ct);
 
@@ -63,33 +57,34 @@ public class GetProviderRevenueQueryHandler : IGetProviderRevenueQueryHandler
                 .Where(pt => pt.OrderID.HasValue)
                 .Select(pt => pt.OrderID!.Value)
                 .ToHashSet();
-            totalPaidOrders = paidOrderIds.Count;
         }
 
-        // 4. Pending = orders assigned to this provider that are active but NOT yet paid
-        var campaignIds = await _db.CampaignOutfits.AsNoTracking()
+        var legacyCampaignIds = await _db.CampaignOutfits.AsNoTracking()
             .Where(co => co.ProviderID == providerId)
             .Select(co => co.CampaignID)
             .Distinct()
             .ToListAsync(ct);
 
         var pendingOrders = await _db.Orders.AsNoTracking()
-            .Where(o => o.CampaignID != null
-                      && campaignIds.Contains(o.CampaignID.Value)
-                      && (o.OrderStatus == OrderStatus.Paid
-                       || o.OrderStatus == OrderStatus.Confirmed
-                       || o.OrderStatus == OrderStatus.Processed
-                       || o.OrderStatus == OrderStatus.Shipped
-                       || o.OrderStatus == OrderStatus.Delivered)
-                      && !paidOrderIds.Contains(o.Id))
+            .Where(o =>
+                ((o.ProviderID == providerId && o.SemesterPublicationID != null) ||
+                 (o.CampaignID != null && legacyCampaignIds.Contains(o.CampaignID.Value))) &&
+                (o.OrderStatus == OrderStatus.Paid ||
+                 o.OrderStatus == OrderStatus.Accepted ||
+                 o.OrderStatus == OrderStatus.InProduction ||
+                 o.OrderStatus == OrderStatus.ReadyToShip ||
+                 o.OrderStatus == OrderStatus.Shipped ||
+                 o.OrderStatus == OrderStatus.Delivered ||
+                 o.OrderStatus == OrderStatus.Confirmed ||
+                 o.OrderStatus == OrderStatus.Processed) &&
+                !paidOrderIds.Contains(o.Id))
             .ToListAsync(ct);
 
         return Result<ProviderRevenueDto>.Success(new ProviderRevenueDto(
             TotalRevenue: totalRevenue,
-            TotalPaidOrders: totalPaidOrders,
+            TotalPaidOrders: paidOrderIds.Count,
             TotalPendingOrders: pendingOrders.Count,
             PendingAmount: pendingOrders.Sum(o => o.TotalAmount)
         ));
     }
 }
-

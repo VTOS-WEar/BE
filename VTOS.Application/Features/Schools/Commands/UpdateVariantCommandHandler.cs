@@ -62,10 +62,10 @@ public class UpdateVariantCommandHandler : IUpdateVariantCommandHandler
 
         // Apply partial updates
         var originalSize = variant.Size;
-        if (command.Size != null) variant.Size = command.Size;
-        if (command.ColorVariant != null) variant.ColorVariant = command.ColorVariant;
-        if (command.MaterialType != null) variant.MaterialType = command.MaterialType;
-        if (command.SKUCode != null) variant.SKUCode = command.SKUCode;
+        if (command.Size != null) variant.Size = command.Size.Trim();
+        if (command.ColorVariant != null) variant.ColorVariant = string.IsNullOrWhiteSpace(command.ColorVariant) ? null : command.ColorVariant.Trim();
+        if (command.MaterialType != null) variant.MaterialType = string.IsNullOrWhiteSpace(command.MaterialType) ? null : command.MaterialType.Trim();
+        if (command.SKUCode != null) variant.SKUCode = string.IsNullOrWhiteSpace(command.SKUCode) ? null : command.SKUCode.Trim();
 
         var activeSize = variant.Size;
         var detail = await GetOrMoveSizeChartDetailAsync(outfit, originalSize, activeSize, ct);

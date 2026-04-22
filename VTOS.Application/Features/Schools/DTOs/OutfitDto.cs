@@ -10,6 +10,7 @@ public class OutfitDto
     public Guid OutfitId { get; set; }
     public string OutfitName { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? MaterialType { get; set; }
     public decimal Price { get; set; }
     public OutfitType OutfitType { get; set; }
     public string? MainImageURL { get; set; }

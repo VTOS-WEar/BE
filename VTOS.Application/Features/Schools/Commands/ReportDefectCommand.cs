@@ -8,7 +8,7 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Schools.Commands;
 
-/// <summary>School reports defective uniforms (creates a Complaint linked to the batch).</summary>
+/// <summary>School reports defective uniforms (creates a SupportTicket linked to the batch).</summary>
 public record ReportDefectCommand(Guid UserId, Guid BatchId, string Title, string Description, List<string>? ProofImageUrls);
 
 public interface IReportDefectCommandHandler
@@ -54,7 +54,7 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
         if (command.ProofImageUrls == null || !command.ProofImageUrls.Any())
             return Result<Guid>.Failure("At least one proof image is required.", "PROOF_REQUIRED");
 
-        var complaint = new Complaint
+        var ticket = new SupportTicket
         {
             Id = Guid.NewGuid(),
             CampaignID = batch.CampaignID,
@@ -64,11 +64,11 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
             Title = command.Title,
             Description = command.Description,
             ProofImageUrls = JsonSerializer.Serialize(command.ProofImageUrls),
-            Status = ComplaintStatus.Open,
+            Status = SupportTicketStatus.Open,
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Complaints.Add(complaint);
+        _db.SupportTickets.Add(ticket);
         await _db.SaveChangesAsync(ct);
 
         // Notify provider about new complaint
@@ -77,7 +77,7 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
             await _notificationService.NotifyProviderAsync(batch.ProviderID,
                 "⚠️ Khiếu nại mới",
                 $"Trường khiếu nại đơn {batch.BatchName}: {command.Title}",
-                "Complaint", complaint.Id, "Complaint",
+                "SupportTicket", ticket.Id, "SupportTicket",
                 "/provider/complaints", ct);
         }
         catch { /* Don't fail */ }
@@ -88,11 +88,11 @@ public class ReportDefectCommandHandler : IReportDefectCommandHandler
             await _notificationService.NotifyAdminsAsync(
                 "⚠️ Khiếu nại mới",
                 $"Trường khiếu nại đơn {batch.BatchName}: {command.Title}",
-                "Complaint", complaint.Id, "Complaint",
+                "SupportTicket", ticket.Id, "SupportTicket",
                 "/admin/complaints", ct);
         }
         catch { /* Don't fail */ }
 
-        return Result<Guid>.Success(complaint.Id);
+        return Result<Guid>.Success(ticket.Id);
     }
 }

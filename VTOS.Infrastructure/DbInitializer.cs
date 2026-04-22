@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 using VTOS.Infrastructure.Persistence;
@@ -31,6 +31,7 @@ public static class DbInitializer
     private static readonly Guid ROLE_PARENT   = Guid.Parse("22222222-2222-2222-2222-222222222222");
     private static readonly Guid ROLE_SCHOOL   = Guid.Parse("33333333-3333-3333-3333-333333333333");
     private static readonly Guid ROLE_PROVIDER = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private static readonly Guid ROLE_TEACHER  = Guid.Parse("55555555-5555-5555-5555-555555555555");
 
     private static readonly Guid SCH1 = Guid.Parse("6D3CCB42-97FF-44D4-AC8B-68FC56B4DDD9");
     private static readonly Guid SCH2 = Guid.Parse("D25F24A9-29F5-4FD9-B7A7-CD224EA512C5");
@@ -70,6 +71,8 @@ public static class DbInitializer
     private static readonly Guid BATCH1 = Guid.Parse("AAA00001-0000-0000-0000-000000000001");
     private static readonly Guid BATCH2 = Guid.Parse("AAA00002-0000-0000-0000-000000000002");
     private static readonly Guid BATCH3 = Guid.Parse("AAA00003-0000-0000-0000-000000000003");
+    private static readonly Guid BATCH4 = Guid.Parse("AAA00004-0000-0000-0000-000000000004");
+    private static readonly Guid BATCH5 = Guid.Parse("AAA00005-0000-0000-0000-000000000005");
 
     // Product variants
     private static readonly Guid PV1_S = Guid.Parse("DD100001-0000-0000-0000-000000000001");
@@ -102,6 +105,13 @@ public static class DbInitializer
     private static readonly Guid CTR4 = Guid.Parse("FF100004-0000-0000-0000-000000000004");
     private static readonly Guid CTR5 = Guid.Parse("FF100005-0000-0000-0000-000000000005");
     private static readonly Guid CTR6 = Guid.Parse("FF100006-0000-0000-0000-000000000006");
+
+    // Semester publications
+    private static readonly Guid PUB1 = Guid.Parse("AB100001-0000-0000-0000-000000000001");
+    private static readonly Guid PUB2 = Guid.Parse("AB100002-0000-0000-0000-000000000002");
+    private static readonly Guid PUB3 = Guid.Parse("AB100003-0000-0000-0000-000000000003");
+    private static readonly Guid PUB4 = Guid.Parse("AB100004-0000-0000-0000-000000000004");
+    private static readonly Guid PUB5 = Guid.Parse("AB100005-0000-0000-0000-000000000005");
 
     // Wallets (need fixed IDs for PaymentTransaction.WalletID)
     private static readonly Guid WALLET1 = Guid.Parse("FFA00001-0000-0000-0000-000000000001");
@@ -148,6 +158,20 @@ public static class DbInitializer
             }
         }
 
+        if (await db.Roles.AnyAsync() &&
+            !await db.Roles.AnyAsync(r => r.RoleName == "HomeroomTeacher" || r.Id == ROLE_TEACHER))
+        {
+            db.Roles.Add(new Role
+            {
+                Id = ROLE_TEACHER,
+                RoleName = "HomeroomTeacher",
+                IsSystemRole = true,
+                CreatedAt = DateTime.UtcNow,
+                Description = "Homeroom teacher account created from student import."
+            });
+            await db.SaveChangesAsync();
+        }
+
         // Guard: only seed remaining data when database is empty
         if (await db.Roles.AnyAsync()) return;
 
@@ -159,7 +183,8 @@ public static class DbInitializer
             new Role { Id = ROLE_ADMIN,    RoleName = "Admin",    IsSystemRole = true, CreatedAt = now },
             new Role { Id = ROLE_PARENT,   RoleName = "Parent",   IsSystemRole = true, CreatedAt = now },
             new Role { Id = ROLE_SCHOOL,   RoleName = "School",   IsSystemRole = true, CreatedAt = now },
-            new Role { Id = ROLE_PROVIDER, RoleName = "Provider", IsSystemRole = true, CreatedAt = now }
+            new Role { Id = ROLE_PROVIDER, RoleName = "Provider", IsSystemRole = true, CreatedAt = now },
+            new Role { Id = ROLE_TEACHER,  RoleName = "HomeroomTeacher", IsSystemRole = true, CreatedAt = now }
         );
         await db.SaveChangesAsync();
 
@@ -274,7 +299,7 @@ public static class DbInitializer
         await db.SaveChangesAsync();
 
         // ══════════════════════════════════════════════════════════════════════
-        // ── CONTRACTS (must exist BEFORE campaigns — define production prices)
+        // ── CONTRACTS (supplier agreements used before semester publications/orders)
         // ══════════════════════════════════════════════════════════════════════
         db.Set<Contract>().AddRange(
             // CTR1: PCT ↔ Hoàng Gia — Active (fully signed, used for CAM1 & CAM4)
@@ -344,22 +369,118 @@ public static class DbInitializer
         );
         await db.SaveChangesAsync();
 
-        // ── ContractItems (production cost per outfit — different from retail price)
+        // ── ContractItems (sample outfits attached to supplier agreements)
         db.Set<ContractItem>().AddRange(
             // CTR1: PCT ↔ Hoàng Gia — áo sơ mi + áo dài
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR1, OutfitID = OFT1, PricePerUnit = 125_000, MinQuantity = 50, MaxQuantity = 500 },
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR1, OutfitID = OFT4, PricePerUnit = 230_000, MinQuantity = 30, MaxQuantity = 200 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR1, OutfitID = OFT1, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR1, OutfitID = OFT4, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
             // CTR2: TP ↔ Sơn Trà — quần tây + áo khoác
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR2, OutfitID = OFT2, PricePerUnit = 130_000, MinQuantity = 40, MaxQuantity = 400 },
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR2, OutfitID = OFT5, PricePerUnit = 185_000, MinQuantity = 30, MaxQuantity = 300 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR2, OutfitID = OFT2, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR2, OutfitID = OFT5, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
             // CTR3: NH ↔ Thanh Khê — áo thể dục
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR3, OutfitID = OFT3, PricePerUnit = 75_000, MinQuantity = 50, MaxQuantity = 350 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR3, OutfitID = OFT3, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
             // CTR4: Pending — áo khoác from different provider
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR4, OutfitID = OFT5, PricePerUnit = 175_000, MinQuantity = 20, MaxQuantity = 200 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR4, OutfitID = OFT5, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
             // CTR5: TP ↔ Hoàng Gia — quần tây (PendingProviderSign — provider1 can sign directly)
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR5, OutfitID = OFT2, PricePerUnit = 130_000, MinQuantity = 40, MaxQuantity = 400 },
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR5, OutfitID = OFT2, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 },
             // CTR6: PCT ↔ Hoàng Gia — áo dài (PendingSchoolSign — school1 can sign)
-            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR6, OutfitID = OFT4, PricePerUnit = 235_000, MinQuantity = 30, MaxQuantity = 180 }
+            new ContractItem { Id = Guid.NewGuid(), ContractID = CTR6, OutfitID = OFT4, PricePerUnit = 0, MinQuantity = 0, MaxQuantity = 0 }
+        );
+        await db.SaveChangesAsync();
+
+        // ── Semester Publications (5 sample records across the 3 schools) ───
+        db.Set<SemesterPublication>().AddRange(
+            new SemesterPublication
+            {
+                Id = PUB1,
+                SchoolID = SCH1,
+                Semester = "HK1",
+                AcademicYear = "2026-2027",
+                StartDate = new DateTime(2026, 8, 1),
+                EndDate = new DateTime(2026, 10, 31),
+                Status = SemesterPublicationStatus.Active,
+                Description = "Đợt công bố chính thức cho đồng phục học kỳ 1.",
+                Rules = "Nhà cung cấp đã ký thỏa thuận cung ứng, phụ huynh đặt trực tiếp trên hệ thống.",
+                CreatedAt = now.AddDays(-18),
+                UpdatedAt = now.AddDays(-6)
+            },
+            new SemesterPublication
+            {
+                Id = PUB2,
+                SchoolID = SCH2,
+                Semester = "HK1",
+                AcademicYear = "2026-2027",
+                StartDate = new DateTime(2026, 8, 5),
+                EndDate = new DateTime(2026, 11, 5),
+                Status = SemesterPublicationStatus.Active,
+                Description = "Đợt công bố HK1 cho đồng phục chính khóa và áo khoác.",
+                Rules = "Ưu tiên nhà cung cấp đã có lịch sử giao hàng tốt.",
+                CreatedAt = now.AddDays(-16),
+                UpdatedAt = now.AddDays(-5)
+            },
+            new SemesterPublication
+            {
+                Id = PUB3,
+                SchoolID = SCH3,
+                Semester = "HK2",
+                AcademicYear = "2025-2026",
+                StartDate = new DateTime(2026, 1, 10),
+                EndDate = new DateTime(2026, 3, 10),
+                Status = SemesterPublicationStatus.Draft,
+                Description = "Bản nháp công bố đồng phục thể dục cho học kỳ 2.",
+                Rules = "Chỉ mở bán sau khi trường hoàn tất rà soát mẫu và nhà cung cấp.",
+                CreatedAt = now.AddDays(-8),
+                UpdatedAt = now.AddDays(-2)
+            },
+            new SemesterPublication
+            {
+                Id = PUB4,
+                SchoolID = SCH1,
+                Semester = "HK2",
+                AcademicYear = "2025-2026",
+                StartDate = new DateTime(2026, 1, 15),
+                EndDate = new DateTime(2026, 4, 15),
+                Status = SemesterPublicationStatus.Closed,
+                Description = "Đợt công bố HK2 đã kết thúc để chuyển sang giai đoạn giao hàng.",
+                Rules = "Không nhận thêm đơn mới sau ngày đóng công bố.",
+                CreatedAt = now.AddDays(-40),
+                UpdatedAt = now.AddDays(-12)
+            },
+            new SemesterPublication
+            {
+                Id = PUB5,
+                SchoolID = SCH3,
+                Semester = "HK1",
+                AcademicYear = "2026-2027",
+                StartDate = new DateTime(2026, 8, 12),
+                EndDate = new DateTime(2026, 10, 20),
+                Status = SemesterPublicationStatus.Active,
+                Description = "Đợt công bố HK1 cho mẫu thể dục và áo khoác sự kiện.",
+                Rules = "Nhà cung cấp chỉ cần xác nhận năng lực cung ứng; giá bán sẽ thiết lập theo từng đợt mở bán.",
+                CreatedAt = now.AddDays(-11),
+                UpdatedAt = now.AddDays(-4)
+            }
+        );
+        await db.SaveChangesAsync();
+
+        db.Set<SemesterPublicationOutfit>().AddRange(
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB1, OutfitID = OFT1, Notes = "Mẫu sơ mi chính khóa cho khối 10-12.", CreatedAt = now.AddDays(-18), UpdatedAt = now.AddDays(-18) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB1, OutfitID = OFT4, Notes = "Áo dài nữ dùng cho sự kiện và chào cờ.", CreatedAt = now.AddDays(-18), UpdatedAt = now.AddDays(-18) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB2, OutfitID = OFT2, Notes = "Quần tây đồng phục nam nữ.", CreatedAt = now.AddDays(-16), UpdatedAt = now.AddDays(-16) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB2, OutfitID = OFT5, Notes = "Áo khoác gió sử dụng theo mùa.", CreatedAt = now.AddDays(-16), UpdatedAt = now.AddDays(-16) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB3, OutfitID = OFT3, Notes = "Mẫu thể dục đang chờ xác nhận trước khi mở bán.", CreatedAt = now.AddDays(-8), UpdatedAt = now.AddDays(-8) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB4, OutfitID = OFT1, Notes = "Đợt HK2 đã hoàn tất, giữ lại để kiểm tra lịch sử.", CreatedAt = now.AddDays(-40), UpdatedAt = now.AddDays(-40) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB5, OutfitID = OFT3, Notes = "Mẫu thể dục đã được xác nhận cung ứng cho HK1.", CreatedAt = now.AddDays(-11), UpdatedAt = now.AddDays(-11) },
+            new SemesterPublicationOutfit { Id = Guid.NewGuid(), SemesterPublicationID = PUB5, OutfitID = OFT5, Notes = "Áo khoác sự kiện dùng cho hoạt động ngoại khóa đầu năm.", CreatedAt = now.AddDays(-11), UpdatedAt = now.AddDays(-11) }
+        );
+        await db.SaveChangesAsync();
+
+        db.Set<SemesterPublicationProvider>().AddRange(
+            new SemesterPublicationProvider { Id = Guid.NewGuid(), SemesterPublicationID = PUB1, ProviderID = PRV1, ContractID = CTR1, Status = SemPublicationProviderStatus.Active, CreatedAt = now.AddDays(-18), UpdatedAt = now.AddDays(-18) },
+            new SemesterPublicationProvider { Id = Guid.NewGuid(), SemesterPublicationID = PUB2, ProviderID = PRV2, ContractID = CTR2, Status = SemPublicationProviderStatus.Active, CreatedAt = now.AddDays(-16), UpdatedAt = now.AddDays(-16) },
+            new SemesterPublicationProvider { Id = Guid.NewGuid(), SemesterPublicationID = PUB4, ProviderID = PRV1, ContractID = CTR1, Status = SemPublicationProviderStatus.Active, CreatedAt = now.AddDays(-40), UpdatedAt = now.AddDays(-20) },
+            new SemesterPublicationProvider { Id = Guid.NewGuid(), SemesterPublicationID = PUB5, ProviderID = PRV3, ContractID = CTR3, Status = SemPublicationProviderStatus.Active, CreatedAt = now.AddDays(-11), UpdatedAt = now.AddDays(-4) },
+            new SemesterPublicationProvider { Id = Guid.NewGuid(), SemesterPublicationID = PUB5, ProviderID = PRV2, ContractID = null, Status = SemPublicationProviderStatus.Suspended, SuspendReason = "Tạm dừng sau vòng đối soát năng lực đầu kỳ.", SuspendedAt = now.AddDays(-6), CreatedAt = now.AddDays(-10), UpdatedAt = now.AddDays(-6) }
         );
         await db.SaveChangesAsync();
 
@@ -493,7 +614,9 @@ public static class DbInitializer
         db.ProductionBatches.AddRange(
             new ProductionBatch { Id = BATCH1, CampaignID = CAM1, ProviderID = PRV1, BatchName = "Lô SX PCT - Áo sơ mi HK2", TotalQuantity = 150, CreatedDate = now.AddDays(-15), Status = ProductionBatchStatus.Pending, DeliveryDeadline = new DateTime(2026,4,15), IsDeleted = false },
             new ProductionBatch { Id = BATCH2, CampaignID = CAM2, ProviderID = PRV2, BatchName = "Lô SX TP - Quần tây HK2", TotalQuantity = 100, CreatedDate = now.AddDays(-12), Status = ProductionBatchStatus.Approved, DeliveryDeadline = new DateTime(2026,5,1), IsDeleted = false },
-            new ProductionBatch { Id = BATCH3, CampaignID = CAM3, ProviderID = PRV3, BatchName = "Lô SX NH - Áo thể dục", TotalQuantity = 80, CreatedDate = now.AddDays(-10), Status = ProductionBatchStatus.InProduction, DeliveryDeadline = new DateTime(2026,3,20), IsDeleted = false, ProcessedAt = now.AddDays(-7) }
+            new ProductionBatch { Id = BATCH3, CampaignID = CAM3, ProviderID = PRV3, BatchName = "Lô SX NH - Áo thể dục", TotalQuantity = 80, CreatedDate = now.AddDays(-10), Status = ProductionBatchStatus.InProduction, DeliveryDeadline = new DateTime(2026,3,20), IsDeleted = false, ProcessedAt = now.AddDays(-7) },
+            new ProductionBatch { Id = BATCH4, CampaignID = CAM4, ProviderID = PRV1, BatchName = "Lô SX PCT - Áo dài sự kiện", TotalQuantity = 60, CreatedDate = now.AddDays(-22), Status = ProductionBatchStatus.Completed, DeliveryDeadline = new DateTime(2026,4,5), IsDeleted = false, ProcessedAt = now.AddDays(-18), DeliveredQuantity = 60, DeliveryNote = "Đã hoàn tất sản xuất, chờ bàn giao đợt cuối." },
+            new ProductionBatch { Id = BATCH5, CampaignID = CAM2, ProviderID = PRV2, BatchName = "Lô SX TP - Áo khoác đợt 2", TotalQuantity = 90, CreatedDate = now.AddDays(-26), Status = ProductionBatchStatus.Delivered, DeliveryDeadline = new DateTime(2026,3,28), IsDeleted = false, ProcessedAt = now.AddDays(-21), DeliveredQuantity = 90, DeliveryConfirmedAt = now.AddDays(-8), DeliveryNote = "Đã giao đủ và trường xác nhận hoàn tất." }
         );
         await db.SaveChangesAsync();
 
@@ -504,15 +627,21 @@ public static class DbInitializer
             new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH1, OutfitID = OFT1, Size = "L", Quantity = 35, UnitPrice = 125_000 },
             new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH2, OutfitID = OFT2, Size = "M", Quantity = 55, UnitPrice = 130_000 },
             new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH2, OutfitID = OFT2, Size = "L", Quantity = 45, UnitPrice = 130_000 },
-            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH3, OutfitID = OFT3, Size = "M", Quantity = 80, UnitPrice = 75_000 }
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH3, OutfitID = OFT3, Size = "M", Quantity = 80, UnitPrice = 75_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH4, OutfitID = OFT4, Size = "M", Quantity = 30, UnitPrice = 245_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH4, OutfitID = OFT4, Size = "L", Quantity = 30, UnitPrice = 245_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH5, OutfitID = OFT5, Size = "M", Quantity = 40, UnitPrice = 165_000 },
+            new ProductionBatchItem { Id = Guid.NewGuid(), BatchID = BATCH5, OutfitID = OFT5, Size = "L", Quantity = 50, UnitPrice = 165_000 }
         );
         await db.SaveChangesAsync();
 
         // ── Complaints ────────────────────────────────────────────────────────
-        db.Complaints.AddRange(
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Áo sơ mi bị phai màu sau khi giặt", Description = "Một số áo lô đầu bị phai vàng sau 2 lần giặt máy", Status = ComplaintStatus.Open, CreatedAt = now.AddDays(-3) },
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Thiếu hàng size M 3 sản phẩm", Description = "Đơn giao 65 cái size M nhưng chỉ nhận 62, thiếu 3", Status = ComplaintStatus.InProgress, CreatedAt = now.AddDays(-5) },
-            new Complaint { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Giao hàng trễ hạn 10 ngày", Description = "Hạn giao 01/03 nhưng 11/03 vẫn chưa nhận được hàng", Status = ComplaintStatus.Resolved, CreatedAt = now.AddDays(-12) }
+        db.SupportTickets.AddRange(
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Áo sơ mi bị phai màu sau khi giặt", Description = "Một số áo lô đầu bị phai vàng sau 2 lần giặt máy", Status = SupportTicketStatus.Open, CreatedAt = now.AddDays(-3) },
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM1, BatchID = BATCH1, SchoolID = SCH1, ProviderID = PRV1, Title = "Thiếu hàng size M 3 sản phẩm", Description = "Đơn giao 65 cái size M nhưng chỉ nhận 62, thiếu 3", Status = SupportTicketStatus.InProgress, CreatedAt = now.AddDays(-5) },
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Giao hàng trễ hạn 10 ngày", Description = "Hạn giao 01/03 nhưng 11/03 vẫn chưa nhận được hàng", Status = SupportTicketStatus.Resolved, CreatedAt = now.AddDays(-12) },
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM3, BatchID = BATCH3, SchoolID = SCH3, ProviderID = PRV3, Title = "Đường may áo thể dục chưa đều", Description = "Một số áo ở lô đầu có đường may lệch tại cổ áo, cần rà soát lại toàn bộ lô.", Status = SupportTicketStatus.Open, CreatedAt = now.AddDays(-6) },
+            new SupportTicket { Id = Guid.NewGuid(), CampaignID = CAM2, BatchID = BATCH2, SchoolID = SCH2, ProviderID = PRV2, Title = "Cần đối soát biên bản giao nhận", Description = "Trường cần đối chiếu lại số lượng đã giao trước khi khóa đợt phát đồng phục.", Status = SupportTicketStatus.InProgress, CreatedAt = now.AddDays(-9) }
         );
         await db.SaveChangesAsync();
     }

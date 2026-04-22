@@ -5,8 +5,6 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Payments.Commands;
 
-// ── PayOrderCommand ─────────────────────────────────────────────────
-// Parent pays for their Order → money goes into School Wallet automatically
 public record PayOrderCommand(Guid UserId, Guid OrderId);
 
 public record PayOrderResponse(Guid PaymentId, decimal Amount, string Status);
@@ -27,7 +25,6 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
 
     public async Task<Result<PayOrderResponse>> HandleAsync(PayOrderCommand command, CancellationToken ct = default)
     {
-        // 1. Find Order + verify ownership
         var order = await _db.Orders
             .Include(o => o.ChildProfile)
             .Include(o => o.OrderItems)
@@ -36,7 +33,6 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
         if (order == null)
             return Result<PayOrderResponse>.Failure("Order not found.", "ORDER_NOT_FOUND");
 
-        // Verify the parent owns this order's child profile
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
         if (user == null)
             return Result<PayOrderResponse>.Failure("User not found.", "USER_NOT_FOUND");
@@ -49,17 +45,18 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
         if (order.OrderStatus != OrderStatus.Pending)
             return Result<PayOrderResponse>.Failure("Order is not in Pending status.", "INVALID_STATUS");
 
-        // 2. Find Wallet for this order's school (via child profile -> school)
         var schoolId = child.SchoolID;
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolId && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(
+            w => w.OwnerID == schoolId && w.OwnerType == WalletOwnerType.School && w.IsActive,
+            ct);
+
         if (wallet == null)
         {
-            // Auto-create wallet if not exists
             wallet = new Domain.Entities.Wallet
             {
                 Id = Guid.NewGuid(),
                 OwnerID = schoolId,
-                OwnerType = Domain.Enums.WalletOwnerType.School,
+                OwnerType = WalletOwnerType.School,
                 Balance = 0,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
@@ -68,23 +65,22 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
             _db.Wallets.Add(wallet);
         }
 
-        // 3. Create PaymentTransaction + fund wallet
         var payment = new Domain.Entities.PaymentTransaction
         {
             Id = Guid.NewGuid(),
             OrderID = order.Id,
             WalletID = wallet.Id,
             TransactionType = TransactionType.OrderPayment,
-            GatewayType = PaymentGatewayType.Other, // Internal payment
+            GatewayType = PaymentGatewayType.Other,
             TransactionStatus = PaymentStatus.Completed,
+            EscrowStatus = EscrowStatus.Held,
             Amount = order.TotalAmount,
             TransactionTimestamp = DateTime.UtcNow,
-            Description = $"Thanh toán đơn hàng #{order.Id.ToString()[..8]}",
+            Description = $"Order payment #{order.Id.ToString()[..8]}",
             CreatedAt = DateTime.UtcNow
         };
         _db.PaymentTransactions.Add(payment);
 
-        // 4. Update wallet balance + order status
         wallet.Balance += order.TotalAmount;
         wallet.UpdatedAt = DateTime.UtcNow;
         order.OrderStatus = OrderStatus.Paid;

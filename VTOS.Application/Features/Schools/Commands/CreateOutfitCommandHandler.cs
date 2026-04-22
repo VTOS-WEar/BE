@@ -41,6 +41,8 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
             return Result<OutfitDto>.Failure("Outfit name cannot exceed 50 characters.", "NAME_TOO_LONG");
         if (command.Description != null && command.Description.Length > 500)
             return Result<OutfitDto>.Failure("Description cannot exceed 500 characters.", "DESCRIPTION_TOO_LONG");
+        if (command.MaterialType != null && command.MaterialType.Length > 100)
+            return Result<OutfitDto>.Failure("Material type cannot exceed 100 characters.", "MATERIAL_TOO_LONG");
         if (command.MainImageURL != null && command.MainImageURL.Length > 500)
             return Result<OutfitDto>.Failure("Image URL cannot exceed 500 characters.", "IMAGE_URL_TOO_LONG");
 
@@ -48,11 +50,12 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         {
             Id = Guid.NewGuid(),
             SchoolID = schoolMgr.SchoolID,
-            OutfitName = command.OutfitName,
-            Description = command.Description,
-            Price = command.Price,
+            OutfitName = command.OutfitName.Trim(),
+            Description = string.IsNullOrWhiteSpace(command.Description) ? null : command.Description.Trim(),
+            MaterialType = string.IsNullOrWhiteSpace(command.MaterialType) ? null : command.MaterialType.Trim(),
+            Price = 0,
             OutfitType = command.OutfitType,
-            MainImageURL = command.MainImageURL,
+            MainImageURL = string.IsNullOrWhiteSpace(command.MainImageURL) ? null : command.MainImageURL.Trim(),
             SizeChartID = command.SizeChartID,
             IsCustomizable = command.IsCustomizable,
             IsAvailable = true, // Available by default when created
@@ -70,6 +73,7 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         OutfitId = outfit.Id,
         OutfitName = outfit.OutfitName,
         Description = outfit.Description,
+        MaterialType = outfit.MaterialType,
         Price = outfit.Price,
         OutfitType = outfit.OutfitType,
         MainImageURL = outfit.MainImageURL,

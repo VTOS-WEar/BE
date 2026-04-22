@@ -33,12 +33,29 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasMaxLength(500);
 
         builder.Property(o => o.CampaignID);
+        builder.Property(o => o.ProviderID);
+        builder.Property(o => o.SemesterPublicationID);
 
         builder.Property(o => o.DeliveryMethod)
             .HasMaxLength(50);
 
+        builder.Property(o => o.TrackingCode)
+            .HasMaxLength(100);
+
+        builder.Property(o => o.ShippingCompany)
+            .HasMaxLength(100);
+
+        builder.Property(o => o.RecipientName)
+            .HasMaxLength(255);
+
+        builder.Property(o => o.RecipientPhone)
+            .HasMaxLength(30);
+
         builder.Property(o => o.CancelReason)
             .HasMaxLength(500);
+
+        builder.HasIndex(o => o.ProviderID);
+        builder.HasIndex(o => o.SemesterPublicationID);
 
         // Relationships
         builder.HasOne(o => o.ChildProfile)
@@ -49,6 +66,16 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasOne(o => o.Campaign)
             .WithMany(c => c.Orders)
             .HasForeignKey(o => o.CampaignID)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(o => o.Provider)
+            .WithMany(p => p.Orders)
+            .HasForeignKey(o => o.ProviderID)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(o => o.SemesterPublication)
+            .WithMany(sp => sp.Orders)
+            .HasForeignKey(o => o.SemesterPublicationID)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

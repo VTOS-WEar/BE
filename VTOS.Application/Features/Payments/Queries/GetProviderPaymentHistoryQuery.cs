@@ -5,7 +5,6 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Payments.Queries;
 
-// ── GetProviderPaymentHistoryQuery ──────────────────────────────────
 public record GetProviderPaymentHistoryQuery(Guid UserId, int Page = 1, int PageSize = 20);
 
 public record ProviderPaymentDto(
@@ -35,24 +34,21 @@ public class GetProviderPaymentHistoryQueryHandler : IGetProviderPaymentHistoryQ
 
     public async Task<Result<ProviderPaymentHistoryResponse>> HandleAsync(GetProviderPaymentHistoryQuery query, CancellationToken ct = default)
     {
-        // 1. Find provider via ProviderManager
         var providerMgr = await _db.ProviderManagers.AsNoTracking()
             .FirstOrDefaultAsync(m => m.UserID == query.UserId, ct);
         if (providerMgr == null)
             return Result<ProviderPaymentHistoryResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
-        // 2. Find provider's wallet
         var wallet = await _db.Wallets.AsNoTracking()
-            .FirstOrDefaultAsync(w => w.OwnerID == providerMgr.ProviderID
-                                   && w.OwnerType == WalletOwnerType.Provider, ct);
+            .FirstOrDefaultAsync(w => w.OwnerID == providerMgr.ProviderID && w.OwnerType == WalletOwnerType.Provider, ct);
 
         if (wallet == null)
             return Result<ProviderPaymentHistoryResponse>.Success(new ProviderPaymentHistoryResponse(new List<ProviderPaymentDto>(), 0));
 
-        // 3. Query ProviderPayment transactions by WalletID (single source of truth)
         var q = _db.PaymentTransactions.AsNoTracking()
-            .Where(pt => pt.WalletID == wallet.Id
-                      && pt.TransactionType == TransactionType.ProviderPayment)
+            .Where(pt => pt.WalletID == wallet.Id &&
+                         (pt.TransactionType == TransactionType.ProviderPayment ||
+                          pt.TransactionType == TransactionType.ProviderPayout))
             .OrderByDescending(pt => pt.TransactionTimestamp);
 
         var total = await q.CountAsync(ct);

@@ -27,10 +27,16 @@ public class Provider : BaseEntity
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
     public string? RejectionReason { get; set; }
     public string? VerificationDocumentUrl { get; set; }
+    public decimal AverageRating { get; set; }
+    public int TotalRatings { get; set; }
+    public int TotalCompletedOrders { get; set; }
 
     // Navigation properties
     public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
     public ICollection<ProductionBatch> ProductionBatches { get; set; } = new List<ProductionBatch>();
     public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
+    public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<ProviderRating> ProviderRatings { get; set; } = new List<ProviderRating>();
+    public ICollection<SemesterPublicationProvider> SemesterPublicationProviders { get; set; } = new List<SemesterPublicationProvider>();
     public Wallet? Wallet { get; set; }
 }

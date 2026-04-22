@@ -6,7 +6,8 @@ namespace VTOS.Application.Features.Schools.Commands;
 /// <summary>
 /// UC-43: Import student data from a CSV or XLSX file.
 /// The caller (Controller) is responsible for parsing the file into rows.
-/// Each row is string[] with 5 elements: [Name, DOB, Grade, Gender, Phone]
+/// Each row is string[] with 5 or 7 elements:
+/// [Name, DOB, Class, Gender, Phone, HomeroomTeacherName?, HomeroomTeacherEmail?]
 /// </summary>
 public class ImportStudentDataCommand
 {
@@ -14,7 +15,7 @@ public class ImportStudentDataCommand
 
     /// <summary>
     /// Pre-parsed data rows (header already excluded).
-    /// Each row: [StudentName, DOB (dd/MM/yyyy), Grade, Gender, ParentPhone]
+    /// Each row: [StudentName, DOB (dd/MM/yyyy), Class, Gender, ParentPhone, TeacherName?, TeacherEmail?]
     /// </summary>
     public IReadOnlyList<string[]> Rows { get; }
 

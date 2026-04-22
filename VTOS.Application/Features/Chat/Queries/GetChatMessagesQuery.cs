@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
@@ -81,15 +81,22 @@ public class GetChatMessagesQueryHandler : IGetChatMessagesQueryHandler
         var schoolId = schoolMgr?.SchoolID;
         var providerId = providerMgr?.ProviderID;
 
-        if (channelType == ChatChannelType.Complaint)
+        if (channelType == ChatChannelType.SupportTicket)
         {
-            return await _db.Complaints.AsNoTracking().AnyAsync(c =>
+            return await _db.SupportTickets.AsNoTracking().AnyAsync(c =>
                 c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
         else if (channelType == ChatChannelType.Contract)
         {
             return await _db.Contracts.AsNoTracking().AnyAsync(c =>
                 c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
+        }
+        else if (channelType == ChatChannelType.ClassGroup)
+        {
+            return await _db.ClassGroups.AsNoTracking().AnyAsync(cg =>
+                       cg.Id == channelId && cg.HomeroomTeacherID == userId, ct)
+                   || await _db.ChildProfiles.AsNoTracking().AnyAsync(cp =>
+                       cp.ClassGroupID == channelId && cp.ParentUserID == userId && !cp.IsDeleted, ct);
         }
 
         return false;

@@ -77,11 +77,12 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
         if (outfitsWithProvider.Any())
         {
             var providerIds = outfitsWithProvider.Select(o => o.ProviderId!.Value).Distinct().ToList();
+            var usableContractStatuses = new[] { "Active", "InUse" };
 
-            // Load approved contracts for this school + these providers
+            // Load usable supplier agreements for this school + these providers
             var approvedContracts = await _db.Contracts.AsNoTracking()
                 .Where(c => c.SchoolID == schoolId
-                         && c.Status == "Approved"
+                         && usableContractStatuses.Contains(c.Status)
                          && providerIds.Contains(c.ProviderID))
                 .Include(c => c.ContractItems)
                 .ToListAsync(ct);
@@ -96,7 +97,7 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
                 {
                     var outfit = schoolOutfits.FirstOrDefault(o => o.Id == input.OutfitId);
                     return Result<PublishCampaignResponseDto>.Failure(
-                        $"Provider '{input.ProviderId}' does not have an approved contract for outfit '{outfit?.OutfitName ?? input.OutfitId.ToString()}'.",
+                        $"Provider '{input.ProviderId}' does not have an active supplier agreement for outfit '{outfit?.OutfitName ?? input.OutfitId.ToString()}'.",
                         "PROVIDER_NO_CONTRACT");
                 }
             }
@@ -123,13 +124,14 @@ public class PublishCampaignCommandHandler : IPublishCampaignCommandHandler
         {
             Guid? contractId = null;
 
-            // Find matching Approved contract for this provider + outfit
+            // Find matching usable supplier agreement for this provider + outfit
             if (input.ProviderId.HasValue)
             {
+                var usableContractStatuses = new[] { "Active", "InUse" };
                 var matchingContract = await _db.Contracts
                     .Where(c => c.SchoolID == schoolId
                              && c.ProviderID == input.ProviderId.Value
-                             && c.Status == "Approved")
+                             && usableContractStatuses.Contains(c.Status))
                     .Include(c => c.ContractItems)
                     .FirstOrDefaultAsync(c => c.ContractItems.Any(ci => ci.OutfitID == input.OutfitId), ct);
 

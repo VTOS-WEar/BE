@@ -2,13 +2,15 @@ namespace VTOS.Domain.Enums;
 
 public enum OrderStatus
 {
-    Pending = 1, //-> Chờ thanh toán
-    Paid = 2, //-> Chờ xác nhận
-    Confirmed = 3, //-> Chờ xử lý
-    Processed = 4, //-> Chờ giao hàng
-    Shipped = 5, //-> Chờ phân phối
-    Delivered = 6, //-> Đã phân phối
-    Cancelled = 7, //-> Đã hủy
-    Refunded = 8 //-> Đã hoàn tiền
+    Pending = 1,
+    Paid = 2,
+    Confirmed = 3,
+    Processed = 4,
+    Shipped = 5,
+    Delivered = 6,
+    Cancelled = 7,
+    Refunded = 8,
+    Accepted = 9,
+    InProduction = 10,
+    ReadyToShip = 11
 }
-

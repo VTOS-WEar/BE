@@ -4,13 +4,14 @@ namespace VTOS.Domain.Entities;
 
 /// <summary>
 /// Contract between a School and a Provider.
-/// Defines pricing and quantity terms for outfits BEFORE campaigns.
+/// In the marketplace flow it acts as a supplier-agreement record for a period,
+/// with attached sample outfits for reference.
 ///
 /// Status flow:
 ///   Pending → PendingSchoolSign (Provider approves) → PendingProviderSign (School signs) → Active (Provider signs)
 ///   Pending / PendingSchoolSign → Cancelled (School cancels)
 ///   Pending → Rejected (Provider rejects)
-///   Active → InUse (Campaign created) → Fulfilled / Expired
+///   Active → InUse (publication/order flow uses this supplier agreement) → Fulfilled / Expired
 /// </summary>
 public class Contract : BaseEntity
 {
@@ -73,5 +74,6 @@ public class Contract : BaseEntity
     public School School { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
     public ICollection<ContractItem> ContractItems { get; set; } = new List<ContractItem>();
+    public ICollection<SemesterPublicationProvider> SemesterPublicationProviders { get; set; } = new List<SemesterPublicationProvider>();
 }
 

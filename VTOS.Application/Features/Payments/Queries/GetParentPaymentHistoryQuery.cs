@@ -14,7 +14,15 @@ public record ParentPaymentDto(
     decimal Amount,
     string PaymentStatus,
     string OrderStatus,
-    DateTime Timestamp
+    DateTime Timestamp,
+    string? CampaignName,
+    string? ProviderName,
+    string? FirstItemImageUrl,
+    int ItemCount,
+    Guid? CampaignId,
+    Guid? ProviderId,
+    string? ChildFullName = null,
+    string? ChildAvatarUrl = null
 );
 
 public record StatusCountDto(string Status, int Count);
@@ -22,6 +30,7 @@ public record StatusCountDto(string Status, int Count);
 public record ParentPaymentHistoryResponse(
     List<ParentPaymentDto> Items, 
     int Total,
+    int TotalOrder,
     List<StatusCountDto> StatusCounts
 );
 
@@ -49,32 +58,46 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
 
         if (!childIds.Any())
             return Result<ParentPaymentHistoryResponse>.Success(
-                new ParentPaymentHistoryResponse(new(), 0, new()));
+                new ParentPaymentHistoryResponse(new(), 0, 0, new()));
 
-        // Get order IDs for this parent's children
-        var orderIds = await _db.Orders.AsNoTracking()
-            .Where(o => childIds.Contains(o.ChildProfileID))
-            .Select(o => o.Id)
-            .ToListAsync(ct);
-
-        var transactions = _db.PaymentTransactions.AsNoTracking()
-            .Where(pt => pt.OrderID != null && orderIds.Contains(pt.OrderID.Value) && pt.TransactionType == TransactionType.OrderPayment);
+        var q = _db.Orders.AsNoTracking()
+            .Include(o => o.ChildProfile)
+            .Include(o => o.Campaign)
+            .Include(o => o.Provider)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(pv => pv.Outfit)
+            .Select(o => new 
+            {
+                o,
+                pt = _db.PaymentTransactions.AsNoTracking()
+                    .Where(pt => pt.OrderID == o.Id && pt.TransactionType == TransactionType.OrderPayment)
+                    .OrderByDescending(pt => pt.TransactionTimestamp)
+                    .ThenByDescending(pt => pt.CreatedAt)
+                    .FirstOrDefault()
+            })
+            .Where(x => x.pt != null);
 
         // Apply Date Filters
         if (query.StartDate.HasValue)
         {
             var start = query.StartDate.Value.Date;
-            transactions = transactions.Where(pt => pt.TransactionTimestamp >= start);
+            q = q.Where(x => x.pt!.TransactionTimestamp >= start);
         }
         if (query.EndDate.HasValue)
         {
             var end = query.EndDate.Value.Date.AddDays(1).AddTicks(-1);
-            transactions = transactions.Where(pt => pt.TransactionTimestamp <= end);
+            q = q.Where(x => x.pt!.TransactionTimestamp <= end);
         }
 
-        var q = transactions.Join(_db.Orders.AsNoTracking(), pt => pt.OrderID, o => o.Id, (pt, o) => new { pt, o });
+        // Calculate status counts and total order count BEFORE applying status filter
+        var allStatusCounts = await q
+            .GroupBy(x => x.o.OrderStatus)
+            .Select(g => new StatusCountDto(g.Key.ToString(), g.Count()))
+            .ToListAsync(ct);
 
-        // Apply Status Filter
+        var totalOrder = allStatusCounts.Sum(sc => sc.Count);
+        // Apply Status Filter (only affects total + paginated items, not statusCounts)
         if (!string.IsNullOrEmpty(query.Status))
         {
             if (Enum.TryParse<OrderStatus>(query.Status, true, out var orderStatus))
@@ -83,32 +106,34 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             }
         }
 
-        q = q.OrderByDescending(x => x.pt.TransactionTimestamp);
+        q = q.OrderByDescending(x => x.pt!.TransactionTimestamp);
 
-        // Get total count
+        // Get total count (after status filter)
         var total = await q.CountAsync(ct);
-
-        // Calculate status counts from all orders (not just paginated)
-        var allStatusCounts = await q
-            .GroupBy(x => x.o.OrderStatus)
-            .Select(g => new StatusCountDto(g.Key.ToString(), g.Count()))
-            .ToListAsync(ct);
 
         // Get paginated items
         var items = await q
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(x => new ParentPaymentDto(
-                x.pt.Id,
+                x.pt!.Id,
                 x.pt.OrderID!.Value,
                 x.pt.Amount,
                 x.pt.TransactionStatus.ToString(),
                 x.o.OrderStatus.ToString(),
-                x.pt.TransactionTimestamp
+                x.pt.TransactionTimestamp,
+                x.o.Campaign != null ? x.o.Campaign.CampaignName : null,
+                x.o.Provider != null ? x.o.Provider.ProviderName : null,
+                x.o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
+                x.o.OrderItems.Count,
+                x.o.CampaignID,
+                x.o.ProviderID,
+                x.o.ChildProfile.FullName,
+                x.o.ChildProfile.Avatar
             ))
             .ToListAsync(ct);
 
         return Result<ParentPaymentHistoryResponse>.Success(
-            new ParentPaymentHistoryResponse(items, total, allStatusCounts));
+            new ParentPaymentHistoryResponse(items, total, totalOrder, allStatusCounts));
     }
 }

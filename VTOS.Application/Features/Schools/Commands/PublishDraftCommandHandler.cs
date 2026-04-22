@@ -90,10 +90,11 @@ public class PublishDraftCommandHandler : IPublishDraftCommandHandler
         if (outfitsWithProvider.Any())
         {
             var providerIds = outfitsWithProvider.Select(co => co.ProviderID!.Value).Distinct().ToList();
+            var usableContractStatuses = new[] { "Active", "InUse" };
 
             var approvedContracts = await _db.Contracts
                 .Where(c => c.SchoolID == schoolId
-                         && c.Status == "Approved"
+                         && usableContractStatuses.Contains(c.Status)
                          && providerIds.Contains(c.ProviderID))
                 .Include(c => c.ContractItems)
                 .ToListAsync(ct);
@@ -106,7 +107,7 @@ public class PublishDraftCommandHandler : IPublishDraftCommandHandler
 
                 if (contract == null)
                     return Result<PublishCampaignResponseDto>.Failure(
-                        $"Provider '{co.ProviderID}' does not have an approved contract for outfit '{co.OutfitID}'.",
+                        $"Provider '{co.ProviderID}' does not have an active supplier agreement for outfit '{co.OutfitID}'.",
                         "PROVIDER_NO_CONTRACT");
             }
 

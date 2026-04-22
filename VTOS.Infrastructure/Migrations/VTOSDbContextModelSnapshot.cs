@@ -34,7 +34,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -54,7 +54,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -91,7 +91,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("CreatedUserId")
                         .HasColumnType("uuid");
@@ -106,7 +106,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("ProcessedByUserId")
                         .HasColumnType("uuid");
@@ -179,7 +179,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -199,7 +199,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -238,7 +238,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<long>("CreatedAtUnix")
                         .HasColumnType("bigint");
@@ -261,7 +261,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("ScannedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -269,7 +269,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -305,7 +305,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -315,13 +315,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("SchoolID")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -329,7 +329,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -392,13 +392,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -452,7 +452,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -477,6 +477,9 @@ namespace VTOS.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ClassGroupID")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DOB")
                         .HasColumnType("date");
@@ -516,6 +519,8 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClassGroupID");
+
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("ParentUserID");
@@ -525,70 +530,44 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("Children", (string)null);
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.Complaint", b =>
+            modelBuilder.Entity("VTOS.Domain.Entities.ClassGroup", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("BatchID")
-                        .HasColumnType("uuid");
+                    b.Property<string>("AcademicYear")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
-                    b.Property<Guid>("CampaignID")
-                        .HasColumnType("uuid");
+                    b.Property<string>("ClassName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
+                    b.Property<string>("Grade")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
-                    b.Property<string>("ProofImageUrls")
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("ProviderID")
+                    b.Property<Guid?>("HomeroomTeacherID")
                         .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Response")
-                        .HasColumnType("text");
 
                     b.Property<Guid>("SchoolID")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("BatchID");
+                    b.HasIndex("HomeroomTeacherID");
 
-                    b.HasIndex("CampaignID");
+                    b.HasIndex("SchoolID", "ClassName", "AcademicYear")
+                        .IsUnique();
 
-                    b.HasIndex("ProviderID");
-
-                    b.HasIndex("SchoolID");
-
-                    b.ToTable("Complaints");
+                    b.ToTable("ClassGroups", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Contract", b =>
@@ -598,7 +577,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ContractName")
                         .IsRequired()
@@ -613,10 +592,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("ProviderID")
                         .HasColumnType("uuid");
@@ -625,10 +604,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ProviderSignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
@@ -641,13 +620,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("SchoolSignedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SigningOTPCode")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("SigningOTPExpiry")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SigningOTPFor")
                         .HasColumnType("text");
@@ -712,10 +691,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ConfirmedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -728,7 +707,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("DeliveredAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsConfirmed")
                         .HasColumnType("boolean");
@@ -741,7 +720,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -764,13 +743,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("DistributedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Method")
                         .IsRequired()
@@ -797,7 +776,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -821,10 +800,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Method")
                         .IsRequired()
@@ -834,7 +813,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("ScheduledDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -858,7 +837,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -866,7 +845,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsVerified")
                         .ValueGeneratedOnAdd()
@@ -909,7 +888,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -929,10 +908,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -960,7 +939,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("ErrorCount")
                         .HasColumnType("integer");
@@ -998,7 +977,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
@@ -1039,7 +1018,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("InvoiceID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1049,13 +1028,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("IssueDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("OrderID")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1092,7 +1071,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -1124,7 +1103,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1137,23 +1116,45 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("OrderDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("OrderStatus")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecipientName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("RecipientPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("SemesterPublicationID")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ShippingCompany")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("TrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1163,6 +1164,10 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasIndex("CampaignID");
 
                     b.HasIndex("ChildProfileID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("SemesterPublicationID");
 
                     b.ToTable("Order", (string)null);
                 });
@@ -1175,7 +1180,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("OrderItemID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1205,7 +1210,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1227,7 +1232,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("OutfitID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1249,6 +1254,9 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("MaterialType")
+                        .HasColumnType("text");
+
                     b.Property<string>("OutfitName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1269,7 +1277,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1308,7 +1316,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("RecommendationID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1323,7 +1331,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1367,7 +1375,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(255)
@@ -1387,7 +1395,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(255)
@@ -1437,7 +1445,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1445,6 +1453,10 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EscrowStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("GatewayType")
                         .IsRequired()
@@ -1458,6 +1470,9 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid?>("PayoutRecordID")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("TransactionLog")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
@@ -1468,7 +1483,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("TransactionTimestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("TransactionType")
                         .IsRequired()
@@ -1476,7 +1491,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1488,9 +1503,57 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.HasIndex("OrderID");
 
+                    b.HasIndex("PayoutRecordID");
+
                     b.HasIndex("WalletID");
 
                     b.ToTable("PaymentTransaction", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.PayoutRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("PayoutRecordID");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("OrderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayoutMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderID")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderID");
+
+                    b.ToTable("PayoutRecord", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProductVariant", b =>
@@ -1556,16 +1619,16 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("DeliveredQuantity")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("DeliveryConfirmedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeliveryDeadline")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("DeliveryNote")
                         .HasMaxLength(1000)
@@ -1575,7 +1638,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("ProviderID")
                         .HasColumnType("uuid");
@@ -1643,6 +1706,11 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<decimal>("AverageRating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(4,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("ContactPersonName")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -1678,6 +1746,16 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("TaxCode")
                         .HasColumnType("text");
+
+                    b.Property<int>("TotalCompletedOrders")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TotalRatings")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("VerificationDocumentUrl")
                         .HasMaxLength(500)
@@ -1724,6 +1802,53 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("ProviderManager", (string)null);
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("ProviderRatingID");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ParentUserID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentUserID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("OrderID", "ParentUserID")
+                        .IsUnique();
+
+                    b.ToTable("ProviderRating", (string)null);
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.Refund", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1732,7 +1857,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("RefundID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1753,7 +1878,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1773,7 +1898,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("RoleID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
@@ -1813,7 +1938,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1857,7 +1982,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1905,6 +2030,156 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("SchoolManager", (string)null);
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("SemesterPublicationID");
+
+                    b.Property<string>("AcademicYear")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Rules")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid>("SchoolID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Semester")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchoolID", "Semester", "AcademicYear")
+                        .IsUnique();
+
+                    b.ToTable("SemesterPublication", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublicationOutfit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("SemesterPublicationOutfitID");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OutfitID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SemesterPublicationID")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OutfitID");
+
+                    b.HasIndex("SemesterPublicationID", "OutfitID")
+                        .IsUnique();
+
+                    b.ToTable("SemesterPublicationOutfit", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublicationProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("SemesterPublicationProviderID");
+
+                    b.Property<Guid?>("ContractID")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SemesterPublicationID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SuspendReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("SemesterPublicationID", "ProviderID")
+                        .IsUnique();
+
+                    b.ToTable("SemesterPublicationProvider", (string)null);
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.SizeChart", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1918,7 +2193,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1935,7 +2210,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasDefaultValue("cm");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1953,7 +2228,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("DetailID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -1967,7 +2242,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -1987,7 +2262,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnName("MeasurementID");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -2019,7 +2294,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasDefaultValue("cm");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -2043,13 +2318,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -2059,6 +2334,14 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("Gender")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("HomeroomTeacherEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("HomeroomTeacherName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<bool>("IsRegistered")
                         .HasColumnType("boolean");
@@ -2078,7 +2361,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -2090,6 +2373,72 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasIndex("SchoolID");
 
                     b.ToTable("StudentDataImport", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SupportTicket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BatchID")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CampaignID")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProofImageUrls")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Response")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("SchoolID")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchID");
+
+                    b.HasIndex("CampaignID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("SchoolID");
+
+                    b.ToTable("Complaints", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.TryOnHistory", b =>
@@ -2107,7 +2456,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -2128,10 +2477,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("TryOnTimestamp")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -2172,7 +2521,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -2197,7 +2546,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -2209,7 +2558,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<DateTime?>("PasswordResetTokenExpiry")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(30)
@@ -2263,7 +2612,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -2275,7 +2624,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -2300,13 +2649,13 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2441,6 +2790,11 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.ChildProfile", b =>
                 {
+                    b.HasOne("VTOS.Domain.Entities.ClassGroup", "ClassGroup")
+                        .WithMany("Students")
+                        .HasForeignKey("ClassGroupID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("VTOS.Domain.Entities.User", "ParentUser")
                         .WithMany("ChildProfiles")
                         .HasForeignKey("ParentUserID")
@@ -2452,38 +2806,27 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("ClassGroup");
+
                     b.Navigation("ParentUser");
 
                     b.Navigation("School");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.Complaint", b =>
+            modelBuilder.Entity("VTOS.Domain.Entities.ClassGroup", b =>
                 {
-                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
-                        .WithMany("Complaints")
-                        .HasForeignKey("BatchID");
-
-                    b.HasOne("VTOS.Domain.Entities.Campaign", "Campaign")
-                        .WithMany()
-                        .HasForeignKey("CampaignID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
-                        .WithMany()
-                        .HasForeignKey("ProviderID");
+                    b.HasOne("VTOS.Domain.Entities.User", "HomeroomTeacher")
+                        .WithMany("HomeroomClasses")
+                        .HasForeignKey("HomeroomTeacherID")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("VTOS.Domain.Entities.School", "School")
-                        .WithMany()
+                        .WithMany("ClassGroups")
                         .HasForeignKey("SchoolID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Batch");
-
-                    b.Navigation("Campaign");
-
-                    b.Navigation("Provider");
+                    b.Navigation("HomeroomTeacher");
 
                     b.Navigation("School");
                 });
@@ -2651,9 +2994,23 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany("Orders")
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("VTOS.Domain.Entities.SemesterPublication", "SemesterPublication")
+                        .WithMany("Orders")
+                        .HasForeignKey("SemesterPublicationID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Campaign");
 
                     b.Navigation("ChildProfile");
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("SemesterPublication");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.OrderItem", b =>
@@ -2760,6 +3117,11 @@ namespace VTOS.Infrastructure.Migrations
                         .HasForeignKey("OrderID")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("VTOS.Domain.Entities.PayoutRecord", "PayoutRecord")
+                        .WithMany("PaymentTransactions")
+                        .HasForeignKey("PayoutRecordID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("VTOS.Domain.Entities.Wallet", "Wallet")
                         .WithMany("PaymentTransactions")
                         .HasForeignKey("WalletID")
@@ -2767,7 +3129,28 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("Order");
 
+                    b.Navigation("PayoutRecord");
+
                     b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.PayoutRecord", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Provider");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProductVariant", b =>
@@ -2847,6 +3230,33 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderRating", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.Order", "Order")
+                        .WithMany("ProviderRatings")
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.User", "ParentUser")
+                        .WithMany("ProviderRatings")
+                        .HasForeignKey("ParentUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany("ProviderRatings")
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ParentUser");
+
+                    b.Navigation("Provider");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.Refund", b =>
                 {
                     b.HasOne("VTOS.Domain.Entities.PaymentTransaction", "PaymentTransaction")
@@ -2886,6 +3296,62 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublication", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.School", "School")
+                        .WithMany("SemesterPublications")
+                        .HasForeignKey("SchoolID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("School");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublicationOutfit", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.Outfit", "Outfit")
+                        .WithMany("SemesterPublicationOutfits")
+                        .HasForeignKey("OutfitID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.SemesterPublication", "SemesterPublication")
+                        .WithMany("Outfits")
+                        .HasForeignKey("SemesterPublicationID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Outfit");
+
+                    b.Navigation("SemesterPublication");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublicationProvider", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.Contract", "Contract")
+                        .WithMany("SemesterPublicationProviders")
+                        .HasForeignKey("ContractID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany("SemesterPublicationProviders")
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.SemesterPublication", "SemesterPublication")
+                        .WithMany("Providers")
+                        .HasForeignKey("SemesterPublicationID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("SemesterPublication");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.SizeChartDetail", b =>
                 {
                     b.HasOne("VTOS.Domain.Entities.SizeChart", "SizeChart")
@@ -2922,6 +3388,37 @@ namespace VTOS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("MatchedChildProfile");
+
+                    b.Navigation("School");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SupportTicket", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
+                        .WithMany("Complaints")
+                        .HasForeignKey("BatchID");
+
+                    b.HasOne("VTOS.Domain.Entities.Campaign", "Campaign")
+                        .WithMany()
+                        .HasForeignKey("CampaignID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderID");
+
+                    b.HasOne("VTOS.Domain.Entities.School", "School")
+                        .WithMany()
+                        .HasForeignKey("SchoolID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("Provider");
 
                     b.Navigation("School");
                 });
@@ -3005,9 +3502,16 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("TryOnHistories");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.ClassGroup", b =>
+                {
+                    b.Navigation("Students");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.Contract", b =>
                 {
                     b.Navigation("ContractItems");
+
+                    b.Navigation("SemesterPublicationProviders");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Order", b =>
@@ -3017,6 +3521,8 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("PaymentTransactions");
+
+                    b.Navigation("ProviderRatings");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.OrderItem", b =>
@@ -3034,12 +3540,19 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("ProductVariants");
 
+                    b.Navigation("SemesterPublicationOutfits");
+
                     b.Navigation("TryOnHistories");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.PaymentTransaction", b =>
                 {
                     b.Navigation("Refunds");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.PayoutRecord", b =>
+                {
+                    b.Navigation("PaymentTransactions");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProductVariant", b =>
@@ -3066,7 +3579,13 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("Contracts");
 
+                    b.Navigation("Orders");
+
                     b.Navigation("ProductionBatches");
+
+                    b.Navigation("ProviderRatings");
+
+                    b.Navigation("SemesterPublicationProviders");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Role", b =>
@@ -3080,11 +3599,24 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("ChildProfiles");
 
+                    b.Navigation("ClassGroups");
+
                     b.Navigation("Contracts");
 
                     b.Navigation("Outfits");
 
+                    b.Navigation("SemesterPublications");
+
                     b.Navigation("StudentDataImports");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublication", b =>
+                {
+                    b.Navigation("Orders");
+
+                    b.Navigation("Outfits");
+
+                    b.Navigation("Providers");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.SizeChart", b =>
@@ -3112,11 +3644,15 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("Feedbacks");
 
+                    b.Navigation("HomeroomClasses");
+
                     b.Navigation("OutfitRecommendations");
 
                     b.Navigation("ParentProfile");
 
                     b.Navigation("ProviderManager");
+
+                    b.Navigation("ProviderRatings");
 
                     b.Navigation("SchoolManager");
 

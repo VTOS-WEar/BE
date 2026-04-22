@@ -11,7 +11,7 @@ public record CreateOutfitCommand(
     Guid UserId,
     string OutfitName,
     string? Description,
-    decimal Price,
+    string? MaterialType,
     OutfitType OutfitType,
     string? MainImageURL,
     Guid? SizeChartID,

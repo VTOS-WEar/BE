@@ -17,6 +17,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<SchoolManager> SchoolManagers { get; set; }
     public DbSet<ProviderManager> ProviderManagers { get; set; }
     public DbSet<School> Schools { get; set; }
+    public DbSet<ClassGroup> ClassGroups { get; set; }
+    public DbSet<TeacherReport> TeacherReports { get; set; }
     public DbSet<ChildProfile> ChildProfiles { get; set; }
     public DbSet<EmailVerification> EmailVerifications { get; set; }
 
@@ -39,6 +41,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+    public DbSet<ProviderRating> ProviderRatings { get; set; }
+    public DbSet<PayoutRecord> PayoutRecords { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<Refund> Refunds { get; set; }
     public DbSet<Wallet> Wallets { get; set; }
@@ -49,11 +53,14 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
     public DbSet<Provider> Providers { get; set; }
     public DbSet<Campaign> Campaigns { get; set; }
     public DbSet<CampaignOutfit> CampaignOutfits { get; set; }
+    public DbSet<SemesterPublication> SemesterPublications { get; set; }
+    public DbSet<SemesterPublicationOutfit> SemesterPublicationOutfits { get; set; }
+    public DbSet<SemesterPublicationProvider> SemesterPublicationProviders { get; set; }
     public DbSet<StudentDataImport> StudentDataImports { get; set; }
     public DbSet<ImportBatch> ImportBatches { get; set; }
     public DbSet<ProductionBatch> ProductionBatches { get; set; }
     public DbSet<ProductionBatchItem> ProductionBatchItems { get; set; }
-    public DbSet<Complaint> Complaints { get; set; }
+    public DbSet<SupportTicket> SupportTickets { get; set; }
     public DbSet<Contract> Contracts { get; set; }
     public DbSet<ContractItem> ContractItems { get; set; }
 
@@ -85,5 +92,8 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
 
         // Apply all entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(VTOSDbContext).Assembly);
+
+        // Q4: SupportTicket was renamed from Complaint — keep old table name to avoid migration rename
+        modelBuilder.Entity<SupportTicket>().ToTable("Complaints");
     }
 }

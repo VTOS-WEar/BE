@@ -16,6 +16,7 @@ public class ChildProfile : BaseEntity
     public string Grade { get; set; } = string.Empty;
     public Gender Gender { get; set; }
     public Guid SchoolID { get; set; }
+    public Guid? ClassGroupID { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DOB { get; set; }
     public string Avatar { get; set; } = string.Empty;
@@ -25,6 +26,7 @@ public class ChildProfile : BaseEntity
     // Navigation properties
     public User ParentUser { get; set; } = null!;
     public School School { get; set; } = null!;
+    public ClassGroup? ClassGroup { get; set; }
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
     public ICollection<BodygramScanRecord> BodygramScanRecords { get; set; } = new List<BodygramScanRecord>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();

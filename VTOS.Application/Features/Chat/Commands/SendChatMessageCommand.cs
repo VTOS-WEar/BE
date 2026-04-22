@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Chat.Queries;
@@ -44,7 +44,7 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
         var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
 
-        var hasAccess = await VerifyAccessAsync(schoolMgr, providerMgr, command.ChannelType, command.ChannelId, ct);
+        var hasAccess = await VerifyAccessAsync(command.UserId, schoolMgr, providerMgr, command.ChannelType, command.ChannelId, ct);
         if (!hasAccess)
             return Result<SendChatMessageResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
@@ -74,6 +74,7 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
     }
 
     private async Task<bool> VerifyAccessAsync(
+        Guid userId,
         VTOS.Domain.Entities.SchoolManager? schoolMgr,
         VTOS.Domain.Entities.ProviderManager? providerMgr,
         ChatChannelType channelType, Guid channelId, CancellationToken ct)
@@ -81,15 +82,22 @@ public class SendChatMessageCommandHandler : ISendChatMessageCommandHandler
         var schoolId = schoolMgr?.SchoolID;
         var providerId = providerMgr?.ProviderID;
 
-        if (channelType == ChatChannelType.Complaint)
+        if (channelType == ChatChannelType.SupportTicket)
         {
-            return await _db.Complaints.AsNoTracking().AnyAsync(c =>
+            return await _db.SupportTickets.AsNoTracking().AnyAsync(c =>
                 c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
         }
         else if (channelType == ChatChannelType.Contract)
         {
             return await _db.Contracts.AsNoTracking().AnyAsync(c =>
                 c.Id == channelId && (c.SchoolID == schoolId || c.ProviderID == providerId), ct);
+        }
+        else if (channelType == ChatChannelType.ClassGroup)
+        {
+            return await _db.ClassGroups.AsNoTracking().AnyAsync(cg =>
+                       cg.Id == channelId && cg.HomeroomTeacherID == userId, ct)
+                   || await _db.ChildProfiles.AsNoTracking().AnyAsync(cp =>
+                       cp.ClassGroupID == channelId && cp.ParentUserID == userId && !cp.IsDeleted, ct);
         }
 
         return false;

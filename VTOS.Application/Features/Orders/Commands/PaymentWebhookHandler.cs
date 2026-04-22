@@ -8,18 +8,11 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Orders.Commands;
 
-/// <summary>
-/// Interface for processing PayOS payment webhook
-/// </summary>
 public interface IPaymentWebhookHandler
 {
     Task<Result<PaymentWebhookProcessResponse>> HandleWebhookAsync(PaymentWebhookResponse webhook, CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// Handler for processing PayOS payment webhook
-/// Updates transaction, order, wallet, and product variants on successful payment
-/// </summary>
 public class PaymentWebhookHandler : IPaymentWebhookHandler
 {
     private readonly IApplicationDbContext _context;
@@ -39,14 +32,12 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
     {
         try
         {
-            // Step 1: Validate webhook
             if (webhook?.Data == null || string.IsNullOrEmpty(webhook.Data.PaymentLinkId))
             {
                 _logger.LogWarning("Invalid webhook: missing PaymentLinkId");
                 return Result<PaymentWebhookProcessResponse>.Failure("Invalid webhook data", "INVALID_WEBHOOK");
             }
 
-            // Step 2: Find payment transaction by PaymentLinkId
             var paymentTransaction = await _context.PaymentTransactions
                 .Include(pt => pt.Order)
                     .ThenInclude(o => o.OrderItems)
@@ -65,26 +56,26 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
                 return Result<PaymentWebhookProcessResponse>.Failure("Payment transaction not found", "TRANSACTION_NOT_FOUND");
             }
 
-            // Step 3: Check if transaction is already in final state
-            if (paymentTransaction.TransactionStatus == PaymentStatus.Completed || 
+            if (paymentTransaction.TransactionStatus == PaymentStatus.Completed ||
                 paymentTransaction.TransactionStatus == PaymentStatus.Cancelled)
             {
-                _logger.LogInformation("Transaction {TransactionId} already in final state: {Status}", 
-                    paymentTransaction.Id, paymentTransaction.TransactionStatus);
-                return Result<PaymentWebhookProcessResponse>.Failure($"Transaction already processed with status: {paymentTransaction.TransactionStatus}", "TRANSACTION_ALREADY_PROCESSED");
+                _logger.LogInformation(
+                    "Transaction {TransactionId} already in final state: {Status}",
+                    paymentTransaction.Id,
+                    paymentTransaction.TransactionStatus);
+                return Result<PaymentWebhookProcessResponse>.Failure(
+                    $"Transaction already processed with status: {paymentTransaction.TransactionStatus}",
+                    "TRANSACTION_ALREADY_PROCESSED");
             }
 
-            // If webhook success = false, mark transaction as failed
             if (!webhook.Success)
             {
                 paymentTransaction.TransactionStatus = PaymentStatus.Failed;
                 paymentTransaction.TransactionLog = $"Payment failed: {webhook.Desc}";
                 await _context.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation("Payment failed for transaction {TransactionId}: {Reason}", paymentTransaction.Id, webhook.Desc);
                 return Result<PaymentWebhookProcessResponse>.Failure("Payment failed, transaction updated", "PAYMENT_FAILED");
             }
 
-            // Step 4: Process successful payment
             return await ProcessSuccessfulPaymentAsync(paymentTransaction, webhook, cancellationToken);
         }
         catch (Exception ex)
@@ -94,9 +85,6 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
         }
     }
 
-    /// <summary>
-    /// Process successful payment: update transaction, order, wallet, and product variants
-    /// </summary>
     private async Task<Result<PaymentWebhookProcessResponse>> ProcessSuccessfulPaymentAsync(
         PaymentTransaction paymentTransaction,
         PaymentWebhookResponse webhook,
@@ -105,74 +93,66 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
         try
         {
             var order = paymentTransaction.Order;
-            var wallet = paymentTransaction.Wallet;
+            var wallet = paymentTransaction.Wallet ?? await ResolveSchoolWalletAsync(order, cancellationToken);
 
-            // Step 1: Update transaction status
+            paymentTransaction.WalletID = wallet?.Id;
+            paymentTransaction.Wallet = wallet;
             paymentTransaction.TransactionStatus = PaymentStatus.Completed;
             paymentTransaction.TransactionTimestamp = DateTime.UtcNow;
-            paymentTransaction.TransactionLog = webhook.Data != null 
-                ? $"Payment completed via {webhook.Data.CounterAccountBankName}: {webhook.Data.Reference}" 
+            paymentTransaction.TransactionType = TransactionType.OrderPayment;
+            paymentTransaction.EscrowStatus = EscrowStatus.Held;
+            paymentTransaction.TransactionLog = webhook.Data != null
+                ? $"Payment completed via {webhook.Data.CounterAccountBankName}: {webhook.Data.Reference}"
                 : "Payment completed";
 
-            // Step 2: Update order status
             order.OrderStatus = OrderStatus.Paid;
 
-            // Step 3: Update school wallet if exists
             if (wallet != null)
             {
-                var previousBalance = wallet.Balance;
                 wallet.Balance += paymentTransaction.Amount;
                 wallet.UpdatedAt = DateTime.UtcNow;
-                _logger.LogInformation("Updated wallet {WalletId} balance from {PrevBalance} to {NewBalance}", 
-                    wallet.Id, previousBalance, wallet.Balance);
             }
 
-            // Step 4: Update product variants inventory (if applicable)
             if (order.OrderItems != null && order.OrderItems.Any())
             {
                 foreach (var orderItem in order.OrderItems)
                 {
-                    if (orderItem.ProductVariant != null)
+                    if (orderItem.ProductVariant == null)
+                        continue;
+
+                    orderItem.ProductVariant.StockQuantity -= orderItem.Quantity;
+                    if (orderItem.ProductVariant.StockQuantity < 0)
                     {
-                        var previousStock = orderItem.ProductVariant.StockQuantity;
-                        orderItem.ProductVariant.StockQuantity -= orderItem.Quantity;
-                        
-                        // Log warning if stock becomes negative
-                        if (orderItem.ProductVariant.StockQuantity < 0)
-                        {
-                            _logger.LogWarning("ProductVariant {VariantId} stock became negative: {Stock}", 
-                                orderItem.ProductVariant.Id, orderItem.ProductVariant.StockQuantity);
-                        }
-                        
-                        _logger.LogInformation("Updated ProductVariant {VariantId} stock from {PrevStock} to {NewStock} (Order Qty: {OrderQty})", 
-                            orderItem.ProductVariant.Id, previousStock, orderItem.ProductVariant.StockQuantity, orderItem.Quantity);
+                        _logger.LogWarning(
+                            "ProductVariant {VariantId} stock became negative: {Stock}",
+                            orderItem.ProductVariant.Id,
+                            orderItem.ProductVariant.StockQuantity);
                     }
                 }
             }
 
-            // Step 5: Save all changes
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Step 6: Send order confirmation email (fire-and-forget, don't block webhook response)
             try
             {
                 var parent = order.ChildProfile?.ParentUser;
                 if (parent != null && !string.IsNullOrEmpty(parent.Email))
                 {
-                    var orderCode = order.Id.ToString()[..8].ToUpper();
-                    var campaignName = order.Campaign?.CampaignName ?? "N/A";
+                    var orderCode = order.Id.ToString()[..8].ToUpperInvariant();
+                    var campaignName = order.Campaign?.CampaignName ?? "Marketplace order";
                     await _emailService.SendOrderConfirmationEmailAsync(
-                        parent.Email, parent.FullName, orderCode,
-                        order.TotalAmount, campaignName, cancellationToken);
+                        parent.Email,
+                        parent.FullName,
+                        orderCode,
+                        order.TotalAmount,
+                        campaignName,
+                        cancellationToken);
                 }
             }
             catch (Exception emailEx)
             {
                 _logger.LogWarning(emailEx, "Failed to send order confirmation email for Order {OrderId}", order.Id);
             }
-
-            _logger.LogInformation("Payment webhook processed successfully: TransactionId={TransactionId}, OrderId={OrderId}", 
-                paymentTransaction.Id, order.Id);
 
             return Result<PaymentWebhookProcessResponse>.Success(new PaymentWebhookProcessResponse("Payment processed successfully"));
         }
@@ -181,5 +161,36 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
             _logger.LogError(ex, "Error processing successful payment for transaction {TransactionId}", paymentTransaction.Id);
             return Result<PaymentWebhookProcessResponse>.Failure($"Error processing successful payment: {ex.Message}", "PAYMENT_PROCESSING_ERROR");
         }
+    }
+
+    private async Task<Wallet?> ResolveSchoolWalletAsync(Order order, CancellationToken cancellationToken)
+    {
+        var schoolId = order.ChildProfile?.SchoolID;
+        if (!schoolId.HasValue || schoolId == Guid.Empty)
+            return null;
+
+        var wallet = await _context.Wallets
+            .FirstOrDefaultAsync(
+                w => w.OwnerID == schoolId.Value &&
+                     w.OwnerType == WalletOwnerType.School &&
+                     w.IsActive,
+                cancellationToken);
+
+        if (wallet != null)
+            return wallet;
+
+        wallet = new Wallet
+        {
+            Id = Guid.NewGuid(),
+            OwnerID = schoolId.Value,
+            OwnerType = WalletOwnerType.School,
+            Balance = 0,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Wallets.Add(wallet);
+        return wallet;
     }
 }

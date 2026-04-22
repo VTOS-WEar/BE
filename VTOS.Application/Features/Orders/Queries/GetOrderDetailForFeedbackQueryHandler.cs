@@ -25,6 +25,7 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
         var order = await _context.Orders
             .AsNoTracking()
             .Include(o => o.ChildProfile)
+            .Include(o => o.Provider)
             .Include(o => o.Campaign)
                 .ThenInclude(c => c!.CampaignOutfits)
             .Include(o => o.OrderItems)
@@ -52,18 +53,16 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
 
             var outfit = oi.ProductVariant.Outfit;
             
-            // Find the CampaignOutfit that corresponds to this order and outfit
+            // Find the CampaignOutfit that corresponds to this order and outfit (if any)
             var campaignOutfit = order.Campaign?.CampaignOutfits
                 .FirstOrDefault(co => co.OutfitID == outfit.Id);
-
-            var campaignOutfitId = campaignOutfit?.Id ?? Guid.Empty;
 
             items.Add(new OrderItemForFeedbackDto
             {
                 OrderItemId = oi.Id,
-                CampaignOutfitId = campaignOutfitId,
+                CampaignOutfitId = campaignOutfit?.Id,
                 ProductVariantId = oi.ProductVariantID,
-                CampaignId = order.CampaignID!.Value,
+                CampaignId = order.CampaignID,
                 OutfitId = outfit.Id,
                 OutfitName = outfit.OutfitName,
                 OutfitImage = oi.ProductVariant.VariantImageURL ?? outfit.MainImageURL,
@@ -83,7 +82,10 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
             OrderStatus = order.OrderStatus.ToString(),
             OrderDate = order.OrderDate,
             ShippingAddress = order.ShippingAddress,
-            CampaignName = order.Campaign?.CampaignName ?? string.Empty,
+            CampaignName = order.Campaign?.CampaignName,
+            CampaignId = order.CampaignID,
+            ProviderName = order.Provider?.ProviderName,
+            ProviderId = order.ProviderID,
             Items = items
         };
 

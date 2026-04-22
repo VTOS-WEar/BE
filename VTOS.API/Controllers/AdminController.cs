@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Features.Admin.Commands;
 using VTOS.Application.Features.Admin.Queries;
@@ -63,7 +63,7 @@ public class AdminController : ControllerBase
     // Phase 04: Admin UI Revamp
     private readonly IGetAdminCashFlowQueryHandler _cashFlowHandler;
     private readonly IGetAllTransactionsQueryHandler _allTransactionsHandler;
-    private readonly IGetAllComplaintsQueryHandler _allComplaintsHandler;
+    private readonly IGetAllSupportTicketsQueryHandler _allComplaintsHandler;
     private readonly IAdminInterventionCommandHandler _interventionHandler;
 
     public AdminController(
@@ -101,7 +101,7 @@ public class AdminController : ControllerBase
         MonitorPaymentTransactionsQueryHandler monitorPaymentTransactionsHandler,
         IGetAdminCashFlowQueryHandler cashFlowHandler,
         IGetAllTransactionsQueryHandler allTransactionsHandler,
-        IGetAllComplaintsQueryHandler allComplaintsHandler,
+        IGetAllSupportTicketsQueryHandler allComplaintsHandler,
         IAdminInterventionCommandHandler interventionHandler)
     {
         _usersHandler = usersHandler;
@@ -635,7 +635,7 @@ public class AdminController : ControllerBase
     [HttpGet("complaints")]
     public async Task<IActionResult> GetAllComplaints(
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
-        [FromQuery] Domain.Enums.ComplaintStatus? status = null,
+        [FromQuery] Domain.Enums.SupportTicketStatus? status = null,
         CancellationToken ct = default)
     {
         var result = await _allComplaintsHandler.HandleAsync(page, pageSize, status, ct);

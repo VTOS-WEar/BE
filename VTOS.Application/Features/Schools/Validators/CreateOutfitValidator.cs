@@ -11,9 +11,6 @@ public class CreateOutfitValidator : AbstractValidator<CreateOutfitCommand>
             .NotEmpty().WithMessage("Outfit name is required.")
             .MaximumLength(255).WithMessage("Outfit name must not exceed 255 characters.");
 
-        RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Price must be greater than 0.");
-
         RuleFor(x => x.OutfitType)
             .IsInEnum().WithMessage("Invalid outfit type. Valid values: Uniform=1, Sportswear=2, Accessory=3, Other=4.");
 

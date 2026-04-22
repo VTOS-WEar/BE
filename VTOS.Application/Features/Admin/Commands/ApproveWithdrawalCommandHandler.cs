@@ -68,7 +68,7 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
                     "✅ Rút tiền đã duyệt",
                     $"Yêu cầu rút {withdrawal.Amount:N0}đ đã được duyệt.",
                     "Withdrawal", withdrawal.Id, "WithdrawalRequest",
-                    "/school/wallet", ct);
+                    "/school/dashboard", ct);
             else
                 await _notificationService.NotifyProviderAsync(wallet.OwnerID,
                     "✅ Rút tiền đã duyệt",
