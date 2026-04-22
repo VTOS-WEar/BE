@@ -57,7 +57,6 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
         if (command.OutfitName != null) outfit.OutfitName = command.OutfitName.Trim();
         if (command.Description != null) outfit.Description = string.IsNullOrWhiteSpace(command.Description) ? null : command.Description.Trim();
         if (command.MaterialType != null) outfit.MaterialType = string.IsNullOrWhiteSpace(command.MaterialType) ? null : command.MaterialType.Trim();
-        if (command.Price.HasValue) outfit.Price = command.Price.Value;
         if (command.OutfitType.HasValue) outfit.OutfitType = command.OutfitType.Value;
         if (command.MainImageURL != null) outfit.MainImageURL = string.IsNullOrWhiteSpace(command.MainImageURL) ? null : command.MainImageURL.Trim();
         if (command.SizeChartID.HasValue) outfit.SizeChartID = command.SizeChartID.Value;

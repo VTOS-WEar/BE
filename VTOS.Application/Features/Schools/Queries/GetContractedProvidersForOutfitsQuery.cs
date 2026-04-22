@@ -75,14 +75,11 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
             await _db.SaveChangesAsync(ct);
         }
 
-        // 3. Query active + not expired contracts with their items.
-        // Legacy campaign creation still expects a price field, so fall back to
-        // the outfit retail price when new supplier-agreement contracts carry zeroed legacy values.
+        // 3. Query active + not expired contracts with provider-owned pricing.
         var contractData = await _db.Contracts.AsNoTracking()
             .Where(c => c.SchoolID == schoolId && (c.Status == "Active" || c.Status == "InUse"))
             .Include(c => c.Provider)
             .Include(c => c.ContractItems)
-                .ThenInclude(ci => ci.Outfit)
             .SelectMany(c => c.ContractItems.Select(ci => new
             {
                 OutfitId = ci.OutfitID.ToString(),
@@ -90,7 +87,7 @@ public class GetContractedProvidersForOutfitsQueryHandler : IGetContractedProvid
                 ProviderName = c.Provider.ProviderName,
                 ContractId = c.Id,
                 ContractName = c.ContractName,
-                PricePerUnit = ci.PricePerUnit > 0 ? ci.PricePerUnit : ci.Outfit.Price,
+                PricePerUnit = ci.PricePerUnit,
             }))
             .ToListAsync(ct);
 
