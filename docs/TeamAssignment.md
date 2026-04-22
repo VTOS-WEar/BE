@@ -166,7 +166,6 @@
 
 | Feature | API Endpoint | Status |
 |---------|--------------|--------|
-| View Parent Orders | `GET /api/schools/me/orders` | ✅ Done |
 | Track Pre-order Progress | `GET /api/schools/me/campaigns/{id}/progress` | ✅ Done |
 | View Sales Reports | `GET /api/schools/me/reports/sales` | ✅ Done |
 | View Feedback Reports | `GET /api/schools/me/reports/feedback` | ✅ Done |
@@ -365,7 +364,7 @@ Features/Schools/
 ├── Queries/GetCampaignSelectedSizes, GetCampaignSummary, GetCampaignTotalQuantity
 ├── Queries/GetProductionOrderList, GetProductionOrderDetail, GetProductionOrderItems
 ├── Queries/GetProductionOrderQuantity, GetDeliveryDeadline, GetProductionComplaints
-├── DTOs/SchoolProfileDto, SchoolOrderDto, OutfitDto, etc.
+├── DTOs/SchoolProfileDto, OutfitDto, etc.
 └── Validators/UpdateSchoolProfileCommandValidator, etc.
 
 Features/TryOn/
@@ -384,3 +383,6 @@ Controllers/
 ├── TryOnController.cs
 └── AdminController.cs
 ```
+
+
+

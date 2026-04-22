@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Features.Public.Queries;
+using VTOS.Application.Features.Providers.DTOs;
+using VTOS.Application.Features.Providers.Queries;
 
 namespace VTOS.API.Controllers;
 
@@ -19,13 +21,14 @@ public class PublicController : ControllerBase
     private readonly GetOutfitDetailQueryHandler _getOutfitDetailHandler;
     private readonly GetSchoolDetailQueryHandler _getSchoolDetailHandler;
     private readonly GetUniformListQueryHandler _getUniformListHandler;
-    private readonly GetPublicCampaignDetailQueryHandler _getPublicCampaignDetailHandler;
     private readonly PublicSearchQueryHandler _publicSearchHandler;
     private readonly GetUniformWarehouseQueryHandler _getUniformWarehouseHandler;
     private readonly GetSchoolSemesterCatalogQueryHandler _getSchoolSemesterCatalogHandler;
     private readonly GetAllSchoolSemesterCatalogsQueryHandler _getAllSchoolSemesterCatalogsHandler;
     private readonly GetProvidersForPublicationOutfitQueryHandler _getProvidersForPublicationOutfitHandler;
     private readonly GetProviderPublicProfileQueryHandler _getProviderPublicProfileHandler;
+    private readonly IGetProviderRatingsQueryHandler _getProviderRatingsHandler;
+    private readonly IGetProviderRankingQueryHandler _getProviderRankingHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
@@ -33,26 +36,28 @@ public class PublicController : ControllerBase
         GetOutfitDetailQueryHandler getOutfitDetailHandler,
         GetSchoolDetailQueryHandler getSchoolDetailHandler,
         GetUniformListQueryHandler getUniformListHandler,
-        GetPublicCampaignDetailQueryHandler getPublicCampaignDetailHandler,
         PublicSearchQueryHandler publicSearchHandler,
         GetUniformWarehouseQueryHandler getUniformWarehouseHandler,
         GetSchoolSemesterCatalogQueryHandler getSchoolSemesterCatalogHandler,
         GetAllSchoolSemesterCatalogsQueryHandler getAllSchoolSemesterCatalogsHandler,
         GetProvidersForPublicationOutfitQueryHandler getProvidersForPublicationOutfitHandler,
-        GetProviderPublicProfileQueryHandler getProviderPublicProfileHandler)
+        GetProviderPublicProfileQueryHandler getProviderPublicProfileHandler,
+        IGetProviderRatingsQueryHandler getProviderRatingsHandler,
+        IGetProviderRankingQueryHandler getProviderRankingHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
         _getOutfitDetailHandler = getOutfitDetailHandler;
         _getSchoolDetailHandler = getSchoolDetailHandler;
         _getUniformListHandler = getUniformListHandler;
-        _getPublicCampaignDetailHandler = getPublicCampaignDetailHandler;
         _publicSearchHandler = publicSearchHandler;
         _getUniformWarehouseHandler = getUniformWarehouseHandler;
         _getSchoolSemesterCatalogHandler = getSchoolSemesterCatalogHandler;
         _getAllSchoolSemesterCatalogsHandler = getAllSchoolSemesterCatalogsHandler;
         _getProvidersForPublicationOutfitHandler = getProvidersForPublicationOutfitHandler;
         _getProviderPublicProfileHandler = getProviderPublicProfileHandler;
+        _getProviderRatingsHandler = getProviderRatingsHandler;
+        _getProviderRankingHandler = getProviderRankingHandler;
     }
 
     /// <summary>
@@ -172,25 +177,6 @@ public class PublicController : ControllerBase
     }
 
     /// <summary>
-    /// Get campaign detail with outfits (for Parent role).
-    /// GET /api/public/campaigns/{campaignId}
-    /// </summary>
-    [HttpGet("campaigns/{campaignId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetPublicCampaignDetail(
-        Guid campaignId,
-        CancellationToken ct = default)
-    {
-        var query = new GetPublicCampaignDetailQuery(campaignId);
-        var result = await _getPublicCampaignDetailHandler.HandleAsync(query, ct);
-
-        if (result == null)
-            return NotFound(new { message = "Campaign not found" });
-
-        return Ok(result);
-    }
-    /// <summary>
     /// Get summary data for the Uniform Warehouse page.
     /// Includes active campaigns, featured outfits, and all available outfits.
     /// </summary>
@@ -244,6 +230,25 @@ public class PublicController : ControllerBase
         var result = await _getProviderPublicProfileHandler.HandleAsync(new GetProviderPublicProfileQuery(providerId), ct);
         if (result == null)
             return NotFound(new { message = "Provider not found" });
+        return Ok(result);
+    }
+
+    [HttpGet("providers/{providerId:guid}/ratings")]
+    [ProducesResponseType(typeof(ProviderRatingsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProviderRatings(Guid providerId, CancellationToken ct = default)
+    {
+        var result = await _getProviderRatingsHandler.HandleAsync(new GetProviderRatingsQuery(providerId), ct);
+        if (result == null)
+            return NotFound(new { message = "Provider not found" });
+        return Ok(result);
+    }
+
+    [HttpGet("schools/{schoolId:guid}/provider-ranking")]
+    [ProducesResponseType(typeof(ProviderRankingResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProviderRanking(Guid schoolId, CancellationToken ct = default)
+    {
+        var result = await _getProviderRankingHandler.HandleAsync(new GetProviderRankingQuery(schoolId), ct);
         return Ok(result);
     }
 }

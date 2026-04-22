@@ -11,7 +11,6 @@ using VTOS.Application.Features.Schools.Commands;
 using VTOS.Application.Features.Schools.DTOs;
 using VTOS.Application.Features.Schools.Queries;
 using VTOS.Domain.Enums;
-using VTOS.Application.Features.Notifications;
 
 namespace VTOS.API.Controllers;
 
@@ -20,7 +19,6 @@ namespace VTOS.API.Controllers;
 /// UC-42: Maintain School Profile
 /// UC-43: Import Student Data
 /// UC-44: Publish Pre-order Campaign
-/// UC-45: View Parent Orders
 /// UC-46: Track Pre-order Progress
 /// UC-49: View Sales Reports
 /// UC-50: View Feedback Reports
@@ -33,8 +31,6 @@ public class SchoolsController : ControllerBase
     private readonly ICurrentUserService _currentUser;
     private readonly IGetSchoolProfileQueryHandler _getProfileHandler;
     private readonly IUpdateSchoolProfileCommandHandler _updateProfileHandler;
-    private readonly IGetSchoolOrdersQueryHandler _getOrdersHandler;
-    private readonly IGetCampaignProgressQueryHandler _getCampaignProgressHandler;
     private readonly IGetSalesReportQueryHandler _getSalesReportHandler;
     private readonly IGetFeedbackReportQueryHandler _getFeedbackReportHandler;
     private readonly IImportStudentDataCommandHandler _importStudentHandler;
@@ -43,31 +39,7 @@ public class SchoolsController : ControllerBase
     private readonly ICreateStudentCommandHandler _createStudentHandler;
     private readonly IUpdateStudentCommandHandler _updateStudentHandler;
     private readonly IDeleteStudentCommandHandler _deleteStudentHandler;
-    private readonly IPublishCampaignCommandHandler _publishCampaignHandler;
     private readonly IValidator<UpdateSchoolProfileCommand> _updateProfileValidator;
-    private readonly IValidator<PublishCampaignCommand> _publishCampaignValidator;
-    // UC 3.9.x handlers
-    private readonly IGetCampaignListQueryHandler _getCampaignListHandler;
-    private readonly IGetCampaignDetailQueryHandler _getCampaignDetailHandler;
-    private readonly IGetCampaignOrderedItemsQueryHandler _getCampaignOrderedItemsHandler;
-    private readonly IGetCampaignSelectedSizesQueryHandler _getCampaignSelectedSizesHandler;
-    private readonly ILockCampaignCommandHandler _lockCampaignHandler;
-    private readonly IUpdateCampaignCommandHandler _updateCampaignHandler;
-    private readonly IPublishDraftCommandHandler _publishDraftHandler;
-    private readonly IDeleteCampaignCommandHandler _deleteCampaignHandler;
-    private readonly IGetCampaignSummaryQueryHandler _getCampaignSummaryHandler;
-    private readonly IGetCampaignTotalQuantityQueryHandler _getCampaignTotalQuantityHandler;
-    private readonly IGenerateProductionOrderCommandHandler _generateProductionOrderHandler;
-    private readonly ISendProductionRequestCommandHandler _sendProductionRequestHandler;
-    private readonly IConfirmProductionOrderCommandHandler _confirmProductionOrderHandler;
-    private readonly IGetProductionSupportTicketsQueryHandler _getProductionComplaintsHandler;
-    private readonly IGetProductionOrderListQueryHandler _getProductionOrderListHandler;
-    private readonly IGetProductionOrderDetailQueryHandler _getProductionOrderDetailHandler;
-    private readonly IGetProductionOrderItemsQueryHandler _getProductionOrderItemsHandler;
-    private readonly IGetProductionOrderQuantityQueryHandler _getProductionOrderQuantityHandler;
-    private readonly IGetDeliveryDeadlineQueryHandler _getDeliveryDeadlineHandler;
-    private readonly IProcessProductionOrderCommandHandler _processProductionOrderHandler;
-    private readonly IRejectProductionOrderCommandHandler _rejectProductionOrderHandler;
     private readonly IImageUploadService _imageUploadService;
     private readonly IGetSchoolGradesQueryHandler _getGradesHandler;
     private readonly IGetImportHistoryQueryHandler _getImportHistoryHandler;
@@ -77,43 +49,22 @@ public class SchoolsController : ControllerBase
     private readonly IUpdateOutfitCommandHandler _updateOutfitHandler;
     private readonly IDeleteOutfitCommandHandler _deleteOutfitHandler;
     private readonly IGetProvidersQueryHandler _getProvidersHandler;
-    private readonly IApproveRefundCommandHandler _approveRefundHandler;
     private readonly IGetOutfitVariantsQueryHandler _getVariantsHandler;
     private readonly ICreateVariantCommandHandler _createVariantHandler;
     private readonly IUpdateVariantCommandHandler _updateVariantHandler;
     private readonly IDeleteVariantCommandHandler _deleteVariantHandler;
-    private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
-    private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
-    private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
     private readonly ICreateContractCommandHandler _createContractHandler;
     private readonly IGetContractsQueryHandler _getContractsHandler;
     private readonly IGetContractDetailQueryHandler _getContractDetailHandler;
     private readonly ICancelContractCommandHandler _cancelContractHandler;
     private readonly IRequestSignOTPCommandHandler _requestSignOTPHandler;
     private readonly ISignContractBySchoolCommandHandler _signContractBySchoolHandler;
-    // Phase 4 — Delivery & Distribution
-    private readonly IConfirmDeliveryCommandHandler _confirmDeliveryHandler;
-    private readonly IGetVerifyQuantityQueryHandler _getVerifyQuantityHandler;
-    private readonly IReportDefectCommandHandler _reportDefectHandler;
-    private readonly IDistributeOrdersCommandHandler _distributeOrdersHandler;
-    private readonly IGetDistributionStatusQueryHandler _getDistributionStatusHandler;
-    private readonly IGetSchoolDeliveryStatusQueryHandler _getSchoolDeliveryStatusHandler;
-    // Phase 5 — Complaints
-    private readonly IGetSupportTicketDetailQueryHandler _getComplaintDetailHandler;
-    private readonly ICloseSupportTicketCommandHandler _closeComplaintHandler;
-    // Phase 5 — Distribution Scheduling
-    private readonly Application.Features.Distribution.ICreateDistributionScheduleHandler _createScheduleHandler;
-    private readonly Application.Features.Distribution.IGetDistributionSchedulesHandler _getSchedulesHandler;
-    private readonly Application.Features.Distribution.IUpdateDistributionScheduleHandler _updateScheduleHandler;
     private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
-    private readonly INotificationService _notificationService;
 
     public SchoolsController(
         ICurrentUserService currentUser,
         IGetSchoolProfileQueryHandler getProfileHandler,
         IUpdateSchoolProfileCommandHandler updateProfileHandler,
-        IGetSchoolOrdersQueryHandler getOrdersHandler,
-        IGetCampaignProgressQueryHandler getCampaignProgressHandler,
         IGetSalesReportQueryHandler getSalesReportHandler,
         IGetFeedbackReportQueryHandler getFeedbackReportHandler,
         IImportStudentDataCommandHandler importStudentHandler,
@@ -122,31 +73,7 @@ public class SchoolsController : ControllerBase
         ICreateStudentCommandHandler createStudentHandler,
         IUpdateStudentCommandHandler updateStudentHandler,
         IDeleteStudentCommandHandler deleteStudentHandler,
-        IPublishCampaignCommandHandler publishCampaignHandler,
         IValidator<UpdateSchoolProfileCommand> updateProfileValidator,
-        IValidator<PublishCampaignCommand> publishCampaignValidator,
-        // UC 3.9.x
-        IGetCampaignListQueryHandler getCampaignListHandler,
-        IGetCampaignDetailQueryHandler getCampaignDetailHandler,
-        IGetCampaignOrderedItemsQueryHandler getCampaignOrderedItemsHandler,
-        IGetCampaignSelectedSizesQueryHandler getCampaignSelectedSizesHandler,
-        ILockCampaignCommandHandler lockCampaignHandler,
-        IUpdateCampaignCommandHandler updateCampaignHandler,
-        IPublishDraftCommandHandler publishDraftHandler,
-        IDeleteCampaignCommandHandler deleteCampaignHandler,
-        IGetCampaignSummaryQueryHandler getCampaignSummaryHandler,
-        IGetCampaignTotalQuantityQueryHandler getCampaignTotalQuantityHandler,
-        IGenerateProductionOrderCommandHandler generateProductionOrderHandler,
-        ISendProductionRequestCommandHandler sendProductionRequestHandler,
-        IConfirmProductionOrderCommandHandler confirmProductionOrderHandler,
-        IGetProductionSupportTicketsQueryHandler getProductionComplaintsHandler,
-        IGetProductionOrderListQueryHandler getProductionOrderListHandler,
-        IGetProductionOrderDetailQueryHandler getProductionOrderDetailHandler,
-        IGetProductionOrderItemsQueryHandler getProductionOrderItemsHandler,
-        IGetProductionOrderQuantityQueryHandler getProductionOrderQuantityHandler,
-        IGetDeliveryDeadlineQueryHandler getDeliveryDeadlineHandler,
-        IProcessProductionOrderCommandHandler processProductionOrderHandler,
-        IRejectProductionOrderCommandHandler rejectProductionOrderHandler,
         IImageUploadService imageUploadService,
         IGetSchoolGradesQueryHandler getGradesHandler,
         IGetImportHistoryQueryHandler getImportHistoryHandler,
@@ -156,41 +83,21 @@ public class SchoolsController : ControllerBase
         IUpdateOutfitCommandHandler updateOutfitHandler,
         IDeleteOutfitCommandHandler deleteOutfitHandler,
         IGetProvidersQueryHandler getProvidersHandler,
-        IApproveRefundCommandHandler approveRefundHandler,
         IGetOutfitVariantsQueryHandler getVariantsHandler,
         ICreateVariantCommandHandler createVariantHandler,
         IUpdateVariantCommandHandler updateVariantHandler,
         IDeleteVariantCommandHandler deleteVariantHandler,
-        ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
-        IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler,
-        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler,
         ICreateContractCommandHandler createContractHandler,
         IGetContractsQueryHandler getContractsHandler,
         IGetContractDetailQueryHandler getContractDetailHandler,
         ICancelContractCommandHandler cancelContractHandler,
         IRequestSignOTPCommandHandler requestSignOTPHandler,
         ISignContractBySchoolCommandHandler signContractBySchoolHandler,
-        // Phase 4
-        IConfirmDeliveryCommandHandler confirmDeliveryHandler,
-        IGetVerifyQuantityQueryHandler getVerifyQuantityHandler,
-        IReportDefectCommandHandler reportDefectHandler,
-        IDistributeOrdersCommandHandler distributeOrdersHandler,
-        IGetDistributionStatusQueryHandler getDistributionStatusHandler,
-        IGetSchoolDeliveryStatusQueryHandler getSchoolDeliveryStatusHandler,
-        // Phase 5
-        IGetSupportTicketDetailQueryHandler getComplaintDetailHandler,
-        ICloseSupportTicketCommandHandler closeComplaintHandler,
-        Application.Features.Distribution.ICreateDistributionScheduleHandler createScheduleHandler,
-        Application.Features.Distribution.IGetDistributionSchedulesHandler getSchedulesHandler,
-        Application.Features.Distribution.IUpdateDistributionScheduleHandler updateScheduleHandler,
-        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler,
-        INotificationService notificationService)
+        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
         _updateProfileHandler = updateProfileHandler;
-        _getOrdersHandler = getOrdersHandler;
-        _getCampaignProgressHandler = getCampaignProgressHandler;
         _getSalesReportHandler = getSalesReportHandler;
         _getFeedbackReportHandler = getFeedbackReportHandler;
         _importStudentHandler = importStudentHandler;
@@ -199,30 +106,7 @@ public class SchoolsController : ControllerBase
         _createStudentHandler = createStudentHandler;
         _updateStudentHandler = updateStudentHandler;
         _deleteStudentHandler = deleteStudentHandler;
-        _publishCampaignHandler = publishCampaignHandler;
         _updateProfileValidator = updateProfileValidator;
-        _publishCampaignValidator = publishCampaignValidator;
-        _getCampaignListHandler = getCampaignListHandler;
-        _getCampaignDetailHandler = getCampaignDetailHandler;
-        _getCampaignOrderedItemsHandler = getCampaignOrderedItemsHandler;
-        _getCampaignSelectedSizesHandler = getCampaignSelectedSizesHandler;
-        _lockCampaignHandler = lockCampaignHandler;
-        _updateCampaignHandler = updateCampaignHandler;
-        _publishDraftHandler = publishDraftHandler;
-        _deleteCampaignHandler = deleteCampaignHandler;
-        _getCampaignSummaryHandler = getCampaignSummaryHandler;
-        _getCampaignTotalQuantityHandler = getCampaignTotalQuantityHandler;
-        _generateProductionOrderHandler = generateProductionOrderHandler;
-        _sendProductionRequestHandler = sendProductionRequestHandler;
-        _confirmProductionOrderHandler = confirmProductionOrderHandler;
-        _getProductionComplaintsHandler = getProductionComplaintsHandler;
-        _getProductionOrderListHandler = getProductionOrderListHandler;
-        _getProductionOrderDetailHandler = getProductionOrderDetailHandler;
-        _getProductionOrderItemsHandler = getProductionOrderItemsHandler;
-        _getProductionOrderQuantityHandler = getProductionOrderQuantityHandler;
-        _getDeliveryDeadlineHandler = getDeliveryDeadlineHandler;
-        _processProductionOrderHandler = processProductionOrderHandler;
-        _rejectProductionOrderHandler = rejectProductionOrderHandler;
         _imageUploadService = imageUploadService;
         _getGradesHandler = getGradesHandler;
         _getImportHistoryHandler = getImportHistoryHandler;
@@ -232,33 +116,17 @@ public class SchoolsController : ControllerBase
         _updateOutfitHandler = updateOutfitHandler;
         _deleteOutfitHandler = deleteOutfitHandler;
         _getProvidersHandler = getProvidersHandler;
-        _approveRefundHandler = approveRefundHandler;
         _getVariantsHandler = getVariantsHandler;
         _createVariantHandler = createVariantHandler;
         _updateVariantHandler = updateVariantHandler;
         _deleteVariantHandler = deleteVariantHandler;
-        _createWithdrawalHandler = createWithdrawalHandler;
-        _updateBankAccountHandler = updateBankAccountHandler;
-        _getSchoolRefundsHandler = getSchoolRefundsHandler;
         _createContractHandler = createContractHandler;
         _getContractsHandler = getContractsHandler;
         _getContractDetailHandler = getContractDetailHandler;
         _cancelContractHandler = cancelContractHandler;
         _requestSignOTPHandler = requestSignOTPHandler;
         _signContractBySchoolHandler = signContractBySchoolHandler;
-        _confirmDeliveryHandler = confirmDeliveryHandler;
-        _getVerifyQuantityHandler = getVerifyQuantityHandler;
-        _reportDefectHandler = reportDefectHandler;
-        _distributeOrdersHandler = distributeOrdersHandler;
-        _getDistributionStatusHandler = getDistributionStatusHandler;
-        _getSchoolDeliveryStatusHandler = getSchoolDeliveryStatusHandler;
-        _getComplaintDetailHandler = getComplaintDetailHandler;
-        _closeComplaintHandler = closeComplaintHandler;
-        _createScheduleHandler = createScheduleHandler;
-        _getSchedulesHandler = getSchedulesHandler;
-        _updateScheduleHandler = updateScheduleHandler;
         _getContractedProvidersHandler = getContractedProvidersHandler;
-        _notificationService = notificationService;
     }
 
 
@@ -614,7 +482,6 @@ public class SchoolsController : ControllerBase
                 request.OutfitName,
                 request.Description,
                 request.MaterialType,
-                request.Price,
                 request.OutfitType,
                 request.MainImageURL,
                 request.SizeChartID,
@@ -652,7 +519,6 @@ public class SchoolsController : ControllerBase
                 request.OutfitName,
                 request.Description,
                 request.MaterialType,
-                request.Price,
                 request.OutfitType,
                 request.MainImageURL,
                 request.SizeChartID,
@@ -673,7 +539,7 @@ public class SchoolsController : ControllerBase
     {
         var userId = _currentUser.UserId;
         var result = await _updateOutfitHandler.HandleAsync(
-            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, null, request.IsAvailable, null), ct);
+            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, request.IsAvailable, null), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -870,88 +736,6 @@ public class SchoolsController : ControllerBase
     }
 
     /// <summary>
-    /// UC-44: Publish (or save as draft) a pre-order campaign.
-    /// </summary>
-    [HttpPost("me/campaigns")]
-    [ProducesResponseType(typeof(PublishCampaignResponseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> PublishCampaign([FromBody] PublishCampaignRequest request, CancellationToken ct)
-    {
-        var command = new PublishCampaignCommand(
-            _currentUser.UserId,
-            request.CampaignName,
-            request.Description,
-            request.StartDate,
-            request.EndDate,
-            request.Outfits.Select(o => new CampaignOutfitInput(
-                o.OutfitId,
-                o.ProviderId,
-                o.CampaignPrice,
-                o.MaxQuantity
-            )).ToList(),
-            request.SaveAsDraft
-        );
-
-        var validationResult = await _publishCampaignValidator.ValidateAsync(command, ct);
-        if (!validationResult.IsValid)
-            return BadRequest(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
-
-        var result = await _publishCampaignHandler.HandleAsync(command, ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
-        return StatusCode(StatusCodes.Status201Created, result.Value);
-    }
-
-    /// <summary>
-    /// UC-45: View parent orders for the school.
-    /// </summary>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <param name="pageSize">Items per page (default: 10)</param>
-    /// <param name="status">Optional order status filter</param>
-    [HttpGet("me/orders")]
-    [ProducesResponseType(typeof(SchoolOrderListResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetOrders(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? status = null,
-        [FromQuery] string? search = null,
-        CancellationToken ct = default)
-    {
-        // First get school ID from current user
-        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
-        if (!profileResult.IsSuccess)
-            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
-
-        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status, search);
-        var result = await _getOrdersHandler.HandleAsync(query, ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>
-    /// UC-46: Track pre-order progress for a campaign.
-    /// </summary>
-    /// <param name="id">Campaign ID</param>
-    [HttpGet("me/campaigns/{id:guid}/progress")]
-    [ProducesResponseType(typeof(CampaignProgressDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetCampaignProgress(Guid id, CancellationToken ct)
-    {
-        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
-        if (!profileResult.IsSuccess)
-            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
-
-        var query = new GetCampaignProgressQuery(profileResult.Value!.Id, id);
-        var result = await _getCampaignProgressHandler.HandleAsync(query, ct);
-        if (!result.IsSuccess)
-            return NotFound(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>
     /// UC-49: View sales reports.
     /// </summary>
     /// <param name="fromDate">Optional start date filter</param>
@@ -996,376 +780,6 @@ public class SchoolsController : ControllerBase
         var result = await _getFeedbackReportHandler.HandleAsync(query, ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // UC 3.9.x — Pre-Order & Production Management
-    // ──────────────────────────────────────────────────────────────────────────
-
-    /// <summary>UC 3.9.2 — View campaign list for the school.</summary>
-    [HttpGet("me/campaigns")]
-    [ProducesResponseType(typeof(GetCampaignListResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCampaignList(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? status = null,
-        CancellationToken ct = default)
-    {
-        var result = await _getCampaignListHandler.HandleAsync(
-            new GetCampaignListQuery(_currentUser.UserId, page, pageSize, status), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.3 — View campaign detail.</summary>
-    [HttpGet("me/campaigns/{id:guid}")]
-    [ProducesResponseType(typeof(CampaignDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetCampaignDetail(Guid id, CancellationToken ct)
-    {
-        var result = await _getCampaignDetailHandler.HandleAsync(new GetCampaignDetailQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.4 — View ordered items for a campaign.</summary>
-    [HttpGet("me/campaigns/{id:guid}/items")]
-    [ProducesResponseType(typeof(IReadOnlyList<CampaignOrderedItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCampaignOrderedItems(Guid id, CancellationToken ct)
-    {
-        var result = await _getCampaignOrderedItemsHandler.HandleAsync(new GetCampaignOrderedItemsQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.5a — View selected sizes for a campaign.</summary>
-    [HttpGet("me/campaigns/{id:guid}/sizes")]
-    [ProducesResponseType(typeof(IReadOnlyList<CampaignOutfitSizesDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCampaignSelectedSizes(Guid id, CancellationToken ct)
-    {
-        var result = await _getCampaignSelectedSizesHandler.HandleAsync(new GetCampaignSelectedSizesQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.5b — Lock a pre-order campaign (no more orders accepted).</summary>
-    [HttpPost("me/campaigns/{id:guid}/lock")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> LockCampaign(Guid id, CancellationToken ct)
-    {
-        var result = await _lockCampaignHandler.HandleAsync(new LockCampaignCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>UC 3.9.5c — Edit a draft campaign.</summary>
-    [HttpPut("me/campaigns/{id:guid}")]
-    [ProducesResponseType(typeof(CampaignDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateCampaign(Guid id, [FromBody] UpdateCampaignRequest request, CancellationToken ct)
-    {
-        var command = new UpdateCampaignCommand(
-            _currentUser.UserId,
-            id,
-            request.CampaignName,
-            request.Description,
-            request.StartDate,
-            request.EndDate,
-            request.Outfits.Select(o => new CampaignOutfitInput(
-                o.OutfitId, o.ProviderId, o.CampaignPrice, o.MaxQuantity
-            )).ToList()
-        );
-
-        var result = await _updateCampaignHandler.HandleAsync(command, ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.5d — Publish a draft campaign, making it Active and open for orders.</summary>
-    [HttpPost("me/campaigns/{id:guid}/publish")]
-    [ProducesResponseType(typeof(PublishCampaignResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> PublishDraft(Guid id, CancellationToken ct)
-    {
-        var result = await _publishDraftHandler.HandleAsync(new PublishDraftCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.5e — Delete a draft campaign (no orders only).</summary>
-    [HttpDelete("me/campaigns/{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> DeleteCampaign(Guid id, CancellationToken ct)
-    {
-        var result = await _deleteCampaignHandler.HandleAsync(new DeleteCampaignCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return NoContent();
-    }
-
-    /// <summary>UC 3.9.6 — View pre-order summary for a campaign.</summary>
-    [HttpGet("me/campaigns/{id:guid}/summary")]
-    [ProducesResponseType(typeof(CampaignSummaryDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCampaignSummary(Guid id, CancellationToken ct)
-    {
-        var result = await _getCampaignSummaryHandler.HandleAsync(new GetCampaignSummaryQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.7 — Calculate total quantity for a campaign.</summary>
-    [HttpGet("me/campaigns/{id:guid}/quantity")]
-    [ProducesResponseType(typeof(CampaignTotalQuantityDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCampaignTotalQuantity(Guid id, CancellationToken ct)
-    {
-        var result = await _getCampaignTotalQuantityHandler.HandleAsync(new GetCampaignTotalQuantityQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.8 — Generate a production order from a locked campaign.</summary>
-    [HttpPost("me/campaigns/{id:guid}/production-order")]
-    [ProducesResponseType(typeof(GenerateProductionOrderResponseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GenerateProductionOrder(Guid id, [FromBody] GenerateProductionOrderRequest request, CancellationToken ct)
-    {
-        var result = await _generateProductionOrderHandler.HandleAsync(
-            new GenerateProductionOrderCommand(_currentUser.UserId, id, request), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return StatusCode(StatusCodes.Status201Created, result.Value);
-    }
-
-    /// <summary>UC 3.9.9 — Send production request to provider.</summary>
-    [HttpPost("me/batches/{id:guid}/send")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SendProductionRequest(Guid id, CancellationToken ct)
-    {
-        var result = await _sendProductionRequestHandler.HandleAsync(new SendProductionRequestCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>UC 3.9.10 — Confirm a production order.</summary>
-    [HttpPost("me/campaigns/{id:guid}/confirm")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ConfirmProductionOrder(Guid id, CancellationToken ct)
-    {
-        var result = await _confirmProductionOrderHandler.HandleAsync(new ConfirmProductionOrderCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>UC 3.9.11 — View production complaints for the school.</summary>
-    [HttpGet("me/complaints")]
-    [ProducesResponseType(typeof(GetProductionSupportTicketsResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetProductionComplaints(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? status = null,
-        CancellationToken ct = default)
-    {
-        var result = await _getProductionComplaintsHandler.HandleAsync(
-            new GetProductionSupportTicketsQuery(_currentUser.UserId, page, pageSize, status), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.10.5 — View complaint detail.</summary>
-    [HttpGet("me/complaints/{id:guid}")]
-    [ProducesResponseType(typeof(SupportTicketDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetComplaintDetail(Guid id, CancellationToken ct)
-    {
-        var result = await _getComplaintDetailHandler.HandleAsync(
-            new GetSupportTicketDetailQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.10.7 — Close a resolved complaint.</summary>
-    [HttpPut("me/complaints/{id:guid}/close")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CloseComplaint(Guid id, CancellationToken ct)
-    {
-        var result = await _closeComplaintHandler.HandleAsync(
-            new CloseSupportTicketCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>UC 3.9.12 — View production order list.</summary>
-    [HttpGet("me/production-orders")]
-    [ProducesResponseType(typeof(GetProductionOrderListResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetProductionOrderList(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? status = null,
-        CancellationToken ct = default)
-    {
-        var result = await _getProductionOrderListHandler.HandleAsync(
-            new GetProductionOrderListQuery(_currentUser.UserId, page, pageSize, status), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.13 — View production order detail.</summary>
-    [HttpGet("me/production-orders/{id:guid}")]
-    [ProducesResponseType(typeof(ProductionOrderDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProductionOrderDetail(Guid id, CancellationToken ct)
-    {
-        var result = await _getProductionOrderDetailHandler.HandleAsync(new GetProductionOrderDetailQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.14 — View items in a production order.</summary>
-    [HttpGet("me/production-orders/{id:guid}/items")]
-    [ProducesResponseType(typeof(IReadOnlyList<ProductionBatchItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetProductionOrderItems(Guid id, CancellationToken ct)
-    {
-        var result = await _getProductionOrderItemsHandler.HandleAsync(new GetProductionOrderItemsQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.15 — View required quantity for a production order.</summary>
-    [HttpGet("me/production-orders/{id:guid}/quantity")]
-    [ProducesResponseType(typeof(ProductionOrderQuantityDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetProductionOrderQuantity(Guid id, CancellationToken ct)
-    {
-        var result = await _getProductionOrderQuantityHandler.HandleAsync(new GetProductionOrderQuantityQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.16 — View delivery deadline for a production order.</summary>
-    [HttpGet("me/production-orders/{id:guid}/deadline")]
-    [ProducesResponseType(typeof(DeliveryDeadlineDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetDeliveryDeadline(Guid id, CancellationToken ct)
-    {
-        var result = await _getDeliveryDeadlineHandler.HandleAsync(new GetDeliveryDeadlineQuery(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>UC 3.9.17 — Process (mark InProduction) a confirmed production order.</summary>
-    [HttpPost("me/production-orders/{id:guid}/process")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ProcessProductionOrder(Guid id, CancellationToken ct)
-    {
-        var result = await _processProductionOrderHandler.HandleAsync(new ProcessProductionOrderCommand(_currentUser.UserId, id), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>UC 3.9.18 — Reject a production order with a reason.</summary>
-    [HttpPost("me/production-orders/{id:guid}/reject")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> RejectProductionOrder(
-        Guid id,
-        [FromBody] RejectProductionOrderRequest request,
-        CancellationToken ct)
-    {
-        var result = await _rejectProductionOrderHandler.HandleAsync(
-            new RejectProductionOrderCommand(_currentUser.UserId, id, request.Reason), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>
-    /// Approve a refund request: deduct school wallet, payout to parent bank account, update statuses.
-    /// </summary>
-    [HttpPost("me/refunds/{refundId:guid}/approve")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ApproveRefund(
-        Guid refundId,
-        CancellationToken ct)
-    {
-        var result = await _approveRefundHandler.HandleAsync(
-            new ApproveRefundCommand(_currentUser.UserId, refundId), ct);
-
-        if (!result.IsSuccess)
-        {
-            return result.ErrorCode is "REFUND_NOT_FOUND" or "SCHOOL_NOT_FOUND" or "USER_NOT_FOUND"
-                ? NotFound(new { error = result.Error, code = result.ErrorCode })
-                : BadRequest(new { error = result.Error, code = result.ErrorCode });
-        }
-
-        return Ok(result.Value);
-    }
-
-    /// <summary>
-    /// Get refund requests for the current school.
-    /// </summary>
-    [HttpGet("me/refunds")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetRefunds(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? status = null,
-        CancellationToken ct = default)
-    {
-        var result = await _getSchoolRefundsHandler.HandleAsync(
-            new GetSchoolRefundsQuery(_currentUser.UserId, page, pageSize, status), ct);
-
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
-        return Ok(result.Value);
-    }
-
-    /// <summary>
-    /// Create a withdrawal request from school wallet.
-    /// </summary>
-    [HttpPost("me/wallet/withdrawals")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateWithdrawalRequest(
-        [FromBody] CreateWithdrawalRequest request,
-        CancellationToken ct)
-    {
-        var result = await _createWithdrawalHandler.HandleAsync(
-            new CreateWithdrawalRequestCommand(_currentUser.UserId, request.Amount), ct);
-
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
-        return Ok(result.Value);
-    }
-
-    /// <summary>
-    /// Update school bank account information on the wallet.
-    /// </summary>
-    [HttpPut("me/wallet/bank-account")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UpdateBankAccount(
-        [FromBody] UpdateSchoolBankAccountRequest request,
-        CancellationToken ct)
-    {
-        var result = await _updateBankAccountHandler.HandleAsync(
-            new UpdateSchoolBankAccountCommand(
-                _currentUser.UserId,
-                request.BankCode,
-                request.BankName,
-                request.BankAccountNumber,
-                request.BankAccountName), ct);
-
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
         return Ok(result.Value);
     }
 
@@ -1441,168 +855,7 @@ public class SchoolsController : ControllerBase
         return Ok(result.Value);
     }
 
-    // ──────── Delivery & Distribution (Phase 4) ────────
-
-    /// <summary>View delivery status for a production order (school side).</summary>
-    [HttpGet("me/production-orders/{batchId:guid}/delivery-status")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetDeliveryStatus(Guid batchId, CancellationToken ct)
-    {
-        var result = await _getSchoolDeliveryStatusHandler.HandleAsync(
-            new GetSchoolDeliveryStatusQuery(_currentUser.UserId, batchId), ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>Confirm a specific delivery record with accepted/defective quantities.</summary>
-    [HttpPut("me/production-orders/{batchId:guid}/confirm-delivery/{deliveryId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ConfirmDelivery(Guid batchId, Guid deliveryId, [FromBody] ConfirmDeliveryRequest request, CancellationToken ct)
-    {
-        var result = await _confirmDeliveryHandler.HandleAsync(
-            new ConfirmDeliveryCommand(_currentUser.UserId, batchId, deliveryId, request.AcceptedQuantity, request.DefectiveQuantity, request.DefectNote), ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
-
-    /// <summary>Verify delivered quantity vs expected per outfit/size.</summary>
-    [HttpGet("me/production-orders/{batchId:guid}/verify-quantity")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> VerifyQuantity(Guid batchId, CancellationToken ct)
-    {
-        var result = await _getVerifyQuantityHandler.HandleAsync(
-            new GetVerifyQuantityQuery(_currentUser.UserId, batchId), ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>Report defective uniforms (creates a Complaint).</summary>
-    [HttpPost("me/production-orders/{batchId:guid}/defect-report")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ReportDefect(Guid batchId, [FromBody] ReportDefectRequest request, CancellationToken ct)
-    {
-        var result = await _reportDefectHandler.HandleAsync(
-            new ReportDefectCommand(_currentUser.UserId, batchId, request.Title, request.Description, request.ProofImageUrls), ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
-        // Notify admins about new complaint
-        try
-        {
-            await _notificationService.NotifyAdminsAsync(
-                "⚠️ Khiếu nại mới",
-                $"Khiếu nại từ trường: {request.Title}",
-                "Complaint",
-                result.Value, "Complaint",
-                "/admin/complaints", ct);
-        }
-        catch { /* Don't fail the main operation */ }
-
-        return Ok(new { complaintId = result.Value });
-    }
-
-    /// <summary>Distribute uniforms to parent orders (AtSchool or AtHome).</summary>
-    [HttpPost("me/production-orders/{batchId:guid}/distribute")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> DistributeOrders(Guid batchId, [FromBody] DistributeOrdersRequest request, CancellationToken ct)
-    {
-        var result = await _distributeOrdersHandler.HandleAsync(
-            new DistributeOrdersCommand(_currentUser.UserId, batchId, request.OrderIds, request.ShippingCompany, request.TrackingCode, request.ProofImageUrl, request.Note), ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>View distribution status for a production order's campaign orders.</summary>
-    [HttpGet("me/production-orders/{batchId:guid}/distribution")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetDistributionStatus(Guid batchId, CancellationToken ct)
-    {
-        var result = await _getDistributionStatusHandler.HandleAsync(
-            new GetDistributionStatusQuery(_currentUser.UserId, batchId), ct);
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    // ──────── Distribution Scheduling (Phase 5) ────────
-
-    /// <summary>Create a distribution schedule for a batch.</summary>
-    [HttpPost("me/production-orders/{batchId:guid}/schedules")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateDistributionSchedule(Guid batchId, [FromBody] CreateScheduleRequest req, CancellationToken ct)
-    {
-        var result = await _createScheduleHandler.HandleAsync(
-            new Application.Features.Distribution.CreateDistributionScheduleCommand(
-                _currentUser.UserId, batchId, req.ScheduledDate, req.Method, req.TimeSlot, req.Note), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return StatusCode(StatusCodes.Status201Created, new { scheduleId = result.Value });
-    }
-
-    /// <summary>Get distribution schedules for a batch.</summary>
-    [HttpGet("me/production-orders/{batchId:guid}/schedules")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetDistributionSchedules(Guid batchId, CancellationToken ct)
-    {
-        var result = await _getSchedulesHandler.HandleAsync(_currentUser.UserId, batchId, ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(result.Value);
-    }
-
-    /// <summary>Update a distribution schedule.</summary>
-    [HttpPut("me/production-orders/schedules/{scheduleId:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> UpdateDistributionSchedule(Guid scheduleId, [FromBody] UpdateScheduleRequest req, CancellationToken ct)
-    {
-        var result = await _updateScheduleHandler.HandleAsync(_currentUser.UserId,
-            new Application.Features.Distribution.UpdateDistributionScheduleCommand(
-                scheduleId, req.ScheduledDate, req.Method, req.TimeSlot, req.Note, req.Status), ct);
-        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
-        return Ok(new { message = result.Value });
-    }
 }
-
-/// <summary>Request body for creating a withdrawal request.</summary>
-public record CreateWithdrawalRequest(decimal Amount);
-
-/// <summary>Request body for updating school bank account (partial update).</summary>
-public record UpdateSchoolBankAccountRequest(
-    string? BankCode = null,
-    string? BankName = null,
-    string? BankAccountNumber = null,
-    string? BankAccountName = null);
-
-/// <summary>Request body for UC 3.9.18 Reject Production Order.</summary>
-public record RejectProductionOrderRequest(string Reason);
-
-/// <summary>Request body for confirming delivery.</summary>
-public record ConfirmDeliveryRequest(int AcceptedQuantity, int? DefectiveQuantity, string? DefectNote);
-
-/// <summary>Request body for reporting defective uniforms.</summary>
-public record ReportDefectRequest(string Title, string Description, List<string>? ProofImageUrls);
-
-/// <summary>Request body for creating a distribution schedule.</summary>
-public record CreateScheduleRequest(DateTime ScheduledDate, string Method, string TimeSlot, string? Note);
-
-/// <summary>Request body for updating a distribution schedule.</summary>
-public record UpdateScheduleRequest(DateTime? ScheduledDate, string? Method, string? TimeSlot, string? Note, string? Status);
-
-/// <summary>Request body for distributing orders.</summary>
-public record DistributeOrdersRequest(
-    List<Guid> OrderIds,
-    string? ShippingCompany,
-    string? TrackingCode,
-    string? ProofImageUrl,
-    string? Note);
 
 public class UploadSchoolLogoRequest
 {
@@ -1624,7 +877,6 @@ public record CreateOutfitRequest(
     string OutfitName,
     string? Description,
     string? MaterialType,
-    decimal Price,
     OutfitType OutfitType,
     string? MainImageURL,
     Guid? SizeChartID,
@@ -1636,7 +888,6 @@ public record UpdateOutfitRequest(
     string? OutfitName = null,
     string? Description = null,
     string? MaterialType = null,
-    decimal? Price = null,
     OutfitType? OutfitType = null,
     string? MainImageURL = null,
     Guid? SizeChartID = null,

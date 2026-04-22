@@ -91,7 +91,10 @@ public class RefundOrderCommandHandler : IRefundOrderCommandHandler
         };
         _db.Refunds.Add(refund);
 
+        originalPayment.EscrowStatus = EscrowStatus.Refunded;
+        originalPayment.UpdatedAt = DateTime.UtcNow;
         order.OrderStatus = OrderStatus.Refunded;
+        order.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
 

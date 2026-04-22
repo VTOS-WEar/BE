@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Orders.DTOs;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Orders.Queries;
 
@@ -109,6 +110,18 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
         if (order == null)
             return Result<MyDirectOrderDetailDto>.Failure("Direct order not found.", "ORDER_NOT_FOUND");
 
+        var existingRating = await _context.ProviderRatings
+            .AsNoTracking()
+            .Where(x => x.OrderID == order.Id && x.ParentUserID == query.ParentId)
+            .Select(x => new ExistingProviderRatingDto
+            {
+                ProviderRatingId = x.Id,
+                Rating = x.Rating,
+                Comment = x.Comment,
+                CreatedAt = x.CreatedAt
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
         return Result<MyDirectOrderDetailDto>.Success(new MyDirectOrderDetailDto
         {
             OrderId = order.Id,
@@ -129,6 +142,8 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
             TrackingCode = order.TrackingCode,
             ShippingCompany = order.ShippingCompany,
             PaymentStatusName = order.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
+            CanRateProvider = order.OrderStatus == OrderStatus.Delivered && existingRating == null,
+            ExistingProviderRating = existingRating,
             Items = order.OrderItems.Select(oi => new MyDirectOrderDetailItemDto
             {
                 OrderItemId = oi.Id,

@@ -57,7 +57,6 @@ public record ContractedOutfitSuggestionDto(
     string OutfitName,
     string? MainImageURL,
     string OutfitType,
-    decimal PricePerUnit,
     string ContractName,
     Guid ContractID);
 

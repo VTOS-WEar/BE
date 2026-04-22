@@ -16,6 +16,7 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
         builder.Property(pt => pt.OrderID);
 
         builder.Property(pt => pt.WalletID);
+        builder.Property(pt => pt.PayoutRecordID);
 
         builder.Property(pt => pt.TransactionType)
             .IsRequired()
@@ -29,6 +30,10 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
 
         builder.Property(pt => pt.TransactionStatus)
             .IsRequired()
+            .HasMaxLength(50)
+            .HasConversion<string>();
+
+        builder.Property(pt => pt.EscrowStatus)
             .HasMaxLength(50)
             .HasConversion<string>();
 
@@ -59,6 +64,11 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
             .WithMany(w => w.PaymentTransactions)
             .HasForeignKey(pt => pt.WalletID)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(pt => pt.PayoutRecord)
+            .WithMany(pr => pr.PaymentTransactions)
+            .HasForeignKey(pt => pt.PayoutRecordID)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

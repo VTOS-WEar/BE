@@ -43,6 +43,16 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
         builder.Property(p => p.VerificationDocumentUrl)
             .HasMaxLength(500);
 
+        builder.Property(p => p.AverageRating)
+            .HasColumnType("decimal(4,2)")
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.TotalRatings)
+            .HasDefaultValue(0);
+
+        builder.Property(p => p.TotalCompletedOrders)
+            .HasDefaultValue(0);
+
         builder.Property(p => p.IsDeleted)
             .IsRequired();
 
@@ -57,6 +67,11 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
         builder.HasMany(p => p.ProductionBatches)
             .WithOne(pb => pb.Provider)
             .HasForeignKey(pb => pb.ProviderID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(p => p.ProviderRatings)
+            .WithOne(pr => pr.Provider)
+            .HasForeignKey(pr => pr.ProviderID)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

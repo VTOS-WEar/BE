@@ -477,8 +477,11 @@ public class ApproveProviderCommandHandler : IApproveProviderCommandHandler
         if (duplicate)
             return Result<SemesterPublicationDetailDto>.Failure("Provider is already approved for this publication.", "DUPLICATE_PROVIDER");
 
+        var usableContractStatuses = new[] { "Active", "InUse" };
         IQueryable<Contract> contractQuery = _db.Contracts.AsNoTracking()
-            .Where(x => x.SchoolID == publication.SchoolID && x.ProviderID == command.ProviderId && x.Status == "Active");
+            .Where(x => x.SchoolID == publication.SchoolID
+                     && x.ProviderID == command.ProviderId
+                     && usableContractStatuses.Contains(x.Status));
 
         if (command.ContractId.HasValue)
             contractQuery = contractQuery.Where(x => x.Id == command.ContractId.Value);
@@ -488,7 +491,7 @@ public class ApproveProviderCommandHandler : IApproveProviderCommandHandler
             .FirstOrDefaultAsync(ct);
         if (contract == null)
             return Result<SemesterPublicationDetailDto>.Failure(
-                "An active contract is required to approve this provider.",
+                "An active supplier agreement is required to approve this provider.",
                 "CONTRACT_NOT_FOUND");
 
         _context.PublicationProviders.Add(new SemesterPublicationProvider
@@ -649,7 +652,7 @@ public class GetContractedOutfitSuggestionsQueryHandler : IGetContractedOutfitSu
             return Result<IReadOnlyList<ContractedOutfitSuggestionDto>>.Failure(schoolIdResult.Error!, schoolIdResult.ErrorCode);
 
         var items = await _db.Contracts.AsNoTracking()
-            .Where(x => x.SchoolID == schoolIdResult.Value && x.Status == "Active")
+            .Where(x => x.SchoolID == schoolIdResult.Value && (x.Status == "Active" || x.Status == "InUse"))
             .Include(x => x.ContractItems)
                 .ThenInclude(x => x.Outfit)
             .SelectMany(x => x.ContractItems.Select(ci => new ContractedOutfitSuggestionDto(
@@ -657,7 +660,6 @@ public class GetContractedOutfitSuggestionsQueryHandler : IGetContractedOutfitSu
                 ci.Outfit.OutfitName,
                 ci.Outfit.MainImageURL,
                 ci.Outfit.OutfitType.ToString(),
-                ci.PricePerUnit,
                 x.ContractName,
                 x.Id)))
             .ToListAsync(ct);
@@ -684,7 +686,7 @@ public class GetContractedProviderSuggestionsQueryHandler : IGetContractedProvid
             return Result<IReadOnlyList<ContractedProviderSuggestionDto>>.Failure(schoolIdResult.Error!, schoolIdResult.ErrorCode);
 
         var items = await _db.Contracts.AsNoTracking()
-            .Where(x => x.SchoolID == schoolIdResult.Value && x.Status == "Active")
+            .Where(x => x.SchoolID == schoolIdResult.Value && (x.Status == "Active" || x.Status == "InUse"))
             .Include(x => x.Provider)
             .OrderByDescending(x => x.ApprovedAt ?? x.CreatedAt)
             .Select(x => new ContractedProviderSuggestionDto(

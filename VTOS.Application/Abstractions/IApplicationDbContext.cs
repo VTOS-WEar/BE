@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     DbSet<Feedback> Feedbacks { get; }
     DbSet<School> Schools { get; }
     DbSet<ClassGroup> ClassGroups { get; }
+    DbSet<TeacherReport> TeacherReports { get; }
     DbSet<Category> Categories { get; }
     DbSet<Outfit> Outfits { get; }
     DbSet<ProductVariant> ProductVariants { get; }
@@ -27,6 +28,8 @@ public interface IApplicationDbContext
     DbSet<Order> Orders { get; }
     DbSet<OrderItem> OrderItems { get; }
     DbSet<PaymentTransaction> PaymentTransactions { get; }
+    DbSet<ProviderRating> ProviderRatings { get; }
+    DbSet<PayoutRecord> PayoutRecords { get; }
     DbSet<Refund> Refunds { get; }
     DbSet<Campaign> Campaigns { get; }
     DbSet<CampaignOutfit> CampaignOutfits { get; }

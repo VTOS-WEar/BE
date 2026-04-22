@@ -112,6 +112,8 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
             // Step 8: Update refund status to Completed
             refund.RefundStatus = RefundStatus.Completed;
             refund.UpdatedAt = DateTime.UtcNow;
+            refund.PaymentTransaction.EscrowStatus = EscrowStatus.Refunded;
+            refund.PaymentTransaction.UpdatedAt = DateTime.UtcNow;
 
             // Step 9: Update order status to Refunded
             order.OrderStatus = OrderStatus.Refunded;

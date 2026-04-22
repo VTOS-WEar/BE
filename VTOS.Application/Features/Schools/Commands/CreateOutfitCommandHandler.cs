@@ -53,7 +53,7 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
             OutfitName = command.OutfitName.Trim(),
             Description = string.IsNullOrWhiteSpace(command.Description) ? null : command.Description.Trim(),
             MaterialType = string.IsNullOrWhiteSpace(command.MaterialType) ? null : command.MaterialType.Trim(),
-            Price = command.Price,
+            Price = 0,
             OutfitType = command.OutfitType,
             MainImageURL = string.IsNullOrWhiteSpace(command.MainImageURL) ? null : command.MainImageURL.Trim(),
             SizeChartID = command.SizeChartID,

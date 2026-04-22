@@ -48,6 +48,7 @@ public class User : BaseEntity
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
     public ICollection<OutfitRecommendation> OutfitRecommendations { get; set; } = new List<OutfitRecommendation>();
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    public ICollection<ProviderRating> ProviderRatings { get; set; } = new List<ProviderRating>();
     public ICollection<ParentBankAccount> BankAccounts { get; set; } = new List<ParentBankAccount>();
     public ICollection<ClassGroup> HomeroomClasses { get; set; } = new List<ClassGroup>();
 }

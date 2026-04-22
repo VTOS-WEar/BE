@@ -28,6 +28,7 @@ using VTOS.Application.Features.Children.Queries;
 using VTOS.Infrastructure.ExternalServices.PayOS;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.Queries;
+using VTOS.Application.Features.Payments.Commands;
 namespace VTOS.Infrastructure;
 
 public static class DependencyInjection
@@ -188,7 +189,6 @@ public static class DependencyInjection
         services.AddScoped<GetOutfitDetailQueryHandler>();
         services.AddScoped<GetSchoolDetailQueryHandler>();
         services.AddScoped<GetUniformListQueryHandler>();
-        services.AddScoped<GetPublicCampaignDetailQueryHandler>();
         services.AddScoped<PublicSearchQueryHandler>();
         services.AddScoped<GetUniformWarehouseQueryHandler>();
         services.AddScoped<GetSchoolSemesterCatalogQueryHandler>();
@@ -214,9 +214,13 @@ public static class DependencyInjection
         services.AddScoped<ICancelDirectOrderCommandHandler, CancelDirectOrderCommandHandler>();
         services.AddScoped<IGetMyDirectOrdersQueryHandler, GetMyDirectOrdersQueryHandler>();
         services.AddScoped<IGetMyDirectOrderDetailQueryHandler, GetMyDirectOrderDetailQueryHandler>();
+        services.AddScoped<IConfirmDirectOrderDeliveryCommandHandler, ConfirmDirectOrderDeliveryCommandHandler>();
+        services.AddScoped<IProviderPayoutService, ProviderPayoutService>();
 
         // Background Jobs
         services.AddHostedService<BackgroundJobs.StaleOrderCleanupService>();
+        services.AddHostedService<BackgroundJobs.AutoConfirmDeliveryJob>();
+        services.AddHostedService<BackgroundJobs.AutoPayoutJob>();
         services.AddHostedService<BackgroundJobs.PaymentDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.CampaignDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.AdminNotificationDigestJob>();
@@ -233,29 +237,11 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Admin.Commands.IAdminInterventionCommandHandler,
             VTOS.Application.Features.Admin.Commands.AdminInterventionCommandHandler>();
 
-        // Phase 05: Distribution Flow Improvements
-        services.AddScoped<VTOS.Application.Features.Distribution.ICreateDistributionScheduleHandler,
-            VTOS.Application.Features.Distribution.CreateDistributionScheduleHandler>();
-        services.AddScoped<VTOS.Application.Features.Distribution.IGetDistributionSchedulesHandler,
-            VTOS.Application.Features.Distribution.GetDistributionSchedulesHandler>();
-        services.AddScoped<VTOS.Application.Features.Distribution.IUpdateDistributionScheduleHandler,
-            VTOS.Application.Features.Distribution.UpdateDistributionScheduleHandler>();
-        services.AddScoped<VTOS.Application.Features.Distribution.IGetProviderDistributionOverviewHandler,
-            VTOS.Application.Features.Distribution.GetProviderDistributionOverviewHandler>();
-
-        // Refund Module Handler
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IApproveRefundCommandHandler,
-            VTOS.Application.Features.Schools.Commands.ApproveRefundCommandHandler>();
-
-        // School Module Handlers (UC-42, UC-45, UC-46, UC-49, UC-50)
+        // School Module Handlers (UC-42, UC-46, UC-49, UC-50)
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolProfileQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSchoolProfileQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolProfileCommandHandler,
             VTOS.Application.Features.Schools.Commands.UpdateSchoolProfileCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolOrdersQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetSchoolOrdersQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignProgressQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignProgressQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSalesReportQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSalesReportQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetFeedbackReportQueryHandler,
@@ -276,6 +262,24 @@ public static class DependencyInjection
             VTOS.Application.Features.Schools.Queries.GetTeacherClassesOverviewQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetTeacherClassDetailQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetTeacherClassDetailQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetTeacherDashboardQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetTeacherDashboardQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetTeacherClassOrderCoverageQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetTeacherClassOrderCoverageQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetTeacherClassFeedbackQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetTeacherClassFeedbackQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetTeacherReportsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetTeacherReportsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolTeacherReportsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolTeacherReportsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetTeacherReminderCandidatesQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetTeacherReminderCandidatesQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ISubmitTeacherReportCommandHandler,
+            VTOS.Application.Features.Schools.Commands.SubmitTeacherReportCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IReviewTeacherReportCommandHandler,
+            VTOS.Application.Features.Schools.Commands.ReviewTeacherReportCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ISendTeacherReminderCommandHandler,
+            VTOS.Application.Features.Schools.Commands.SendTeacherReminderCommandHandler>();
 
         // School Module - Student CRUD
         services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateStudentCommandHandler,
@@ -315,14 +319,6 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteVariantCommandHandler,
             VTOS.Application.Features.Schools.Commands.DeleteVariantCommandHandler>();
 
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishCampaignCommandHandler,
-            VTOS.Application.Features.Schools.Commands.PublishCampaignCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateCampaignCommandHandler,
-            VTOS.Application.Features.Schools.Commands.UpdateCampaignCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IPublishDraftCommandHandler,
-            VTOS.Application.Features.Schools.Commands.PublishDraftCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDeleteCampaignCommandHandler,
-            VTOS.Application.Features.Schools.Commands.DeleteCampaignCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateSemesterPublicationCommandHandler,
             VTOS.Application.Features.Schools.CreateSemesterPublicationCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSemesterPublicationCommandHandler,
@@ -342,39 +338,6 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Schools.Commands.ISuspendProviderCommandHandler,
             VTOS.Application.Features.Schools.SuspendProviderCommandHandler>();
 
-        // School Module - UC 3.9.x: Pre-Order & Production Management
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignListQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignListQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignDetailQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignDetailQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignOrderedItemsQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignOrderedItemsQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignSelectedSizesQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignSelectedSizesQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.ILockCampaignCommandHandler,
-            VTOS.Application.Features.Schools.Commands.LockCampaignCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignSummaryQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignSummaryQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetCampaignTotalQuantityQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetCampaignTotalQuantityQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IGenerateProductionOrderCommandHandler,
-            VTOS.Application.Features.Schools.Commands.GenerateProductionOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.ISendProductionRequestCommandHandler,
-            VTOS.Application.Features.Schools.Commands.SendProductionRequestCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IConfirmProductionOrderCommandHandler,
-            VTOS.Application.Features.Schools.Commands.ConfirmProductionOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionSupportTicketsQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetProductionSupportTicketsQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderListQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetProductionOrderListQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderDetailQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetProductionOrderDetailQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderItemsQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetProductionOrderItemsQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProductionOrderQuantityQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetProductionOrderQuantityQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetDeliveryDeadlineQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetDeliveryDeadlineQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSemesterPublicationsQueryHandler,
             VTOS.Application.Features.Schools.GetSemesterPublicationsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSemesterPublicationDetailQueryHandler,
@@ -383,22 +346,10 @@ public static class DependencyInjection
             VTOS.Application.Features.Schools.GetContractedOutfitSuggestionsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetContractedProviderSuggestionsQueryHandler,
             VTOS.Application.Features.Schools.GetContractedProviderSuggestionsQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IProcessProductionOrderCommandHandler,
-            VTOS.Application.Features.Schools.Commands.ProcessProductionOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IRejectProductionOrderCommandHandler,
-            VTOS.Application.Features.Schools.Commands.RejectProductionOrderCommandHandler>();
 
         // School Module - Provider Listing
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetProvidersQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetProvidersQueryHandler>();
-
-        // School Module - Withdrawal Request
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateWithdrawalRequestCommandHandler,
-            VTOS.Application.Features.Schools.Commands.CreateWithdrawalRequestCommandHandler>();
-
-        // School Module - Bank Account
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolBankAccountCommandHandler,
-            VTOS.Application.Features.Schools.Commands.UpdateSchoolBankAccountCommandHandler>();
 
         // Admin Module - Approve Withdrawal
         services.AddScoped<VTOS.Application.Features.Admin.Commands.IApproveWithdrawalCommandHandler,
@@ -412,10 +363,6 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Users.Commands.IAddParentBankAccountCommandHandler,
             VTOS.Application.Features.Users.Commands.AddParentBankAccountCommandHandler>();
 
-        // School Module - Get Refund Requests
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolRefundsQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetSchoolRefundsQueryHandler>();
-
         // Admin Module - Get Withdrawal Requests
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
@@ -427,20 +374,16 @@ public static class DependencyInjection
         // Provider Module - Profile
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProfileQueryHandler,
             VTOS.Application.Features.Providers.Queries.GetProviderProfileQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ISubmitProviderRatingCommandHandler,
+            VTOS.Application.Features.Providers.Commands.SubmitProviderRatingCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderRatingsQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderRatingsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderRankingQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderRankingQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateProviderProfileCommandHandler,
             VTOS.Application.Features.Providers.Commands.UpdateProviderProfileCommandHandler>();
 
-        // Provider Module - Production Orders (Phase 3)
-        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProductionOrderListQueryHandler,
-            VTOS.Application.Features.Providers.Queries.GetProviderProductionOrderListQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProductionOrderDetailQueryHandler,
-            VTOS.Application.Features.Providers.Queries.GetProviderProductionOrderDetailQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Providers.Commands.IAcceptProductionOrderCommandHandler,
-            VTOS.Application.Features.Providers.Commands.AcceptProductionOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Providers.Commands.ICompleteProductionOrderCommandHandler,
-            VTOS.Application.Features.Providers.Commands.CompleteProductionOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Providers.Commands.IProviderRejectProductionOrderCommandHandler,
-            VTOS.Application.Features.Providers.Commands.ProviderRejectProductionOrderCommandHandler>();
+        // Provider Module - Direct Orders
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderIncomingOrdersQueryHandler,
             VTOS.Application.Features.Providers.Queries.GetProviderIncomingOrdersQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderDirectOrderDetailQueryHandler,
@@ -456,31 +399,6 @@ public static class DependencyInjection
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IShipDirectOrderCommandHandler,
             VTOS.Application.Features.Providers.Commands.ShipDirectOrderCommandHandler>();
 
-        // Provider Module - Delivery (Phase 4)
-        services.AddScoped<VTOS.Application.Features.Providers.Commands.IDeliverProductionOrderCommandHandler,
-            VTOS.Application.Features.Providers.Commands.DeliverProductionOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetDeliveryStatusQueryHandler,
-            VTOS.Application.Features.Providers.Queries.GetDeliveryStatusQueryHandler>();
-
-        // School Module - Delivery & Distribution (Phase 4)
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IConfirmDeliveryCommandHandler,
-            VTOS.Application.Features.Schools.Commands.ConfirmDeliveryCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetVerifyQuantityQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetVerifyQuantityQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IReportDefectCommandHandler,
-            VTOS.Application.Features.Schools.Commands.ReportDefectCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IDistributeOrdersCommandHandler,
-            VTOS.Application.Features.Schools.Commands.DistributeOrdersCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetDistributionStatusQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetDistributionStatusQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolDeliveryStatusQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetSchoolDeliveryStatusQueryHandler>();
-
-        // Phase 5 - Complaints
-        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSupportTicketDetailQueryHandler,
-            VTOS.Application.Features.Schools.Queries.GetSupportTicketDetailQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICloseSupportTicketCommandHandler,
-            VTOS.Application.Features.Schools.Commands.CloseSupportTicketCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderSupportTicketsQueryHandler,
             VTOS.Application.Features.Providers.Queries.GetProviderSupportTicketsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderSupportTicketDetailQueryHandler,
@@ -503,6 +421,8 @@ public static class DependencyInjection
         // Contract Module (Phase 2)
         services.AddScoped<VTOS.Application.Features.Contracts.Commands.ICreateContractCommandHandler,
             VTOS.Application.Features.Contracts.Commands.CreateContractCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Contracts.Commands.IUpdateContractPricingCommandHandler,
+            VTOS.Application.Features.Contracts.Commands.UpdateContractPricingCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Commands.IApproveContractCommandHandler,
             VTOS.Application.Features.Contracts.Commands.ApproveContractCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Contracts.Commands.IRejectContractCommandHandler,
@@ -568,18 +488,10 @@ public static class DependencyInjection
         // Phase 6 - Internal Payment
         services.AddScoped<VTOS.Application.Features.Payments.Commands.IPayOrderCommandHandler,
             VTOS.Application.Features.Payments.Commands.PayOrderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Payments.Commands.IPayProviderCommandHandler,
-            VTOS.Application.Features.Payments.Commands.PayProviderCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Payments.Commands.IRefundOrderCommandHandler,
-            VTOS.Application.Features.Payments.Commands.RefundOrderCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Commands.IUpdateWalletBankInfoCommandHandler,
             VTOS.Application.Features.Payments.Commands.UpdateWalletBankInfoCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Commands.IGenerateInvoiceCommandHandler,
             VTOS.Application.Features.Payments.Commands.GenerateInvoiceCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetSchoolWalletQueryHandler,
-            VTOS.Application.Features.Payments.Queries.GetSchoolWalletQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetWalletTransactionsQueryHandler,
-            VTOS.Application.Features.Payments.Queries.GetWalletTransactionsQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetParentPaymentHistoryQueryHandler,
             VTOS.Application.Features.Payments.Queries.GetParentPaymentHistoryQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderRevenueQueryHandler,

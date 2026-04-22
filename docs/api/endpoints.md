@@ -51,7 +51,6 @@
 | POST | `/api/schools/me/students/import` | Import student data (CSV/XLSX) | ✅ Done |
 | GET | `/api/schools/me/students/import/template` | Download import template | ✅ Done |
 | POST | `/api/schools/me/campaigns` | Publish pre-order campaign | ✅ Done |
-| GET | `/api/schools/me/orders` | View parent orders | ✅ Done |
 | GET | `/api/schools/me/campaigns/{id}/progress` | Track campaign progress | ✅ Done |
 | GET | `/api/schools/me/reports/sales` | View sales reports | ✅ Done |
 | GET | `/api/schools/me/reports/feedback` | View feedback reports | ✅ Done |
@@ -148,3 +147,4 @@
 | OrdersController | `OrdersController.cs` | 4 |
 | PayOSController | `PayOSController.cs` | 5 |
 | **Total implemented** | | **66** |
+
