@@ -68,6 +68,15 @@ public record CreateContractItemRequest(
     Guid OutfitId
 );
 
+public record UpdateContractPricingRequest(
+    List<UpdateContractPricingItemRequest> Items
+);
+
+public record UpdateContractPricingItemRequest(
+    Guid ItemId,
+    decimal PricePerUnit
+);
+
 /// <summary>Request body for rejecting a contract (Provider).</summary>
 public record RejectContractRequest(string Reason);
 

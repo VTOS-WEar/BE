@@ -201,6 +201,51 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
 
 // ── Approve Contract Handler (Provider) — now moves to PendingSchoolSign ─────
 
+public class UpdateContractPricingCommandHandler : IUpdateContractPricingCommandHandler
+{
+    private readonly IApplicationDbContext _context;
+
+    public UpdateContractPricingCommandHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<ContractDto>> HandleAsync(UpdateContractPricingCommand command, CancellationToken ct = default)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
+        if (user == null) return Result<ContractDto>.Failure("User not found.", "NOT_FOUND");
+
+        var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr == null) return Result<ContractDto>.Failure("User is not linked to a provider.", "NOT_PROVIDER");
+
+        var contract = await ContractMapper.IncludeAll(_context.Contracts.AsQueryable())
+            .FirstOrDefaultAsync(c => c.Id == command.ContractId && c.ProviderID == providerMgr.ProviderID, ct);
+
+        if (contract == null) return Result<ContractDto>.Failure("Contract not found.", "NOT_FOUND");
+        if (contract.Status != "Pending")
+            return Result<ContractDto>.Failure("Only pending contracts can be priced.", "INVALID_STATUS");
+        if (command.Request.Items == null || command.Request.Items.Count == 0)
+            return Result<ContractDto>.Failure("At least one priced item is required.", "ITEMS_REQUIRED");
+
+        var submittedById = command.Request.Items.ToDictionary(x => x.ItemId, x => x);
+
+        foreach (var item in contract.ContractItems)
+        {
+            if (!submittedById.TryGetValue(item.Id, out var incoming))
+                return Result<ContractDto>.Failure("Missing pricing for one or more contract items.", "MISSING_ITEM_PRICE");
+            if (incoming.PricePerUnit <= 0)
+                return Result<ContractDto>.Failure("Price per unit must be greater than 0.", "INVALID_PRICE");
+
+            item.PricePerUnit = incoming.PricePerUnit;
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        var viewerMasked = ContractMapper.MaskEmail(user.Email);
+        return Result<ContractDto>.Success(ContractMapper.MapToDto(contract, viewerMasked));
+    }
+}
+
 public class ApproveContractCommandHandler : IApproveContractCommandHandler
 {
     private readonly IApplicationDbContext _context;
@@ -228,6 +273,8 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
         if (contract == null) return Result<ContractDto>.Failure("Contract not found.", "NOT_FOUND");
         if (contract.Status != "Pending")
             return Result<ContractDto>.Failure($"Contract is '{contract.Status}', only Pending contracts can be approved.", "INVALID_STATUS");
+        if (contract.ContractItems.Any(ci => ci.PricePerUnit <= 0))
+            return Result<ContractDto>.Failure("Set provider pricing for every item before approving the contract.", "PRICING_REQUIRED");
 
         // Transition: Pending → PendingSchoolSign (awaiting School's digital signature)
         contract.Status = "PendingSchoolSign";
