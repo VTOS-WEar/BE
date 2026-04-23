@@ -110,18 +110,18 @@ public class RetryPaymentCommandHandler : IRetryPaymentCommandHandler
 
             var paymentLinkResponse = await _payOSService.CreatePayOSPaymentLinkAsync(paymentLinkRequest, ct);
 
-            // 6. Get wallet ID from campaign if applicable
+            // 6. Legacy school-wallet routing applies only to non-direct orders.
             Guid? schoolWalletId = null;
-            if (order.CampaignID.HasValue && order.CampaignID != Guid.Empty)
+            if (order.ProviderID == null || order.SemesterPublicationID == null)
             {
-                schoolWalletId = await (
-                    from c in _context.Campaigns
-                    join w in _context.Wallets on c.SchoolID equals w.OwnerID
-                    where c.Id == order.CampaignID.Value
+                schoolWalletId = await _context.Wallets
+                    .AsNoTracking()
+                    .Where(w =>
+                        w.OwnerID == child.SchoolID
                         && w.OwnerType == WalletOwnerType.School
-                        && w.IsActive
-                    select w.Id
-                ).FirstOrDefaultAsync(ct);
+                        && w.IsActive)
+                    .Select(w => (Guid?)w.Id)
+                    .FirstOrDefaultAsync(ct);
 
                 if (schoolWalletId == Guid.Empty)
                     schoolWalletId = null;

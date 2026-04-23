@@ -46,7 +46,9 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
                     .ThenInclude(o => o.ChildProfile)
                         .ThenInclude(cp => cp.ParentUser)
                 .Include(pt => pt.Order)
-                    .ThenInclude(o => o.Campaign)
+                    .ThenInclude(o => o.Provider)
+                .Include(pt => pt.Order)
+                    .ThenInclude(o => o.SemesterPublication)
                 .Include(pt => pt.Wallet)
                 .FirstOrDefaultAsync(pt => pt.PaymentLinkId == webhook.Data.PaymentLinkId, cancellationToken);
 
@@ -138,15 +140,11 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
                 var parent = order.ChildProfile?.ParentUser;
                 if (parent != null && !string.IsNullOrEmpty(parent.Email))
                 {
-                    var orderCode = order.Id.ToString()[..8].ToUpperInvariant();
-                    var campaignName = order.Campaign?.CampaignName ?? "Marketplace order";
+                    var orderCode = order.Id.ToString()[..8].ToUpper();
+                    var orderContextLabel = BuildOrderContextLabel(order);
                     await _emailService.SendOrderConfirmationEmailAsync(
-                        parent.Email,
-                        parent.FullName,
-                        orderCode,
-                        order.TotalAmount,
-                        campaignName,
-                        cancellationToken);
+                        parent.Email, parent.FullName, orderCode,
+                        order.TotalAmount, orderContextLabel, cancellationToken);
                 }
             }
             catch (Exception emailEx)
@@ -163,34 +161,27 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
         }
     }
 
-    private async Task<Wallet?> ResolveSchoolWalletAsync(Order order, CancellationToken cancellationToken)
+    private static string BuildOrderContextLabel(Order order)
     {
-        var schoolId = order.ChildProfile?.SchoolID;
-        if (!schoolId.HasValue || schoolId == Guid.Empty)
-            return null;
+        var semesterLabel = order.SemesterPublication != null
+            ? $"{order.SemesterPublication.Semester} {order.SemesterPublication.AcademicYear}"
+            : null;
 
-        var wallet = await _context.Wallets
-            .FirstOrDefaultAsync(
-                w => w.OwnerID == schoolId.Value &&
-                     w.OwnerType == WalletOwnerType.School &&
-                     w.IsActive,
-                cancellationToken);
-
-        if (wallet != null)
-            return wallet;
-
-        wallet = new Wallet
+        if (!string.IsNullOrWhiteSpace(semesterLabel) && !string.IsNullOrWhiteSpace(order.Provider?.ProviderName))
         {
-            Id = Guid.NewGuid(),
-            OwnerID = schoolId.Value,
-            OwnerType = WalletOwnerType.School,
-            Balance = 0,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            return $"{semesterLabel} - {order.Provider.ProviderName}";
+        }
 
-        _context.Wallets.Add(wallet);
-        return wallet;
+        if (!string.IsNullOrWhiteSpace(semesterLabel))
+        {
+            return semesterLabel;
+        }
+
+        if (!string.IsNullOrWhiteSpace(order.Provider?.ProviderName))
+        {
+            return order.Provider.ProviderName;
+        }
+
+        return "VTOS Order";
     }
 }

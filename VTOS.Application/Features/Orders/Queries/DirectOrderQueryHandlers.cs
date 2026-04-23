@@ -38,6 +38,7 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
             .AsNoTracking()
             .Include(o => o.ChildProfile)
             .Include(o => o.Provider)
+            .Include(o => o.SemesterPublication)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(v => v.Outfit)
@@ -68,6 +69,7 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
                 TotalAmount = o.TotalAmount,
                 ChildName = o.ChildProfile.FullName,
                 ProviderName = o.Provider?.ProviderName ?? string.Empty,
+                PricingMode = DirectOrderQueryHelpers.ResolvePricingModeName(o.AppliedPricingMode, o.SemesterPublication?.EndDate, o.OrderDate),
                 FirstItemImageUrl = o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
                 PaymentStatusName = o.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
                 TrackingCode = o.TrackingCode
@@ -110,17 +112,22 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
         if (order == null)
             return Result<MyDirectOrderDetailDto>.Failure("Direct order not found.", "ORDER_NOT_FOUND");
 
-        var existingRating = await _context.ProviderRatings
-            .AsNoTracking()
-            .Where(x => x.OrderID == order.Id && x.ParentUserID == query.ParentId)
-            .Select(x => new ExistingProviderRatingDto
-            {
-                ProviderRatingId = x.Id,
-                Rating = x.Rating,
-                Comment = x.Comment,
-                CreatedAt = x.CreatedAt
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var orderItemIds = order.OrderItems.Select(oi => oi.Id).ToList();
+        var existingProviderRating = orderItemIds.Count == 0
+            ? null
+            : await _context.Feedbacks
+                .AsNoTracking()
+                .Where(f => f.UserID == query.ParentId && orderItemIds.Contains(f.OrderItemID))
+                .OrderByDescending(f => f.Timestamp)
+                .ThenByDescending(f => f.Id)
+                .Select(f => new ExistingProviderRatingDto
+                {
+                    ProviderRatingId = f.Id,
+                    Rating = f.Rating,
+                    Comment = f.Comment,
+                    CreatedAt = f.Timestamp
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
         return Result<MyDirectOrderDetailDto>.Success(new MyDirectOrderDetailDto
         {
@@ -132,6 +139,7 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
             SemesterPublicationId = order.SemesterPublicationID!.Value,
             Semester = order.SemesterPublication?.Semester ?? string.Empty,
             AcademicYear = order.SemesterPublication?.AcademicYear ?? string.Empty,
+            PricingMode = DirectOrderQueryHelpers.ResolvePricingModeName(order.AppliedPricingMode, order.SemesterPublication?.EndDate, order.OrderDate),
             OrderDate = order.OrderDate,
             OrderStatus = order.OrderStatus.ToString(),
             TotalAmount = order.TotalAmount,
@@ -142,8 +150,8 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
             TrackingCode = order.TrackingCode,
             ShippingCompany = order.ShippingCompany,
             PaymentStatusName = order.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
-            CanRateProvider = order.OrderStatus == OrderStatus.Delivered && existingRating == null,
-            ExistingProviderRating = existingRating,
+            CanRateProvider = order.OrderStatus == VTOS.Domain.Enums.OrderStatus.Delivered && existingProviderRating == null,
+            ExistingProviderRating = existingProviderRating,
             Items = order.OrderItems.Select(oi => new MyDirectOrderDetailItemDto
             {
                 OrderItemId = oi.Id,
@@ -156,5 +164,24 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
                 UnitPrice = oi.UnitPrice
             }).ToList()
         });
+    }
+}
+
+internal static class DirectOrderQueryHelpers
+{
+    internal static string ResolvePricingModeName(
+        VTOS.Domain.Enums.OrderPricingMode? appliedPricingMode,
+        DateTime? publicationEndDate,
+        DateTime orderDateUtc)
+    {
+        if (appliedPricingMode.HasValue)
+            return appliedPricingMode.Value.ToString();
+
+        if (!publicationEndDate.HasValue)
+            return string.Empty;
+
+        return orderDateUtc > publicationEndDate.Value
+            ? VTOS.Domain.Enums.OrderPricingMode.PostDeadlineDirect.ToString()
+            : VTOS.Domain.Enums.OrderPricingMode.PublicationWindow.ToString();
     }
 }

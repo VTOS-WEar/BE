@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Public.DTOs;
+using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Public.Queries;
@@ -9,6 +10,8 @@ public record GetSchoolSemesterCatalogQuery(Guid SchoolId);
 public record GetAllSchoolSemesterCatalogsQuery(Guid SchoolId);
 public record GetProvidersForPublicationOutfitQuery(Guid SemesterPublicationId, Guid OutfitId);
 public record GetProviderPublicProfileQuery(Guid ProviderId);
+public record GetProviderRatingsQuery(Guid ProviderId);
+public record GetProviderRankingQuery(Guid SchoolId);
 
 public class GetSchoolSemesterCatalogQueryHandler
 {
@@ -47,24 +50,32 @@ public class GetSchoolSemesterCatalogQueryHandler
             .Where(spp => spp.SemesterPublicationID == publication.Id && spp.Status == SemPublicationProviderStatus.Active)
             .Select(spp => new
             {
+                spp.Id,
                 spp.ProviderID,
-                Provider = spp.Provider,
-                spp.ContractID
+                spp.ContractID,
+                Provider = spp.Provider
             })
             .ToListAsync(ct);
 
         var outfitIds = publicationOutfits.Select(x => x.OutfitID).Distinct().ToList();
-        var contractIds = approvedProviders.Where(x => x.ContractID.HasValue).Select(x => x.ContractID!.Value).Distinct().ToList();
+        var publishedCatalogItems = await SemesterCatalogQueryHelpers.GetVisibleCatalogItemsAsync(_context, publication.Id, outfitIds, ct);
+        var contractItemLookup = await SemesterCatalogQueryHelpers.GetContractItemLookupAsync(
+            _context,
+            approvedProviders.Where(p => p.ContractID.HasValue).Select(p => p.ContractID!.Value).Distinct().ToList(),
+            outfitIds,
+            ct);
+        var providerStats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(
+            _context,
+            approvedProviders.Select(p => p.ProviderID).Distinct().ToList(),
+            publication.SchoolID,
+            ct);
 
         var variants = await _context.ProductVariants
             .AsNoTracking()
             .Where(v => outfitIds.Contains(v.OutfitID) && !v.IsDeleted)
             .ToListAsync(ct);
 
-        var contractItemPrices = await _context.ContractItems
-            .AsNoTracking()
-            .Where(ci => contractIds.Contains(ci.ContractID) && outfitIds.Contains(ci.OutfitID))
-            .ToListAsync(ct);
+        var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
         var outfits = publicationOutfits
             .Select(x =>
@@ -79,24 +90,42 @@ public class GetSchoolSemesterCatalogQueryHandler
                 var providers = approvedProviders
                     .Select(p =>
                     {
-                        var contractPrice = p.ContractID.HasValue
-                            ? contractItemPrices
-                                .Where(ci => ci.ContractID == p.ContractID.Value && ci.OutfitID == x.OutfitID)
-                                .Select(ci => (decimal?)ci.PricePerUnit)
-                                .FirstOrDefault()
+                        var catalogItem = publishedCatalogItems
+                            .FirstOrDefault(ci => ci.SemesterPublicationProviderID == p.Id && ci.OutfitID == x.OutfitID);
+
+                        var contractItem = p.ContractID.HasValue
+                            ? contractItemLookup.GetValueOrDefault((p.ContractID.Value, x.OutfitID))
                             : null;
+
+                        if (catalogItem == null && contractItem == null)
+                        {
+                            return null;
+                        }
+
+                        var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
+                        var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
+                        var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
 
                         return new SemesterCatalogProviderDto
                         {
                             ProviderId = p.ProviderID,
                             ProviderName = p.Provider.ProviderName,
                             ContactEmail = p.Provider.Email,
-                            Price = contractPrice ?? 0,
-                            AverageRating = p.Provider.AverageRating,
-                            TotalRatings = p.Provider.TotalRatings,
-                            TotalCompletedOrders = p.Provider.TotalCompletedOrders
+                            DisplayName = catalogItem?.DisplayName ?? x.Outfit.OutfitName,
+                            ShortDescription = catalogItem?.ShortDescription ?? x.Outfit.Description,
+                            MaterialDetails = catalogItem?.MaterialDetails,
+                            MainImageUrl = catalogItem?.MainImageUrl ?? x.Outfit.MainImageURL,
+                            Price = isAfterDeadline ? postDeadlinePrice : publicationPrice,
+                            PublicationPrice = publicationPrice,
+                            PostDeadlinePrice = postDeadlinePrice,
+                            PricingMode = SemesterCatalogQueryHelpers.ResolvePricingModeName(isAfterDeadline),
+                            AverageRating = stats.AverageRating,
+                            TotalRatings = stats.TotalRatings,
+                            TotalCompletedOrders = stats.TotalCompletedOrders
                         };
                     })
+                    .Where(p => p != null)
+                    .Select(p => p!)
                     .OrderBy(p => p.Price)
                     .ThenBy(p => p.ProviderName)
                     .ToList();
@@ -105,9 +134,11 @@ public class GetSchoolSemesterCatalogQueryHandler
                 {
                     OutfitId = x.OutfitID,
                     OutfitName = x.Outfit.OutfitName,
-                    Description = x.Outfit.Description,
-                    MainImageUrl = x.Outfit.MainImageURL,
-                    Price = providers.Select(p => p.Price).Where(price => price > 0).DefaultIfEmpty(0).Min(),
+                    Description = providers.FirstOrDefault()?.ShortDescription ?? x.Outfit.Description,
+                    MainImageUrl = providers.FirstOrDefault()?.MainImageUrl ?? x.Outfit.MainImageURL,
+                    Price = providers.FirstOrDefault()?.Price ?? x.Outfit.Price,
+                    LowestPublicationPrice = providers.Count > 0 ? providers.Min(p => p.PublicationPrice) : null,
+                    LowestPostDeadlinePrice = providers.Count > 0 ? providers.Min(p => p.PostDeadlinePrice) : null,
                     OutfitType = x.Outfit.OutfitType.ToString(),
                     Sizes = sizes,
                     Providers = providers
@@ -124,6 +155,7 @@ public class GetSchoolSemesterCatalogQueryHandler
             AcademicYear = publication.AcademicYear,
             StartDate = publication.StartDate,
             EndDate = publication.EndDate,
+            IsAfterDeadline = isAfterDeadline,
             Status = publication.Status.ToString(),
             Outfits = outfits
         };
@@ -171,24 +203,32 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                 .Where(spp => spp.SemesterPublicationID == publication.Id && spp.Status == SemPublicationProviderStatus.Active)
                 .Select(spp => new
                 {
+                    spp.Id,
                     spp.ProviderID,
-                    Provider = spp.Provider,
-                    spp.ContractID
+                    spp.ContractID,
+                    Provider = spp.Provider
                 })
                 .ToListAsync(ct);
 
             var outfitIds = publicationOutfits.Select(x => x.OutfitID).Distinct().ToList();
-            var contractIds = approvedProviders.Where(x => x.ContractID.HasValue).Select(x => x.ContractID!.Value).Distinct().ToList();
+            var publishedCatalogItems = await SemesterCatalogQueryHelpers.GetVisibleCatalogItemsAsync(_context, publication.Id, outfitIds, ct);
+            var contractItemLookup = await SemesterCatalogQueryHelpers.GetContractItemLookupAsync(
+                _context,
+                approvedProviders.Where(p => p.ContractID.HasValue).Select(p => p.ContractID!.Value).Distinct().ToList(),
+                outfitIds,
+                ct);
+            var providerStats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(
+                _context,
+                approvedProviders.Select(p => p.ProviderID).Distinct().ToList(),
+                publication.SchoolID,
+                ct);
 
             var variants = await _context.ProductVariants
                 .AsNoTracking()
                 .Where(v => outfitIds.Contains(v.OutfitID) && !v.IsDeleted)
                 .ToListAsync(ct);
 
-            var contractItemPrices = await _context.ContractItems
-                .AsNoTracking()
-                .Where(ci => contractIds.Contains(ci.ContractID) && outfitIds.Contains(ci.OutfitID))
-                .ToListAsync(ct);
+            var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
             var outfits = publicationOutfits
                 .Select(x =>
@@ -203,24 +243,42 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                     var providers = approvedProviders
                         .Select(p =>
                         {
-                            var contractPrice = p.ContractID.HasValue
-                                ? contractItemPrices
-                                    .Where(ci => ci.ContractID == p.ContractID.Value && ci.OutfitID == x.OutfitID)
-                                    .Select(ci => (decimal?)ci.PricePerUnit)
-                                    .FirstOrDefault()
+                            var catalogItem = publishedCatalogItems
+                                .FirstOrDefault(ci => ci.SemesterPublicationProviderID == p.Id && ci.OutfitID == x.OutfitID);
+
+                            var contractItem = p.ContractID.HasValue
+                                ? contractItemLookup.GetValueOrDefault((p.ContractID.Value, x.OutfitID))
                                 : null;
+
+                            if (catalogItem == null && contractItem == null)
+                            {
+                                return null;
+                            }
+
+                            var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
+                            var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
+                            var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
 
                             return new SemesterCatalogProviderDto
                             {
                                 ProviderId = p.ProviderID,
                                 ProviderName = p.Provider.ProviderName,
                                 ContactEmail = p.Provider.Email,
-                                Price = contractPrice ?? 0,
-                                AverageRating = p.Provider.AverageRating,
-                                TotalRatings = p.Provider.TotalRatings,
-                                TotalCompletedOrders = p.Provider.TotalCompletedOrders
+                                DisplayName = catalogItem?.DisplayName ?? x.Outfit.OutfitName,
+                                ShortDescription = catalogItem?.ShortDescription ?? x.Outfit.Description,
+                                MaterialDetails = catalogItem?.MaterialDetails,
+                                MainImageUrl = catalogItem?.MainImageUrl ?? x.Outfit.MainImageURL,
+                                Price = isAfterDeadline ? postDeadlinePrice : publicationPrice,
+                                PublicationPrice = publicationPrice,
+                                PostDeadlinePrice = postDeadlinePrice,
+                                PricingMode = SemesterCatalogQueryHelpers.ResolvePricingModeName(isAfterDeadline),
+                                AverageRating = stats.AverageRating,
+                                TotalRatings = stats.TotalRatings,
+                                TotalCompletedOrders = stats.TotalCompletedOrders
                             };
                         })
+                        .Where(p => p != null)
+                        .Select(p => p!)
                         .OrderBy(p => p.Price)
                         .ThenBy(p => p.ProviderName)
                         .ToList();
@@ -229,9 +287,11 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                     {
                         OutfitId = x.OutfitID,
                         OutfitName = x.Outfit.OutfitName,
-                        Description = x.Outfit.Description,
-                        MainImageUrl = x.Outfit.MainImageURL,
-                        Price = providers.Select(p => p.Price).Where(price => price > 0).DefaultIfEmpty(0).Min(),
+                        Description = providers.FirstOrDefault()?.ShortDescription ?? x.Outfit.Description,
+                        MainImageUrl = providers.FirstOrDefault()?.MainImageUrl ?? x.Outfit.MainImageURL,
+                        Price = providers.FirstOrDefault()?.Price ?? x.Outfit.Price,
+                        LowestPublicationPrice = providers.Count > 0 ? providers.Min(p => p.PublicationPrice) : null,
+                        LowestPostDeadlinePrice = providers.Count > 0 ? providers.Min(p => p.PostDeadlinePrice) : null,
                         OutfitType = x.Outfit.OutfitType.ToString(),
                         Sizes = sizes,
                         Providers = providers
@@ -248,6 +308,7 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                 AcademicYear = publication.AcademicYear,
                 StartDate = publication.StartDate,
                 EndDate = publication.EndDate,
+                IsAfterDeadline = isAfterDeadline,
                 Status = publication.Status.ToString(),
                 Outfits = outfits
             });
@@ -268,11 +329,11 @@ public class GetProvidersForPublicationOutfitQueryHandler
 
     public async Task<List<SemesterCatalogProviderDto>?> HandleAsync(GetProvidersForPublicationOutfitQuery query, CancellationToken ct = default)
     {
-        var publicationExists = await _context.SemesterPublications
+        var publication = await _context.SemesterPublications
             .AsNoTracking()
-            .AnyAsync(sp => sp.Id == query.SemesterPublicationId && sp.Status == SemesterPublicationStatus.Active, ct);
+            .FirstOrDefaultAsync(sp => sp.Id == query.SemesterPublicationId && sp.Status != SemesterPublicationStatus.Draft, ct);
 
-        if (!publicationExists)
+        if (publication == null)
         {
             return null;
         }
@@ -291,36 +352,65 @@ public class GetProvidersForPublicationOutfitQueryHandler
             .Where(spp => spp.SemesterPublicationID == query.SemesterPublicationId && spp.Status == SemPublicationProviderStatus.Active)
             .Select(spp => new
             {
+                spp.Id,
                 spp.ProviderID,
-                Provider = spp.Provider,
-                spp.ContractID
+                spp.ContractID,
+                Provider = spp.Provider
             })
             .ToListAsync(ct);
 
-        var contractIds = providers.Where(x => x.ContractID.HasValue).Select(x => x.ContractID!.Value).Distinct().ToList();
-        var contractItems = await _context.ContractItems
-            .AsNoTracking()
-            .Where(ci => contractIds.Contains(ci.ContractID) && ci.OutfitID == query.OutfitId)
-            .ToListAsync(ct);
+        var publishedCatalogItems = await SemesterCatalogQueryHelpers.GetVisibleCatalogItemsAsync(_context, query.SemesterPublicationId, new List<Guid> { query.OutfitId }, ct);
+        var contractItemLookup = await SemesterCatalogQueryHelpers.GetContractItemLookupAsync(
+            _context,
+            providers.Where(p => p.ContractID.HasValue).Select(p => p.ContractID!.Value).Distinct().ToList(),
+            new List<Guid> { query.OutfitId },
+            ct);
+        var providerStats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(
+            _context,
+            providers.Select(p => p.ProviderID).Distinct().ToList(),
+            publication.SchoolID,
+            ct);
+        var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
         return providers
             .Select(p =>
             {
-                var contractPrice = p.ContractID.HasValue
-                    ? contractItems.Where(ci => ci.ContractID == p.ContractID.Value).Select(ci => (decimal?)ci.PricePerUnit).FirstOrDefault()
+                var catalogItem = publishedCatalogItems
+                    .FirstOrDefault(ci => ci.SemesterPublicationProviderID == p.Id && ci.OutfitID == query.OutfitId);
+
+                var contractItem = p.ContractID.HasValue
+                    ? contractItemLookup.GetValueOrDefault((p.ContractID.Value, query.OutfitId))
                     : null;
+
+                if (catalogItem == null && contractItem == null)
+                {
+                    return null;
+                }
+
+                var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
+                var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
+                var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
 
                 return new SemesterCatalogProviderDto
                 {
                     ProviderId = p.ProviderID,
                     ProviderName = p.Provider.ProviderName,
                     ContactEmail = p.Provider.Email,
-                    Price = contractPrice ?? 0,
-                    AverageRating = p.Provider.AverageRating,
-                    TotalRatings = p.Provider.TotalRatings,
-                    TotalCompletedOrders = p.Provider.TotalCompletedOrders
+                    DisplayName = catalogItem?.DisplayName ?? outfit.OutfitName,
+                    ShortDescription = catalogItem?.ShortDescription ?? outfit.Description,
+                    MaterialDetails = catalogItem?.MaterialDetails,
+                    MainImageUrl = catalogItem?.MainImageUrl ?? outfit.MainImageURL,
+                    Price = isAfterDeadline ? postDeadlinePrice : publicationPrice,
+                    PublicationPrice = publicationPrice,
+                    PostDeadlinePrice = postDeadlinePrice,
+                    PricingMode = SemesterCatalogQueryHelpers.ResolvePricingModeName(isAfterDeadline),
+                    AverageRating = stats.AverageRating,
+                    TotalRatings = stats.TotalRatings,
+                    TotalCompletedOrders = stats.TotalCompletedOrders
                 };
             })
+            .Where(x => x != null)
+            .Select(x => x!)
             .OrderBy(x => x.Price)
             .ThenBy(x => x.ProviderName)
             .ToList();
@@ -338,21 +428,289 @@ public class GetProviderPublicProfileQueryHandler
 
     public async Task<PublicProviderProfileDto?> HandleAsync(GetProviderPublicProfileQuery query, CancellationToken ct = default)
     {
-        return await _context.Providers
+        var provider = await _context.Providers
             .AsNoTracking()
-            .Where(p => p.Id == query.ProviderId && !p.IsDeleted)
-            .Select(p => new PublicProviderProfileDto
-            {
-                ProviderId = p.Id,
-                ProviderName = p.ProviderName,
-                ContactPersonName = p.ContactPersonName,
-                Phone = p.Phone,
-                Email = p.Email,
-                Address = p.Address,
-                AverageRating = p.AverageRating,
-                TotalRatings = p.TotalRatings,
-                TotalCompletedOrders = p.TotalCompletedOrders
-            })
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(p => p.Id == query.ProviderId && !p.IsDeleted, ct);
+
+        if (provider == null)
+            return null;
+
+        var stats = (await SemesterCatalogQueryHelpers.GetProviderStatsAsync(_context, new[] { provider.Id }, null, ct))
+            .GetValueOrDefault(provider.Id) ?? ProviderMarketplaceStats.Empty(provider.Id);
+
+        return new PublicProviderProfileDto
+        {
+            ProviderId = provider.Id,
+            ProviderName = provider.ProviderName,
+            ContactPersonName = provider.ContactPersonName,
+            Phone = provider.Phone,
+            Email = provider.Email,
+            Address = provider.Address,
+            AverageRating = stats.AverageRating,
+            TotalRatings = stats.TotalRatings,
+            TotalCompletedOrders = stats.TotalCompletedOrders
+        };
     }
 }
+
+public class GetProviderRatingsQueryHandler
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetProviderRatingsQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<ProviderRatingsResponse?> HandleAsync(GetProviderRatingsQuery query, CancellationToken ct = default)
+    {
+        var provider = await _context.Providers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == query.ProviderId && !p.IsDeleted, ct);
+
+        if (provider == null)
+            return null;
+
+        var snapshots = await SemesterCatalogQueryHelpers.GetLatestProviderRatingSnapshotsAsync(_context, new[] { provider.Id }, null, ct);
+        var providerSnapshots = snapshots
+            .Where(x => x.ProviderId == provider.Id)
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.ProviderRatingId)
+            .ToList();
+        var stats = (await SemesterCatalogQueryHelpers.GetProviderStatsAsync(_context, new[] { provider.Id }, null, ct))
+            .GetValueOrDefault(provider.Id) ?? ProviderMarketplaceStats.Empty(provider.Id);
+
+        return new ProviderRatingsResponse
+        {
+            ProviderId = provider.Id,
+            ProviderName = provider.ProviderName,
+            AverageRating = stats.AverageRating,
+            TotalRatings = stats.TotalRatings,
+            TotalCompletedOrders = stats.TotalCompletedOrders,
+            Items = providerSnapshots
+                .Select(x => new ProviderRatingItemDto
+                {
+                    ProviderRatingId = x.ProviderRatingId,
+                    OrderId = x.OrderId,
+                    Rating = x.Rating,
+                    Comment = x.Comment,
+                    CreatedAt = x.CreatedAt,
+                    ParentName = x.ParentName
+                })
+                .ToList()
+        };
+    }
+}
+
+public class GetProviderRankingQueryHandler
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetProviderRankingQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<ProviderRankingResponse?> HandleAsync(GetProviderRankingQuery query, CancellationToken ct = default)
+    {
+        var schoolExists = await _context.Schools
+            .AsNoTracking()
+            .AnyAsync(s => s.Id == query.SchoolId, ct);
+
+        if (!schoolExists)
+            return null;
+
+        var providers = await _context.SemesterPublicationProviders
+            .AsNoTracking()
+            .Where(spp =>
+                spp.SemesterPublication.SchoolID == query.SchoolId
+                && spp.SemesterPublication.Status != SemesterPublicationStatus.Draft
+                && spp.Status == SemPublicationProviderStatus.Active
+                && !spp.Provider.IsDeleted)
+            .Select(spp => new
+            {
+                spp.ProviderID,
+                spp.Provider.ProviderName
+            })
+            .Distinct()
+            .ToListAsync(ct);
+
+        var providerIds = providers.Select(x => x.ProviderID).Distinct().ToList();
+        var stats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(_context, providerIds, query.SchoolId, ct);
+
+        return new ProviderRankingResponse
+        {
+            SchoolId = query.SchoolId,
+            Items = providers
+                .Select(provider =>
+                {
+                    var providerStats = stats.GetValueOrDefault(provider.ProviderID) ?? ProviderMarketplaceStats.Empty(provider.ProviderID);
+                    return new ProviderRankingItemDto
+                    {
+                        ProviderId = provider.ProviderID,
+                        ProviderName = provider.ProviderName,
+                        AverageRating = providerStats.AverageRating,
+                        TotalRatings = providerStats.TotalRatings,
+                        TotalCompletedOrders = providerStats.TotalCompletedOrders
+                    };
+                })
+                .OrderByDescending(x => x.AverageRating)
+                .ThenByDescending(x => x.TotalRatings)
+                .ThenByDescending(x => x.TotalCompletedOrders)
+                .ThenBy(x => x.ProviderName)
+                .ToList()
+        };
+    }
+}
+
+internal static class SemesterCatalogQueryHelpers
+{
+    internal static Task<List<ProviderCatalogItem>> GetVisibleCatalogItemsAsync(
+        IApplicationDbContext context,
+        Guid semesterPublicationId,
+        List<Guid> outfitIds,
+        CancellationToken ct)
+    {
+        return context.ProviderCatalogItems
+            .AsNoTracking()
+            .Where(ci =>
+                outfitIds.Contains(ci.OutfitID)
+                && (ci.Status == ProviderCatalogItemStatus.Published || ci.Status == ProviderCatalogItemStatus.Ready)
+                && ci.SemesterPublicationProvider.SemesterPublicationID == semesterPublicationId)
+            .ToListAsync(ct);
+    }
+
+    internal static async Task<Dictionary<Guid, ProviderMarketplaceStats>> GetProviderStatsAsync(
+        IApplicationDbContext context,
+        IReadOnlyCollection<Guid> providerIds,
+        Guid? schoolId,
+        CancellationToken ct)
+    {
+        if (providerIds.Count == 0)
+            return new Dictionary<Guid, ProviderMarketplaceStats>();
+
+        var snapshots = await GetLatestProviderRatingSnapshotsAsync(context, providerIds, schoolId, ct);
+        var ratings = snapshots
+            .GroupBy(x => x.ProviderId)
+            .ToDictionary(
+                g => g.Key,
+                g => new
+                {
+                    AverageRating = (decimal)Math.Round(g.Average(x => x.Rating), 1),
+                    TotalRatings = g.Count()
+                });
+
+        var completedOrders = await context.Orders
+            .AsNoTracking()
+            .Where(o =>
+                o.ProviderID != null
+                && providerIds.Contains(o.ProviderID.Value)
+                && o.OrderStatus == OrderStatus.Delivered
+                && (!schoolId.HasValue || (o.SemesterPublicationID != null && o.SemesterPublication!.SchoolID == schoolId.Value)))
+            .GroupBy(o => o.ProviderID!.Value)
+            .Select(g => new
+            {
+                ProviderId = g.Key,
+                Count = g.Count()
+            })
+            .ToListAsync(ct);
+
+        return providerIds
+            .Distinct()
+            .ToDictionary(
+                providerId => providerId,
+                providerId =>
+                {
+                    var rating = ratings.GetValueOrDefault(providerId);
+                    var completed = completedOrders.FirstOrDefault(x => x.ProviderId == providerId)?.Count ?? 0;
+                    return new ProviderMarketplaceStats(
+                        providerId,
+                        rating?.AverageRating ?? 0m,
+                        rating?.TotalRatings ?? 0,
+                        completed);
+                });
+    }
+
+    internal static async Task<List<ProviderRatingSnapshot>> GetLatestProviderRatingSnapshotsAsync(
+        IApplicationDbContext context,
+        IReadOnlyCollection<Guid> providerIds,
+        Guid? schoolId,
+        CancellationToken ct)
+    {
+        if (providerIds.Count == 0)
+            return new List<ProviderRatingSnapshot>();
+
+        var rawSnapshots = await context.Feedbacks
+            .AsNoTracking()
+            .Where(f =>
+                f.OrderItem.Order.ProviderID != null
+                && providerIds.Contains(f.OrderItem.Order.ProviderID.Value)
+                && f.OrderItem.Order.SemesterPublicationID != null
+                && (!schoolId.HasValue || f.OrderItem.Order.SemesterPublication!.SchoolID == schoolId.Value))
+            .Select(f => new ProviderRatingSnapshot(
+                f.Id,
+                f.OrderItem.Order.ProviderID!.Value,
+                f.OrderItem.OrderID,
+                f.Rating,
+                f.Comment,
+                f.Timestamp,
+                f.User.FullName))
+            .ToListAsync(ct);
+
+        return rawSnapshots
+            .GroupBy(x => new { x.ProviderId, x.OrderId })
+            .Select(g => g
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.ProviderRatingId)
+                .First())
+            .ToList();
+    }
+
+    internal static async Task<Dictionary<(Guid ContractId, Guid OutfitId), ContractItem>> GetContractItemLookupAsync(
+        IApplicationDbContext context,
+        IReadOnlyCollection<Guid> contractIds,
+        IReadOnlyCollection<Guid> outfitIds,
+        CancellationToken ct)
+    {
+        if (contractIds.Count == 0 || outfitIds.Count == 0)
+            return new Dictionary<(Guid ContractId, Guid OutfitId), ContractItem>();
+
+        var items = await context.ContractItems
+            .AsNoTracking()
+            .Where(ci => contractIds.Contains(ci.ContractID) && outfitIds.Contains(ci.OutfitID))
+            .ToListAsync(ct);
+
+        return items.ToDictionary(ci => (ci.ContractID, ci.OutfitID), ci => ci);
+    }
+
+    internal static bool IsAfterDeadline(DateTime endDate)
+    {
+        return DateTime.UtcNow > endDate;
+    }
+
+    internal static decimal ResolveCurrentPrice(ProviderCatalogItem catalogItem, bool isAfterDeadline)
+    {
+        return isAfterDeadline ? catalogItem.PostDeadlinePrice : catalogItem.PublicationPrice;
+    }
+
+    internal static string ResolvePricingModeName(bool isAfterDeadline)
+    {
+        return isAfterDeadline
+            ? OrderPricingMode.PostDeadlineDirect.ToString()
+            : OrderPricingMode.PublicationWindow.ToString();
+    }
+}
+
+internal sealed record ProviderMarketplaceStats(Guid ProviderId, decimal AverageRating, int TotalRatings, int TotalCompletedOrders)
+{
+    internal static ProviderMarketplaceStats Empty(Guid providerId) => new(providerId, 0m, 0, 0);
+}
+
+internal sealed record ProviderRatingSnapshot(
+    Guid ProviderRatingId,
+    Guid ProviderId,
+    Guid OrderId,
+    int Rating,
+    string? Comment,
+    DateTime CreatedAt,
+    string ParentName);

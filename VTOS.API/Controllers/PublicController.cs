@@ -27,8 +27,8 @@ public class PublicController : ControllerBase
     private readonly GetAllSchoolSemesterCatalogsQueryHandler _getAllSchoolSemesterCatalogsHandler;
     private readonly GetProvidersForPublicationOutfitQueryHandler _getProvidersForPublicationOutfitHandler;
     private readonly GetProviderPublicProfileQueryHandler _getProviderPublicProfileHandler;
-    private readonly IGetProviderRatingsQueryHandler _getProviderRatingsHandler;
-    private readonly IGetProviderRankingQueryHandler _getProviderRankingHandler;
+    private readonly GetProviderRatingsQueryHandler _getProviderRatingsHandler;
+    private readonly GetProviderRankingQueryHandler _getProviderRankingHandler;
 
     public PublicController(
         GetSchoolsQueryHandler getSchoolsHandler,
@@ -42,8 +42,8 @@ public class PublicController : ControllerBase
         GetAllSchoolSemesterCatalogsQueryHandler getAllSchoolSemesterCatalogsHandler,
         GetProvidersForPublicationOutfitQueryHandler getProvidersForPublicationOutfitHandler,
         GetProviderPublicProfileQueryHandler getProviderPublicProfileHandler,
-        IGetProviderRatingsQueryHandler getProviderRatingsHandler,
-        IGetProviderRankingQueryHandler getProviderRankingHandler)
+        GetProviderRatingsQueryHandler getProviderRatingsHandler,
+        GetProviderRankingQueryHandler getProviderRankingHandler)
     {
         _getSchoolsHandler = getSchoolsHandler;
         _getCategoriesHandler = getCategoriesHandler;
@@ -234,7 +234,7 @@ public class PublicController : ControllerBase
     }
 
     [HttpGet("providers/{providerId:guid}/ratings")]
-    [ProducesResponseType(typeof(ProviderRatingsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProviderRatings(Guid providerId, CancellationToken ct = default)
     {
@@ -245,10 +245,13 @@ public class PublicController : ControllerBase
     }
 
     [HttpGet("schools/{schoolId:guid}/provider-ranking")]
-    [ProducesResponseType(typeof(ProviderRankingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProviderRanking(Guid schoolId, CancellationToken ct = default)
     {
         var result = await _getProviderRankingHandler.HandleAsync(new GetProviderRankingQuery(schoolId), ct);
+        if (result == null)
+            return NotFound(new { message = "School not found" });
         return Ok(result);
     }
 }

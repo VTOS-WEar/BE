@@ -18,8 +18,7 @@ namespace VTOS.API.Controllers;
 /// School management APIs (requires School role).
 /// UC-42: Maintain School Profile
 /// UC-43: Import Student Data
-/// UC-44: Publish Pre-order Campaign
-/// UC-46: Track Pre-order Progress
+/// UC-45: View Parent Orders
 /// UC-49: View Sales Reports
 /// UC-50: View Feedback Reports
 /// </summary>
@@ -31,6 +30,7 @@ public class SchoolsController : ControllerBase
     private readonly ICurrentUserService _currentUser;
     private readonly IGetSchoolProfileQueryHandler _getProfileHandler;
     private readonly IUpdateSchoolProfileCommandHandler _updateProfileHandler;
+    private readonly IGetSchoolOrdersQueryHandler _getOrdersHandler;
     private readonly IGetSalesReportQueryHandler _getSalesReportHandler;
     private readonly IGetFeedbackReportQueryHandler _getFeedbackReportHandler;
     private readonly IImportStudentDataCommandHandler _importStudentHandler;
@@ -40,6 +40,7 @@ public class SchoolsController : ControllerBase
     private readonly IUpdateStudentCommandHandler _updateStudentHandler;
     private readonly IDeleteStudentCommandHandler _deleteStudentHandler;
     private readonly IValidator<UpdateSchoolProfileCommand> _updateProfileValidator;
+    private readonly IGetProductionSupportTicketsQueryHandler _getProductionComplaintsHandler;
     private readonly IImageUploadService _imageUploadService;
     private readonly IGetSchoolGradesQueryHandler _getGradesHandler;
     private readonly IGetImportHistoryQueryHandler _getImportHistoryHandler;
@@ -59,12 +60,16 @@ public class SchoolsController : ControllerBase
     private readonly ICancelContractCommandHandler _cancelContractHandler;
     private readonly IRequestSignOTPCommandHandler _requestSignOTPHandler;
     private readonly ISignContractBySchoolCommandHandler _signContractBySchoolHandler;
+    // Phase 5 — Complaints
+    private readonly IGetSupportTicketDetailQueryHandler _getComplaintDetailHandler;
+    private readonly ICloseSupportTicketCommandHandler _closeComplaintHandler;
     private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
         IGetSchoolProfileQueryHandler getProfileHandler,
         IUpdateSchoolProfileCommandHandler updateProfileHandler,
+        IGetSchoolOrdersQueryHandler getOrdersHandler,
         IGetSalesReportQueryHandler getSalesReportHandler,
         IGetFeedbackReportQueryHandler getFeedbackReportHandler,
         IImportStudentDataCommandHandler importStudentHandler,
@@ -74,6 +79,7 @@ public class SchoolsController : ControllerBase
         IUpdateStudentCommandHandler updateStudentHandler,
         IDeleteStudentCommandHandler deleteStudentHandler,
         IValidator<UpdateSchoolProfileCommand> updateProfileValidator,
+        IGetProductionSupportTicketsQueryHandler getProductionComplaintsHandler,
         IImageUploadService imageUploadService,
         IGetSchoolGradesQueryHandler getGradesHandler,
         IGetImportHistoryQueryHandler getImportHistoryHandler,
@@ -93,11 +99,15 @@ public class SchoolsController : ControllerBase
         ICancelContractCommandHandler cancelContractHandler,
         IRequestSignOTPCommandHandler requestSignOTPHandler,
         ISignContractBySchoolCommandHandler signContractBySchoolHandler,
+        // Phase 5
+        IGetSupportTicketDetailQueryHandler getComplaintDetailHandler,
+        ICloseSupportTicketCommandHandler closeComplaintHandler,
         IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
         _updateProfileHandler = updateProfileHandler;
+        _getOrdersHandler = getOrdersHandler;
         _getSalesReportHandler = getSalesReportHandler;
         _getFeedbackReportHandler = getFeedbackReportHandler;
         _importStudentHandler = importStudentHandler;
@@ -107,6 +117,7 @@ public class SchoolsController : ControllerBase
         _updateStudentHandler = updateStudentHandler;
         _deleteStudentHandler = deleteStudentHandler;
         _updateProfileValidator = updateProfileValidator;
+        _getProductionComplaintsHandler = getProductionComplaintsHandler;
         _imageUploadService = imageUploadService;
         _getGradesHandler = getGradesHandler;
         _getImportHistoryHandler = getImportHistoryHandler;
@@ -126,6 +137,8 @@ public class SchoolsController : ControllerBase
         _cancelContractHandler = cancelContractHandler;
         _requestSignOTPHandler = requestSignOTPHandler;
         _signContractBySchoolHandler = signContractBySchoolHandler;
+        _getComplaintDetailHandler = getComplaintDetailHandler;
+        _closeComplaintHandler = closeComplaintHandler;
         _getContractedProvidersHandler = getContractedProvidersHandler;
     }
 
@@ -736,6 +749,34 @@ public class SchoolsController : ControllerBase
     }
 
     /// <summary>
+    /// UC-45: View parent orders for the school.
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per page (default: 10)</param>
+    /// <param name="status">Optional order status filter</param>
+    [HttpGet("me/orders")]
+    [ProducesResponseType(typeof(SchoolOrderListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetOrders(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        // First get school ID from current user
+        var profileResult = await _getProfileHandler.HandleAsync(new GetSchoolProfileQuery(_currentUser.UserId), ct);
+        if (!profileResult.IsSuccess)
+            return BadRequest(new { error = profileResult.Error, code = profileResult.ErrorCode });
+
+        var query = new GetSchoolOrdersQuery(profileResult.Value!.Id, page, pageSize, status, search);
+        var result = await _getOrdersHandler.HandleAsync(query, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>
     /// UC-49: View sales reports.
     /// </summary>
     /// <param name="fromDate">Optional start date filter</param>
@@ -780,6 +821,133 @@ public class SchoolsController : ControllerBase
         var result = await _getFeedbackReportHandler.HandleAsync(query, ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.9.11 — View production complaints for the school.</summary>
+    [HttpGet("me/complaints")]
+    [ProducesResponseType(typeof(GetProductionSupportTicketsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProductionComplaints(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getProductionComplaintsHandler.HandleAsync(
+            new GetProductionSupportTicketsQuery(_currentUser.UserId, page, pageSize, status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.10.5 — View complaint detail.</summary>
+    [HttpGet("me/complaints/{id:guid}")]
+    [ProducesResponseType(typeof(SupportTicketDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetComplaintDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _getComplaintDetailHandler.HandleAsync(
+            new GetSupportTicketDetailQuery(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return NotFound(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>UC 3.10.7 — Close a resolved complaint.</summary>
+    [HttpPut("me/complaints/{id:guid}/close")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CloseComplaint(Guid id, CancellationToken ct)
+    {
+        var result = await _closeComplaintHandler.HandleAsync(
+            new CloseSupportTicketCommand(_currentUser.UserId, id), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    /// <summary>
+    /// Approve a refund request: deduct school wallet, payout to parent bank account, update statuses.
+    /// </summary>
+    [HttpPost("me/refunds/{refundId:guid}/approve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApproveRefund(
+        Guid refundId,
+        CancellationToken ct)
+    {
+        var result = await _approveRefundHandler.HandleAsync(
+            new ApproveRefundCommand(_currentUser.UserId, refundId), ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode is "REFUND_NOT_FOUND" or "SCHOOL_NOT_FOUND" or "USER_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get refund requests for the current school.
+    /// </summary>
+    [HttpGet("me/refunds")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetRefunds(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getSchoolRefundsHandler.HandleAsync(
+            new GetSchoolRefundsQuery(_currentUser.UserId, page, pageSize, status), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Create a withdrawal request from school wallet.
+    /// </summary>
+    [HttpPost("me/wallet/withdrawals")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateWithdrawalRequest(
+        [FromBody] CreateWithdrawalRequest request,
+        CancellationToken ct)
+    {
+        var result = await _createWithdrawalHandler.HandleAsync(
+            new CreateWithdrawalRequestCommand(_currentUser.UserId, request.Amount), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Update school bank account information on the wallet.
+    /// </summary>
+    [HttpPut("me/wallet/bank-account")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateBankAccount(
+        [FromBody] UpdateSchoolBankAccountRequest request,
+        CancellationToken ct)
+    {
+        var result = await _updateBankAccountHandler.HandleAsync(
+            new UpdateSchoolBankAccountCommand(
+                _currentUser.UserId,
+                request.BankCode,
+                request.BankName,
+                request.BankAccountNumber,
+                request.BankAccountName), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
         return Ok(result.Value);
     }
 
@@ -857,6 +1025,19 @@ public class SchoolsController : ControllerBase
 
 }
 
+<<<<<<< HEAD
+=======
+/// <summary>Request body for creating a withdrawal request.</summary>
+public record CreateWithdrawalRequest(decimal Amount);
+
+/// <summary>Request body for updating school bank account (partial update).</summary>
+public record UpdateSchoolBankAccountRequest(
+    string? BankCode = null,
+    string? BankName = null,
+    string? BankAccountNumber = null,
+    string? BankAccountName = null);
+
+>>>>>>> 348dab5 (feat(be): add provider catalog and direct order pricing)
 public class UploadSchoolLogoRequest
 {
     public IFormFile File { get; set; } = null!;

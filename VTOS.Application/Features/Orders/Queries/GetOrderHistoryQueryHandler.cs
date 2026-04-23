@@ -27,12 +27,11 @@ public class GetOrderHistoryQueryHandler : IGetOrderHistoryQueryHandler
         var ordersQuery = _context.Orders
             .AsNoTracking()
             .Include(o => o.ChildProfile)
+                .ThenInclude(cp => cp.School)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(pv => pv.Outfit)
             .Include(o => o.PaymentTransactions)
-            .Include(o => o.Campaign)
-                .ThenInclude(c => c!.School)
             .Where(o => o.ChildProfile.ParentUserID == query.ParentId);
 
         // Apply filters
@@ -72,7 +71,7 @@ public class GetOrderHistoryQueryHandler : IGetOrderHistoryQueryHandler
                 FirstItemImageUrl = o.OrderItems
                     .Select(oi => oi.ProductVariant?.VariantImageURL ?? oi.ProductVariant?.Outfit?.MainImageURL)
                     .FirstOrDefault(),
-                SchoolName = o.Campaign?.School?.SchoolName
+                SchoolName = o.ChildProfile.School?.SchoolName
             };
         }).ToList();
 

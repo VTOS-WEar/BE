@@ -39,19 +39,17 @@ public class GetSchoolDetailQueryHandler
                 s.LogoURL,
                 s.ContactInfo,
                 s.Outfits.Count(o => o.IsAvailable && !o.IsDeleted),
-                s.Campaigns
-                    .Where(c => c.EndDate >= DateTime.UtcNow
-                        && (c.Status == CampaignStatus.Active
-                            || c.Status == CampaignStatus.Completed
-                            || c.Status == CampaignStatus.Locked))
-                    .Select(c => new SchoolCampaignDto(
-                        c.Id,
-                        c.CampaignName,
-                        c.StartDate,
-                        c.EndDate,
-                        c.Status.ToString(),
-                        c.Description,
-                        c.CampaignOutfits.Count()
+                s.SemesterPublications
+                    .Where(sp => sp.EndDate >= DateTime.UtcNow && sp.Status != SemesterPublicationStatus.Draft)
+                    .OrderBy(sp => sp.EndDate)
+                    .Select(sp => new SchoolCampaignDto(
+                        sp.Id,
+                        sp.Semester + " " + sp.AcademicYear,
+                        sp.StartDate,
+                        sp.EndDate,
+                        sp.Status.ToString(),
+                        sp.Description,
+                        sp.Outfits.Count()
                     ))
                     .ToList()
             ))

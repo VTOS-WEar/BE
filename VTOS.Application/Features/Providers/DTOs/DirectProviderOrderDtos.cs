@@ -26,6 +26,7 @@ public class ProviderDirectOrderDetailDto
     public Guid OrderId { get; set; }
     public DateTime OrderDate { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
+    public string PricingMode { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public string ParentName { get; set; } = string.Empty;
     public string? ParentPhone { get; set; }

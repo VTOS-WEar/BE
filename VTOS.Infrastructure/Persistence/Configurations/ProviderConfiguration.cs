@@ -30,11 +30,9 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .HasMaxLength(500);
 
         builder.Property(p => p.Status)
-            .HasDefaultValue(VTOS.Domain.Enums.ProviderStatus.Pending)
             .HasConversion<string>();
 
         builder.Property(p => p.VerificationStatus)
-            .HasDefaultValue(VTOS.Domain.Enums.VerificationStatus.Pending)
             .HasConversion<string>();
 
         builder.Property(p => p.RejectionReason)
@@ -57,6 +55,7 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .IsRequired();
 
         builder.HasIndex(p => p.IsDeleted);
+<<<<<<< HEAD
 
         // Relationships
         builder.HasMany(p => p.CampaignOutfits)
@@ -73,5 +72,7 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .WithOne(pr => pr.Provider)
             .HasForeignKey(pr => pr.ProviderID)
             .OnDelete(DeleteBehavior.Restrict);
+=======
+>>>>>>> 348dab5 (feat(be): add provider catalog and direct order pricing)
     }
 }

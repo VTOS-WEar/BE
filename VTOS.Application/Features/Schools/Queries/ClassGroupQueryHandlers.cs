@@ -49,6 +49,7 @@ public class GetSchoolClassesOverviewQueryHandler : IGetSchoolClassesOverviewQue
                 StudentCount = cg.Students.Count(s => !s.IsDeleted),
                 MeasurementReadyCount = cg.Students.Count(s => !s.IsDeleted && s.HeightCm > 0 && s.WeightKg > 0),
                 ParentLinkedCount = cg.Students.Count(s => !s.IsDeleted && s.ParentUserID != null),
+                OrderedStudentCount = cg.Students.Count(s => !s.IsDeleted && s.Orders.Any(o => o.OrderStatus != Domain.Enums.OrderStatus.Cancelled && o.OrderStatus != Domain.Enums.OrderStatus.Refunded)),
             })
             .OrderBy(cg => cg.Grade)
             .ThenBy(cg => cg.ClassName)
@@ -190,9 +191,7 @@ public class GetTeacherClassesOverviewQueryHandler : IGetTeacherClassesOverviewQ
                 StudentCount = cg.Students.Count(s => !s.IsDeleted),
                 MeasurementReadyCount = cg.Students.Count(s => !s.IsDeleted && s.HeightCm > 0 && s.WeightKg > 0),
                 ParentLinkedCount = cg.Students.Count(s => !s.IsDeleted && s.ParentUserID != null),
-                OrderedStudentCount = cg.Students.Count(s =>
-                    !s.IsDeleted &&
-                    s.Orders.Any(o => o.ProviderID != null && o.SemesterPublicationID != null && o.OrderStatus != OrderStatus.Cancelled)),
+                OrderedStudentCount = cg.Students.Count(s => !s.IsDeleted && s.Orders.Any(o => o.OrderStatus != Domain.Enums.OrderStatus.Cancelled && o.OrderStatus != Domain.Enums.OrderStatus.Refunded)),
             })
             .OrderBy(cg => cg.AcademicYear)
             .ThenBy(cg => cg.ClassName)

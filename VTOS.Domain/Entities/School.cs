@@ -30,7 +30,6 @@ public class School : AuditableEntity
     // Navigation properties
     public ICollection<ChildProfile> ChildProfiles { get; set; } = new List<ChildProfile>();
     public ICollection<Outfit> Outfits { get; set; } = new List<Outfit>();
-    public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
     public ICollection<SemesterPublication> SemesterPublications { get; set; } = new List<SemesterPublication>();
     public ICollection<ClassGroup> ClassGroups { get; set; } = new List<ClassGroup>();
     public ICollection<StudentDataImport> StudentDataImports { get; set; } = new List<StudentDataImport>();

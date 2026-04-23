@@ -129,6 +129,7 @@ public class GetProviderDirectOrderDetailQueryHandler : IGetProviderDirectOrderD
             OrderId = order.Id,
             OrderDate = order.OrderDate,
             OrderStatus = order.OrderStatus.ToString(),
+            PricingMode = order.AppliedPricingMode?.ToString() ?? string.Empty,
             TotalAmount = order.TotalAmount,
             ParentName = order.ChildProfile.ParentUser?.FullName ?? string.Empty,
             ParentPhone = order.ChildProfile.ParentUser?.Phone,

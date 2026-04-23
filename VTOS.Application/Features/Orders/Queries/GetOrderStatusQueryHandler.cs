@@ -26,8 +26,7 @@ public class GetOrderStatusQueryHandler : IGetOrderStatusQueryHandler
         var order = await _context.Orders
             .AsNoTracking()
             .Include(o => o.ChildProfile)
-            .Include(o => o.Campaign)
-                .ThenInclude(c => c!.School)
+                .ThenInclude(cp => cp.School)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(pv => pv.Outfit)
@@ -70,7 +69,7 @@ public class GetOrderStatusQueryHandler : IGetOrderStatusQueryHandler
                 Quantity = oi.Quantity,
                 UnitPrice = oi.UnitPrice,
                 ImageUrl = oi.ProductVariant?.VariantImageURL ?? oi.ProductVariant?.Outfit?.MainImageURL,
-                SchoolName = order.Campaign?.School?.SchoolName
+                SchoolName = order.ChildProfile.School?.SchoolName
             }).ToList()
         };
 

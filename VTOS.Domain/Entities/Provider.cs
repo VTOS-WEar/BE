@@ -32,11 +32,13 @@ public class Provider : BaseEntity
     public int TotalCompletedOrders { get; set; }
 
     // Navigation properties
-    public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
-    public ICollection<ProductionBatch> ProductionBatches { get; set; } = new List<ProductionBatch>();
     public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+<<<<<<< HEAD
     public ICollection<ProviderRating> ProviderRatings { get; set; } = new List<ProviderRating>();
+=======
+    public ICollection<ProviderCatalogItem> ProviderCatalogItems { get; set; } = new List<ProviderCatalogItem>();
+>>>>>>> 348dab5 (feat(be): add provider catalog and direct order pricing)
     public ICollection<SemesterPublicationProvider> SemesterPublicationProviders { get; set; } = new List<SemesterPublicationProvider>();
     public Wallet? Wallet { get; set; }
 }

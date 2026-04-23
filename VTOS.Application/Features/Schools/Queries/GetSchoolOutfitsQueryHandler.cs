@@ -9,9 +9,7 @@ namespace VTOS.Application.Features.Schools.Queries;
 /// <summary>
 /// Returns all non-deleted outfits belonging to the logged-in school.
 /// Optional filter: IsAvailable.
-/// Includes CanDelete flag: false if outfit is linked to ANY campaign (Active, Paused,
-/// Locked, Completed, or Cancelled) — parents may have ordered it. School uses "Ẩn"
-/// (set IsAvailable=false) instead of delete in that case.
+/// Includes CanDelete flag: false if outfit is linked to any non-draft semester publication.
 /// </summary>
 public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
 {
@@ -31,7 +29,9 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         if (user == null)
             return Result<OutfitListResponse>.Failure("User not found.", "USER_NOT_FOUND");
 
-        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        var schoolMgr = await _db.SchoolManagers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
         if (schoolMgr == null)
             return Result<OutfitListResponse>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
@@ -43,14 +43,14 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         if (query.IsAvailable.HasValue)
             outfitsQuery = outfitsQuery.Where(o => o.IsAvailable == query.IsAvailable.Value);
 
-        // Outfits linked to ANY campaign (Active, Paused, Locked, Completed, Cancelled)
-        // cannot be deleted — parents may have placed orders in that campaign.
-        // School uses "Ẩn" (hide → set IsAvailable=false) instead of delete.
-        var nonDeletableIds = await _db.CampaignOutfits
+        var nonDeletableIds = await _db.SemesterPublicationOutfits
             .AsNoTracking()
-            .Where(co => _db.Outfits.AsNoTracking()
-                .Any(o => o.Id == co.OutfitID && o.SchoolID == schoolMgr.SchoolID && !o.IsDeleted))
-            .Select(co => co.OutfitID)
+            .Where(spo =>
+                spo.Outfit.SchoolID == schoolMgr.SchoolID &&
+                !spo.Outfit.IsDeleted &&
+                spo.SemesterPublication.Status != SemesterPublicationStatus.Draft)
+            .Select(spo => spo.OutfitID)
+            .Distinct()
             .ToListAsync(ct);
 
         var nonDeletableSet = new HashSet<Guid>(nonDeletableIds);
@@ -74,7 +74,6 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
             })
             .ToListAsync(ct);
 
-        // Set CanDelete — false if outfit is in ANY campaign (should use "Ẩn" instead)
         foreach (var outfit in outfits)
             outfit.CanDelete = !nonDeletableSet.Contains(outfit.OutfitId);
 

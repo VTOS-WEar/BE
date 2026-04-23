@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Public.DTOs;
-using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Public.Queries;
@@ -16,31 +15,29 @@ public class GetUniformWarehouseQueryHandler
     {
         var now = DateTime.UtcNow;
 
-        // 1. Active Campaigns
-        var activeCampaigns = await _db.Campaigns
+        var activeCampaigns = await _db.SemesterPublications
             .AsNoTracking()
-            .Include(c => c.School)
-            .Where(c => c.Status == CampaignStatus.Active && c.StartDate <= now && c.EndDate >= now)
-            .OrderBy(c => c.EndDate)
+            .Include(sp => sp.School)
+            .Where(sp => sp.Status == SemesterPublicationStatus.Active && sp.StartDate <= now)
+            .OrderBy(sp => sp.EndDate)
             .Take(4)
-            .Select(c => new CampaignSummaryDto(
-                c.Id,
-                c.CampaignName,
-                c.SchoolID,
-                c.School.SchoolName,
-                c.School.LogoURL,
-                c.StartDate,
-                c.EndDate,
-                c.Status.ToString()
+            .Select(sp => new CampaignSummaryDto(
+                sp.Id,
+                sp.Semester + " " + sp.AcademicYear,
+                sp.SchoolID,
+                sp.School.SchoolName,
+                sp.School.LogoURL,
+                sp.StartDate,
+                sp.EndDate,
+                sp.Status.ToString()
             ))
             .ToListAsync(ct);
 
-        // 2. Featured Outfits (Top rated or Newest available)
         var featuredOutfits = await _db.Outfits
             .AsNoTracking()
             .Include(o => o.School)
             .Where(o => !o.IsDeleted && o.IsAvailable)
-            .OrderByDescending(o => o.Price) // Simple heuristic: expensive/premium
+            .OrderByDescending(o => o.Price)
             .Take(4)
             .Select(o => new FeaturedOutfitDto(
                 o.Id,
@@ -49,11 +46,10 @@ public class GetUniformWarehouseQueryHandler
                 o.MainImageURL,
                 o.School.SchoolName,
                 o.SchoolID,
-                0 // Placeholder for rating if not available in current schema
+                0
             ))
             .ToListAsync(ct);
 
-        // 3. All Outfits
         var allOutfitsQuery = _db.Outfits
             .AsNoTracking()
             .Include(o => o.School)
