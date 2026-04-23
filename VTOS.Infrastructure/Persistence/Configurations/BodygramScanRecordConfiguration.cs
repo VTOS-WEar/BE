@@ -34,10 +34,10 @@ public class BodygramScanRecordConfiguration : IEntityTypeConfiguration<Bodygram
             .HasMaxLength(100);
 
         builder.Property(x => x.RawInputJson)
-            .HasColumnType("nvarchar(max)");
+            .HasColumnType("text");
 
         builder.Property(x => x.RawMeasurementsJson)
-            .HasColumnType("nvarchar(max)");
+            .HasColumnType("text");
 
         builder.HasIndex(x => x.BodygramScanId)
             .IsUnique();
