@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Features.Public.Queries;
 using VTOS.Application.Features.Providers.DTOs;
-using VTOS.Application.Features.Providers.Queries;
 
 namespace VTOS.API.Controllers;
 

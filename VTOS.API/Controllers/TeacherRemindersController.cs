@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
-using VTOS.Application.Features.Schools.Commands;
-using VTOS.Application.Features.Schools.DTOs;
-using VTOS.Application.Features.Schools.Queries;
+using VTOS.Application.Features.Teachers.Commands;
+using VTOS.Application.Features.Teachers.DTOs;
+using VTOS.Application.Features.Teachers.Queries;
 
 namespace VTOS.API.Controllers;
 
@@ -39,10 +39,10 @@ public class TeacherRemindersController : ControllerBase
 
     [HttpPost("send")]
     [ProducesResponseType(typeof(TeacherReminderSendResponseDto), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Send([FromBody] SendTeacherReminderRequest request, CancellationToken ct = default)
+    public async Task<IActionResult> Send([FromBody] SendTeacherReminderRequestDto request, CancellationToken ct = default)
     {
         var result = await _sendReminderHandler.HandleAsync(
-            new SendTeacherReminderCommand(_currentUser.UserId, request.ClassGroupId, request.ParentUserIds, request.Note), ct);
+            new SendTeacherReminderCommand(_currentUser.UserId, request), ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -50,5 +50,3 @@ public class TeacherRemindersController : ControllerBase
         return Ok(result.Value);
     }
 }
-
-public record SendTeacherReminderRequest(Guid ClassGroupId, IReadOnlyList<Guid>? ParentUserIds, string? Note);

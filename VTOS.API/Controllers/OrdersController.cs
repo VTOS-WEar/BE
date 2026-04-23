@@ -5,8 +5,6 @@ using VTOS.Application.Common;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.DTOs;
 using VTOS.Application.Features.Orders.Queries;
-using VTOS.Application.Features.Providers.Commands;
-using VTOS.Application.Features.Providers.DTOs;
 
 namespace VTOS.API.Controllers;
 

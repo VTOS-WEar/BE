@@ -26,10 +26,12 @@ public class ProviderPayoutService : IProviderPayoutService
 {
     private static readonly TimeSpan DisputeWindow = TimeSpan.FromDays(7);
     private readonly IApplicationDbContext _db;
+    private readonly IOrderPaymentResolutionService _paymentResolutionService;
 
-    public ProviderPayoutService(IApplicationDbContext db)
+    public ProviderPayoutService(IApplicationDbContext db, IOrderPaymentResolutionService paymentResolutionService)
     {
         _db = db;
+        _paymentResolutionService = paymentResolutionService;
     }
 
     public async Task<Result<ProviderPayoutResult>> ReleaseOrderPayoutAsync(
@@ -70,21 +72,21 @@ public class ProviderPayoutService : IProviderPayoutService
         if (escrowPayment.EscrowStatus == EscrowStatus.Released || escrowPayment.PayoutRecordID.HasValue)
             return Result<ProviderPayoutResult>.Failure("Escrow already released for this order.", "ESCROW_ALREADY_RELEASED");
 
-        var providerResolution = await ResolveProviderAsync(order, ct);
+        var providerResolution = await _paymentResolutionService.ResolveProviderAsync(order, ct);
         if (!providerResolution.IsSuccess)
             return Result<ProviderPayoutResult>.Failure(providerResolution.Error!, providerResolution.ErrorCode);
 
         var (providerId, providerName) = providerResolution.Value;
 
-        var schoolWallet = await ResolveSchoolWalletAsync(order, ct);
+        var schoolWallet = await _paymentResolutionService.ResolveSchoolWalletAsync(order, ct);
         if (!schoolWallet.IsSuccess)
             return Result<ProviderPayoutResult>.Failure(schoolWallet.Error!, schoolWallet.ErrorCode);
 
-        var schoolWalletEntity = schoolWallet.Value;
+        var schoolWalletEntity = schoolWallet.Value!;
         if (schoolWalletEntity.Balance < order.TotalAmount)
             return Result<ProviderPayoutResult>.Failure("School wallet balance is insufficient for payout release.", "INSUFFICIENT_BALANCE");
 
-        var providerWallet = await GetOrCreateProviderWalletAsync(providerId, processedAtUtc, ct);
+        var providerWallet = await _paymentResolutionService.GetOrCreateProviderWalletAsync(providerId, processedAtUtc, ct);
 
         var payoutRecord = new PayoutRecord
         {
@@ -163,85 +165,4 @@ public class ProviderPayoutService : IProviderPayoutService
         return deliveredAt <= processedAtUtc.Subtract(DisputeWindow);
     }
 
-    private async Task<Result<(Guid ProviderId, string ProviderName)>> ResolveProviderAsync(Order order, CancellationToken ct)
-    {
-        if (order.ProviderID.HasValue)
-        {
-            var provider = await _db.Providers
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == order.ProviderID.Value && !p.IsDeleted, ct);
-
-            if (provider != null)
-                return Result<(Guid, string)>.Success((provider.Id, provider.ProviderName));
-        }
-
-        if (!order.CampaignID.HasValue)
-            return Result<(Guid, string)>.Failure("Provider could not be resolved for this order.", "PROVIDER_NOT_FOUND");
-
-        var outfitIds = order.OrderItems
-            .Select(oi => oi.ProductVariant.OutfitID)
-            .Distinct()
-            .ToList();
-
-        var providerIds = await _db.CampaignOutfits
-            .AsNoTracking()
-            .Where(co => co.CampaignID == order.CampaignID.Value
-                      && co.ProviderID.HasValue
-                      && outfitIds.Contains(co.OutfitID))
-            .Select(co => co.ProviderID!.Value)
-            .Distinct()
-            .ToListAsync(ct);
-
-        if (providerIds.Count != 1)
-            return Result<(Guid, string)>.Failure("Legacy campaign order maps to multiple or zero providers.", "AMBIGUOUS_PROVIDER");
-
-        var resolvedProvider = await _db.Providers
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == providerIds[0] && !p.IsDeleted, ct);
-
-        if (resolvedProvider == null)
-            return Result<(Guid, string)>.Failure("Provider could not be resolved for this order.", "PROVIDER_NOT_FOUND");
-
-        return Result<(Guid, string)>.Success((resolvedProvider.Id, resolvedProvider.ProviderName));
-    }
-
-    private async Task<Result<Wallet>> ResolveSchoolWalletAsync(Order order, CancellationToken ct)
-    {
-        var schoolId = order.ChildProfile.SchoolID;
-        var wallet = await _db.Wallets
-            .FirstOrDefaultAsync(w =>
-                w.OwnerID == schoolId &&
-                w.OwnerType == WalletOwnerType.School &&
-                w.IsActive, ct);
-
-        if (wallet == null)
-            return Result<Wallet>.Failure("School wallet not found.", "WALLET_NOT_FOUND");
-
-        return Result<Wallet>.Success(wallet);
-    }
-
-    private async Task<Wallet> GetOrCreateProviderWalletAsync(Guid providerId, DateTime nowUtc, CancellationToken ct)
-    {
-        var wallet = await _db.Wallets
-            .FirstOrDefaultAsync(w =>
-                w.OwnerID == providerId &&
-                w.OwnerType == WalletOwnerType.Provider &&
-                w.IsActive, ct);
-
-        if (wallet != null)
-            return wallet;
-
-        wallet = new Wallet
-        {
-            Id = Guid.NewGuid(),
-            OwnerID = providerId,
-            OwnerType = WalletOwnerType.Provider,
-            Balance = 0,
-            IsActive = true,
-            CreatedAt = nowUtc,
-            UpdatedAt = nowUtc
-        };
-        _db.Wallets.Add(wallet);
-        return wallet;
-    }
 }

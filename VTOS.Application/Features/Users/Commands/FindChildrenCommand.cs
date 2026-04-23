@@ -75,6 +75,7 @@ public class FindChildrenCommandHandler
 
         var linked = new List<ChildProfileDto>();
         var conflicted = new List<ConflictedChildDto>();
+        var fallbackSchool = new ChildSchoolDto(Guid.Empty, "Unknown school", null);
 
         foreach (var child in candidates)
         {
@@ -106,7 +107,7 @@ public class FindChildrenCommandHandler
                 child.Avatar,
                 child.School != null
                     ? new ChildSchoolDto(child.School.Id, child.School.SchoolName, child.School.LogoURL)
-                    : null,
+                    : fallbackSchool,
                 child.HeightCm,
                 child.WeightKg
             ));

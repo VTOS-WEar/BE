@@ -32,10 +32,12 @@ internal static class VtosModelConfigurationRegistry
         Apply(modelBuilder, new ParentBankAccountConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new ParentProfileConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new PaymentTransactionConfiguration(), registeredConfigurations);
+        Apply(modelBuilder, new PayoutRecordConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new ProductVariantConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new ProviderCatalogItemConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new ProviderConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new ProviderManagerConfiguration(), registeredConfigurations);
+        Apply(modelBuilder, new ProviderRatingConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new RefundConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new RoleConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new SchoolConfiguration(), registeredConfigurations);

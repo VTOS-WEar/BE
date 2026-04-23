@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
-using VTOS.Application.Features.Schools.DTOs;
-using VTOS.Application.Features.Schools.Queries;
+using VTOS.Application.Features.Teachers.DTOs;
+using VTOS.Application.Features.Teachers.Queries;
 
 namespace VTOS.API.Controllers;
 

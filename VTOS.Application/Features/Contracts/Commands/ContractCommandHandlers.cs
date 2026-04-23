@@ -100,6 +100,9 @@ public class CreateContractCommandHandler : ICreateContractCommandHandler
     public async Task<Result<ContractDto>> HandleAsync(CreateContractCommand command, CancellationToken ct = default)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
+        if (user == null)
+            return Result<ContractDto>.Failure("User not found.", "NOT_FOUND");
+
         var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (schoolMgr?.SchoolID == null)
             return Result<ContractDto>.Failure("User is not linked to a school.", "NOT_SCHOOL");

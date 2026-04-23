@@ -28,6 +28,8 @@ public class GetProviderWalletTransactionsQueryHandler : IGetProviderWalletTrans
             return Result<WalletTransactionsResponse>.Failure("Access denied.", "ACCESS_DENIED");
 
         var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (providerMgr == null)
+            return Result<WalletTransactionsResponse>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var wallet = await _db.Wallets.AsNoTracking()
             .FirstOrDefaultAsync(w => w.OwnerID == providerMgr.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider && w.IsActive, ct);

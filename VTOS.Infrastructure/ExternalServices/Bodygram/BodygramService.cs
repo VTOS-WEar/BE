@@ -68,7 +68,7 @@ public class BodygramService : IBodygramService
             _logger.LogInformation("Creating Bodygram scan with custom ID: {CustomScanId}", request.CustomScanId);
 
             int maxRetries = GetAvailableCredentials().Count;
-            HttpResponseMessage response = null;
+            HttpResponseMessage? response = null;
             
             for (int attempt = 0; attempt < maxRetries; attempt++)
             {
@@ -84,7 +84,7 @@ public class BodygramService : IBodygramService
                     var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
                     var scanResponse = DeserializeResponse<BodygramScanResponse>(jsonResponse);
                     _logger.LogInformation("Bodygram scan created successfully with ID: {ScanId}", scanResponse?.Entry?.Id);
-                    return scanResponse;
+                    return scanResponse ?? new BodygramScanResponse();
                 }
 
                 // 402 Payment Required or 429 Too Many Requests - try next credential
@@ -153,7 +153,7 @@ public class BodygramService : IBodygramService
                 var scansResponse = DeserializeResponse<ScanListResponse>(jsonResponse);
 
                 _logger.LogInformation("Retrieved {ScanCount} scans", scansResponse?.Results.Count ?? 0);
-                return scansResponse;
+                return scansResponse ?? new ScanListResponse();
             }
 
             return new ScanListResponse();
@@ -197,7 +197,7 @@ public class BodygramService : IBodygramService
                 var scanResponse = DeserializeResponse<BodygramScanResponse>(jsonResponse);
 
                 _logger.LogInformation("Retrieved scan {ScanId} with status: {Status}", scanId, scanResponse?.Entry?.Status);
-                return scanResponse;
+                return scanResponse ?? new BodygramScanResponse();
             }
 
             if (lastResponse != null)
@@ -243,7 +243,7 @@ public class BodygramService : IBodygramService
             await SelectCredentialForScanTokenAsync(cancellationToken);
 
             int maxRetries = GetAvailableCredentials().Count;
-            HttpResponseMessage response = null;
+            HttpResponseMessage? response = null;
             
             for (int attempt = 0; attempt < maxRetries; attempt++)
             {
@@ -647,7 +647,7 @@ public class BodygramService : IBodygramService
         scanRecord.WeightKg = child.WeightKg;
         scanRecord.RawInputJson = entry.Input == null ? null : JsonSerializer.Serialize(entry.Input, JsonOptions);
         scanRecord.RawMeasurementsJson = JsonSerializer.Serialize(entry.Measurements ?? new List<Measurement>(), JsonOptions);
-        scanRecord.WaistToHipRatio = CalculateWaistToHipRatio(entry.Measurements);
+        scanRecord.WaistToHipRatio = CalculateWaistToHipRatio(entry.Measurements ?? new List<Measurement>());
         scanRecord.AvatarFormat = entry.Avatar?.Format;
         scanRecord.AvatarType = entry.Avatar?.Type;
         scanRecord.UpdatedAt = DateTime.UtcNow;

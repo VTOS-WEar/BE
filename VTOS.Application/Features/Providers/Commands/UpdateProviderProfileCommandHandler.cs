@@ -28,7 +28,7 @@ public class UpdateProviderProfileCommandHandler : IUpdateProviderProfileCommand
         if (user.ProviderManager?.Provider == null)
             return Result<ProviderProfileDto>.Failure("No provider linked to this user.", "NO_PROVIDER");
 
-        var p = user.ProviderManager?.Provider;
+        var p = user.ProviderManager.Provider;
 
         // Partial update — only overwrite non-null fields
         if (command.ProviderName != null) p.ProviderName = command.ProviderName;

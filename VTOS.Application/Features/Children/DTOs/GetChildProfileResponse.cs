@@ -9,14 +9,14 @@ namespace VTOS.Application.Features.Children.DTOs;
 public record GetChildProfileResponse
 {
     public Guid ChildId { get; init; }
-    public string FullName { get; init; }
+    public string FullName { get; init; } = string.Empty;
     public int Age { get; init; }
-    public string Grade { get; init; }
-    public string Gender { get; init; }
-    public string SchoolName { get; init; }
+    public string Grade { get; init; } = string.Empty;
+    public string Gender { get; init; } = string.Empty;
+    public string SchoolName { get; init; } = string.Empty;
     public Guid SchoolId { get; init; }
-    public string AvatarUrl { get; init; }
-    public ChildBodyMetricDto BodyMetric { get; init; }
+    public string AvatarUrl { get; init; } = string.Empty;
+    public ChildBodyMetricDto BodyMetric { get; init; } = new(0, 0);
     public bool IsStandardSize { get; init; }
 }
 

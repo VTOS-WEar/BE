@@ -21,6 +21,9 @@ public class GetProviderSupportTicketDetailQueryHandler : IGetProviderSupportTic
     public async Task<Result<SupportTicketDetailDto>> HandleAsync(GetProviderSupportTicketDetailQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
+        if (user == null)
+            return Result<SupportTicketDetailDto>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
+
         var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (providerMgr?.ProviderID == null)
             return Result<SupportTicketDetailDto>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");

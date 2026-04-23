@@ -63,8 +63,10 @@ public class GetSchoolRefundsQueryHandler : IGetSchoolRefundsQueryHandler
                 RefundAmount = r.RefundAmount,
                 RefundStatus = r.RefundStatus.ToString(),
                 DisputeReason = r.DisputeReason,
-                ParentName = r.PaymentTransaction.Order.ChildProfile.ParentUser.FullName,
-                ChildName = r.PaymentTransaction.Order.ChildProfile.FullName,
+                ParentName = r.PaymentTransaction.Order!.ChildProfile.ParentUser != null
+                    ? r.PaymentTransaction.Order.ChildProfile.ParentUser.FullName
+                    : string.Empty,
+                ChildName = r.PaymentTransaction.Order!.ChildProfile.FullName,
                 OrderTotalAmount = r.PaymentTransaction.Order.TotalAmount,
                 CreatedAt = r.CreatedAt,
                 UpdatedAt = r.UpdatedAt

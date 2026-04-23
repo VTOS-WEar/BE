@@ -28,7 +28,7 @@ public class GetProviderProfileQueryHandler : IGetProviderProfileQueryHandler
         if (user.ProviderManager?.Provider == null)
             return Result<ProviderProfileDto>.Failure("No provider linked to this user.", "NO_PROVIDER");
 
-        var p = user.ProviderManager?.Provider;
+        var p = user.ProviderManager.Provider;
         return Result<ProviderProfileDto>.Success(new ProviderProfileDto(
             p.Id,
             p.ProviderName,

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Orders.DTOs;
+using VTOS.Application.Features.Payments.Commands;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -18,12 +19,18 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
     private readonly IApplicationDbContext _context;
     private readonly ILogger<PaymentWebhookHandler> _logger;
     private readonly IEmailService _emailService;
+    private readonly IOrderPaymentResolutionService _paymentResolutionService;
 
-    public PaymentWebhookHandler(IApplicationDbContext context, ILogger<PaymentWebhookHandler> logger, IEmailService emailService)
+    public PaymentWebhookHandler(
+        IApplicationDbContext context,
+        ILogger<PaymentWebhookHandler> logger,
+        IEmailService emailService,
+        IOrderPaymentResolutionService paymentResolutionService)
     {
         _context = context;
         _logger = logger;
         _emailService = emailService;
+        _paymentResolutionService = paymentResolutionService;
     }
 
     public async Task<Result<PaymentWebhookProcessResponse>> HandleWebhookAsync(
@@ -39,15 +46,15 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
             }
 
             var paymentTransaction = await _context.PaymentTransactions
-                .Include(pt => pt.Order)
+                .Include(pt => pt.Order!)
                     .ThenInclude(o => o.OrderItems)
                         .ThenInclude(oi => oi.ProductVariant)
-                .Include(pt => pt.Order)
+                .Include(pt => pt.Order!)
                     .ThenInclude(o => o.ChildProfile)
                         .ThenInclude(cp => cp.ParentUser)
-                .Include(pt => pt.Order)
+                .Include(pt => pt.Order!)
                     .ThenInclude(o => o.Provider)
-                .Include(pt => pt.Order)
+                .Include(pt => pt.Order!)
                     .ThenInclude(o => o.SemesterPublication)
                 .Include(pt => pt.Wallet)
                 .FirstOrDefaultAsync(pt => pt.PaymentLinkId == webhook.Data.PaymentLinkId, cancellationToken);
@@ -95,10 +102,23 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
         try
         {
             var order = paymentTransaction.Order;
-            var wallet = paymentTransaction.Wallet ?? await ResolveSchoolWalletAsync(order, cancellationToken);
+            if (order == null)
+                return Result<PaymentWebhookProcessResponse>.Failure("Order not found for payment transaction.", "ORDER_NOT_FOUND");
 
-            paymentTransaction.WalletID = wallet?.Id;
-            paymentTransaction.Wallet = wallet;
+            Wallet? wallet = paymentTransaction.Wallet;
+            if (wallet == null)
+            {
+                var walletResolution = await _paymentResolutionService.ResolveSchoolWalletAsync(order, cancellationToken);
+                if (!walletResolution.IsSuccess)
+                    return Result<PaymentWebhookProcessResponse>.Failure(walletResolution.Error!, walletResolution.ErrorCode);
+
+                wallet = walletResolution.Value;
+            }
+
+            var resolvedWallet = wallet!;
+
+            paymentTransaction.WalletID = resolvedWallet.Id;
+            paymentTransaction.Wallet = resolvedWallet;
             paymentTransaction.TransactionStatus = PaymentStatus.Completed;
             paymentTransaction.TransactionTimestamp = DateTime.UtcNow;
             paymentTransaction.TransactionType = TransactionType.OrderPayment;
@@ -109,11 +129,8 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
 
             order.OrderStatus = OrderStatus.Paid;
 
-            if (wallet != null)
-            {
-                wallet.Balance += paymentTransaction.Amount;
-                wallet.UpdatedAt = DateTime.UtcNow;
-            }
+            resolvedWallet.Balance += paymentTransaction.Amount;
+            resolvedWallet.UpdatedAt = DateTime.UtcNow;
 
             if (order.OrderItems != null && order.OrderItems.Any())
             {

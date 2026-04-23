@@ -24,7 +24,7 @@ public class ProviderRatingConfiguration : IEntityTypeConfiguration<ProviderRati
         builder.HasIndex(x => x.ProviderID);
 
         builder.HasOne(x => x.Provider)
-            .WithMany(x => x.ProviderRatings)
+            .WithMany()
             .HasForeignKey(x => x.ProviderID)
             .OnDelete(DeleteBehavior.Restrict);
 

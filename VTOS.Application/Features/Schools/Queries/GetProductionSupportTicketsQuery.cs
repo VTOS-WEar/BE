@@ -44,6 +44,9 @@ public class GetProductionSupportTicketsQueryHandler : IGetProductionSupportTick
     public async Task<Result<GetProductionSupportTicketsResponse>> HandleAsync(GetProductionSupportTicketsQuery query, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == query.UserId, ct);
+        if (user == null)
+            return Result<GetProductionSupportTicketsResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");
+
         var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (schoolMgr?.SchoolID == null)
             return Result<GetProductionSupportTicketsResponse>.Failure("School not found.", "SCHOOL_NOT_FOUND");

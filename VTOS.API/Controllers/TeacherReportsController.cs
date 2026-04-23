@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
-using VTOS.Application.Features.Schools.Commands;
-using VTOS.Application.Features.Schools.DTOs;
-using VTOS.Application.Features.Schools.Queries;
+using VTOS.Application.Features.Teachers.Commands;
+using VTOS.Application.Features.Teachers.DTOs;
+using VTOS.Application.Features.Teachers.Queries;
 
 namespace VTOS.API.Controllers;
 
@@ -45,10 +45,10 @@ public class TeacherReportsController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(TeacherReportListItemDto), StatusCodes.Status201Created)]
-    public async Task<IActionResult> SubmitReport([FromBody] SubmitTeacherReportRequest request, CancellationToken ct = default)
+    public async Task<IActionResult> SubmitReport([FromBody] SubmitTeacherReportRequestDto request, CancellationToken ct = default)
     {
         var result = await _submitReportHandler.HandleAsync(
-            new SubmitTeacherReportCommand(_currentUser.UserId, request.ClassGroupId, request.ReportType, request.Title, request.Content), ct);
+            new SubmitTeacherReportCommand(_currentUser.UserId, request), ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -56,5 +56,3 @@ public class TeacherReportsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result.Value);
     }
 }
-
-public record SubmitTeacherReportRequest(Guid ClassGroupId, string ReportType, string Title, string Content);

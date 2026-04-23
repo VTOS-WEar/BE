@@ -56,16 +56,16 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             }
             var childProfile = childProfileResult.Value!;
 
-            // Step 3: Fetch and validate product variants
-            var productVariantsResult = await FetchAndValidateProductVariantsAsync(command.Items, cancellationToken);
-            if (!string.IsNullOrEmpty(productVariantsResult.Error))
+            // Step 3: Resolve immutable publication/provider pricing context
+            var checkoutContextResult = await ResolveCheckoutContextAsync(command, cancellationToken);
+            if (!checkoutContextResult.IsSuccess)
             {
-                return Result<CheckoutResponse>.Failure(productVariantsResult.Error, "PRODUCTS_NOT_FOUND");
+                return Result<CheckoutResponse>.Failure(checkoutContextResult.Error!, checkoutContextResult.ErrorCode);
             }
-            var productVariants = productVariantsResult.Variants!;
+            var checkoutContext = checkoutContextResult.Value!;
 
             // Step 4: Calculate total and create order items
-            var (orderItems, totalAmount) = CalculateOrderItems(command.Items, productVariants);
+            var (orderItems, totalAmount) = CalculateOrderItems(command.Items, checkoutContext.ProductVariants, checkoutContext.PricingByOutfit, checkoutContext.PricingMode);
 
             if (totalAmount <= 0)
             {
@@ -73,7 +73,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             }
 
             // Step 5: Create order
-            var order = CreateOrder(command, totalAmount);
+            var order = CreateOrder(command, totalAmount, checkoutContext.ProviderId, checkoutContext.SemesterPublicationId, checkoutContext.PricingMode);
             AssignOrderToItems(orderItems, order.Id);
             _context.Orders.Add(order);
 
@@ -147,21 +147,144 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
         return Result<ChildProfile>.Success(childProfile);
     }
 
-    private async Task<(string? Error, List<ProductVariant>? Variants)> FetchAndValidateProductVariantsAsync(
-        List<CheckoutItemRequest> items,
+    private async Task<Result<CheckoutContext>> ResolveCheckoutContextAsync(
+        CheckoutCommand command,
         CancellationToken cancellationToken)
     {
-        var productVariantIds = items.Select(i => i.ProductVariantId).ToList();
-        var productVariants = await _context.ProductVariants
-            .Where(pv => productVariantIds.Contains(pv.Id))
-            .ToListAsync(cancellationToken);
-
-        if (productVariants.Count != items.Count)
+        if (!command.CampaignId.HasValue || command.CampaignId.Value == Guid.Empty)
         {
-            return ("One or more products not found", null);
+            return Result<CheckoutContext>.Failure(
+                "Semester publication is required for checkout.",
+                "MISSING_PUBLICATION");
         }
 
-        return (null, productVariants);
+        var publication = await _context.SemesterPublications
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                sp => sp.Id == command.CampaignId.Value && sp.Status != SemesterPublicationStatus.Draft,
+                cancellationToken);
+
+        if (publication == null)
+        {
+            return Result<CheckoutContext>.Failure(
+                "Semester publication is not available for ordering.",
+                "PUBLICATION_NOT_AVAILABLE");
+        }
+
+        var productVariantIds = command.Items.Select(i => i.ProductVariantId).Distinct().ToList();
+        var productVariants = await _context.ProductVariants
+            .Include(pv => pv.Outfit)
+            .Where(pv => productVariantIds.Contains(pv.Id) && !pv.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (productVariants.Count != productVariantIds.Count)
+        {
+            return Result<CheckoutContext>.Failure("One or more products not found.", "PRODUCTS_NOT_FOUND");
+        }
+
+        var outfitIds = productVariants.Select(pv => pv.OutfitID).Distinct().ToList();
+
+        var publishedOutfitIds = await _context.SemesterPublicationOutfits
+            .AsNoTracking()
+            .Where(spo => spo.SemesterPublicationID == publication.Id && outfitIds.Contains(spo.OutfitID))
+            .Select(spo => spo.OutfitID)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (publishedOutfitIds.Count != outfitIds.Count)
+        {
+            return Result<CheckoutContext>.Failure(
+                "One or more outfits are not available in this semester publication.",
+                "OUTFIT_NOT_IN_PUBLICATION");
+        }
+
+        var candidateProviders = await _context.ProviderCatalogItems
+            .AsNoTracking()
+            .Where(ci =>
+                outfitIds.Contains(ci.OutfitID) &&
+                (ci.Status == ProviderCatalogItemStatus.Published || ci.Status == ProviderCatalogItemStatus.Ready) &&
+                ci.SemesterPublicationProvider.SemesterPublicationID == publication.Id &&
+                ci.SemesterPublicationProvider.Status == SemPublicationProviderStatus.Active)
+            .Select(ci => ci.ProviderID)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (candidateProviders.Count != 1)
+        {
+            return Result<CheckoutContext>.Failure(
+                "Checkout items must belong to exactly one provider in the selected semester publication.",
+                "AMBIGUOUS_PROVIDER");
+        }
+
+        var providerId = candidateProviders[0];
+        var publicationProvider = await _context.SemesterPublicationProviders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                spp => spp.SemesterPublicationID == publication.Id
+                    && spp.ProviderID == providerId
+                    && spp.Status == SemPublicationProviderStatus.Active,
+                cancellationToken);
+
+        if (publicationProvider == null)
+        {
+            return Result<CheckoutContext>.Failure(
+                "Provider is not approved for this semester publication.",
+                "PROVIDER_NOT_APPROVED");
+        }
+
+        var catalogItems = await _context.ProviderCatalogItems
+            .AsNoTracking()
+            .Where(ci =>
+                ci.SemesterPublicationProviderID == publicationProvider.Id
+                && ci.ProviderID == providerId
+                && outfitIds.Contains(ci.OutfitID)
+                && (ci.Status == ProviderCatalogItemStatus.Published || ci.Status == ProviderCatalogItemStatus.Ready))
+            .ToListAsync(cancellationToken);
+
+        var contractItems = publicationProvider.ContractID.HasValue
+            ? await _context.ContractItems
+                .AsNoTracking()
+                .Where(ci => ci.ContractID == publicationProvider.ContractID.Value && outfitIds.Contains(ci.OutfitID))
+                .ToListAsync(cancellationToken)
+            : new List<ContractItem>();
+
+        var pricingMode = ResolvePricingMode(publication.EndDate, DateTime.UtcNow);
+        var pricingByOutfit = new Dictionary<Guid, (decimal PublicationPrice, decimal PostDeadlinePrice)>();
+
+        foreach (var outfitId in outfitIds)
+        {
+            var catalogItem = catalogItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
+            if (catalogItem != null)
+            {
+                if (catalogItem.PostDeadlinePrice < catalogItem.PublicationPrice)
+                {
+                    return Result<CheckoutContext>.Failure(
+                        "Provider listing data is invalid because post-deadline price is lower than publication price.",
+                        "INVALID_CATALOG_PRICING");
+                }
+
+                pricingByOutfit[outfitId] = (catalogItem.PublicationPrice, catalogItem.PostDeadlinePrice);
+                continue;
+            }
+
+            var contractItem = contractItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
+            if (contractItem != null)
+            {
+                pricingByOutfit[outfitId] = (contractItem.PricePerUnit, contractItem.PricePerUnit);
+                continue;
+            }
+
+            return Result<CheckoutContext>.Failure(
+                "One or more outfits are not available for this provider in the selected semester publication.",
+                "CATALOG_ITEM_NOT_AVAILABLE");
+        }
+
+        return Result<CheckoutContext>.Success(new CheckoutContext(
+            publication.Id,
+            providerId,
+            pricingMode,
+            productVariants,
+            pricingByOutfit));
     }
 
     /// <summary>
@@ -169,7 +292,9 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     /// </summary>
     private (List<OrderItem>, decimal) CalculateOrderItems(
         List<CheckoutItemRequest> items,
-        List<ProductVariant> productVariants)
+        List<ProductVariant> productVariants,
+        Dictionary<Guid, (decimal PublicationPrice, decimal PostDeadlinePrice)> pricingByOutfit,
+        OrderPricingMode pricingMode)
     {
         var orderItems = new List<OrderItem>();
         decimal totalAmount = 0;
@@ -182,7 +307,10 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
                 continue;
             }
 
-            decimal unitPrice = productVariant.Price;
+            var pricing = pricingByOutfit[productVariant.OutfitID];
+            decimal unitPrice = pricingMode == OrderPricingMode.PostDeadlineDirect
+                ? pricing.PostDeadlinePrice
+                : pricing.PublicationPrice;
 
             var itemTotal = unitPrice * item.Quantity;
             totalAmount += itemTotal;
@@ -206,7 +334,12 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     /// <summary>
     /// Create order entity with pending status from CheckoutCommand
     /// </summary>
-    private Order CreateOrder(CheckoutCommand command, decimal totalAmount)
+    private Order CreateOrder(
+        CheckoutCommand command,
+        decimal totalAmount,
+        Guid providerId,
+        Guid semesterPublicationId,
+        OrderPricingMode pricingMode)
     {
         return new Order
         {
@@ -216,9 +349,19 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             OrderStatus = OrderStatus.Pending,
             TotalAmount = totalAmount,
             ShippingAddress = command.ShippingAddress,
+            ProviderID = providerId,
+            SemesterPublicationID = semesterPublicationId,
+            AppliedPricingMode = pricingMode,
             DeliveryMethod = command.DeliveryMethod,
             CreatedAt = DateTime.UtcNow
         };
+    }
+
+    private static OrderPricingMode ResolvePricingMode(DateTime publicationEndDateUtc, DateTime orderDateUtc)
+    {
+        return orderDateUtc > publicationEndDateUtc
+            ? OrderPricingMode.PostDeadlineDirect
+            : OrderPricingMode.PublicationWindow;
     }
 
     /// <summary>
@@ -349,7 +492,19 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             return ("Shipping address is required", "MISSING_ADDRESS");
         }
 
+        if (!command.CampaignId.HasValue || command.CampaignId.Value == Guid.Empty)
+        {
+            return ("Semester publication is required", "MISSING_PUBLICATION");
+        }
+
         return (string.Empty, string.Empty);
     }
     #endregion
 }
+
+internal sealed record CheckoutContext(
+    Guid SemesterPublicationId,
+    Guid ProviderId,
+    OrderPricingMode PricingMode,
+    List<ProductVariant> ProductVariants,
+    Dictionary<Guid, (decimal PublicationPrice, decimal PostDeadlinePrice)> PricingByOutfit);
