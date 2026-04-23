@@ -18,6 +18,5 @@ public class TryOnHistory : AuditableEntity
     public User? User { get; set; }
     public ChildProfile? ChildProfile { get; set; }
     public Outfit Outfit { get; set; } = null!;
-    public AIFitAnalysis? AIFitAnalysis { get; set; }
 }
 

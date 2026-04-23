@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
-using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Admin.Commands;
 
@@ -21,7 +20,6 @@ public class ExportSchoolActivityLogsCommandHandler : IExportSchoolActivityLogsC
     {
         try
         {
-            // Verify school exists
             var school = await _context.Schools
                 .FirstOrDefaultAsync(s => s.Id == command.SchoolId && !s.IsDeleted, cancellationToken);
 
@@ -31,23 +29,21 @@ public class ExportSchoolActivityLogsCommandHandler : IExportSchoolActivityLogsC
             var csv = new StringBuilder();
             csv.AppendLine("Activity Type,Activity Details,Created Date");
 
-            // Campaign creation activities
-            var campaigns = await _context.Campaigns
-                .Where(c => c.SchoolID == command.SchoolId)
-                .AsQueryable()
+            var publications = await _context.SemesterPublications
+                .Where(sp => sp.SchoolID == command.SchoolId)
                 .ToListAsync(cancellationToken);
 
             if (command.DateFrom.HasValue)
-                campaigns = campaigns.Where(c => c.CreatedAt >= command.DateFrom.Value).ToList();
+                publications = publications.Where(sp => sp.CreatedAt >= command.DateFrom.Value).ToList();
             if (command.DateTo.HasValue)
-                campaigns = campaigns.Where(c => c.CreatedAt <= command.DateTo.Value).ToList();
+                publications = publications.Where(sp => sp.CreatedAt <= command.DateTo.Value).ToList();
 
-            foreach (var campaign in campaigns)
+            foreach (var publication in publications)
             {
-                csv.AppendLine($"Campaign Creation,Created campaign '{campaign.CampaignName}' (Status: {campaign.Status}),{campaign.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+                var label = publication.Semester + " " + publication.AcademicYear;
+                csv.AppendLine($"Semester Publication,Created publication '{label}' (Status: {publication.Status}),{publication.CreatedAt:yyyy-MM-dd HH:mm:ss}");
             }
 
-            // Uniform/Outfit updates
             var outfits = await _context.Outfits
                 .Where(o => o.SchoolID == command.SchoolId && !o.IsDeleted)
                 .ToListAsync(cancellationToken);
@@ -65,7 +61,6 @@ public class ExportSchoolActivityLogsCommandHandler : IExportSchoolActivityLogsC
                     csv.AppendLine($"Uniform Creation,Created uniform '{outfit.OutfitName}' (Price: ${outfit.Price}),{outfit.CreatedAt:yyyy-MM-dd HH:mm:ss}");
             }
 
-            // Student data uploads
             var uploads = await _context.StudentDataImports
                 .Where(s => s.SchoolID == command.SchoolId)
                 .ToListAsync(cancellationToken);
@@ -80,8 +75,7 @@ public class ExportSchoolActivityLogsCommandHandler : IExportSchoolActivityLogsC
                 csv.AppendLine($"Student List Upload,Uploaded student list (Total: {uploads.Count} records),{upload.CreatedAt:yyyy-MM-dd HH:mm:ss}");
             }
 
-            var csvBytes = Encoding.UTF8.GetBytes(csv.ToString());
-            return Result<byte[]>.Success(csvBytes);
+            return Result<byte[]>.Success(Encoding.UTF8.GetBytes(csv.ToString()));
         }
         catch (Exception ex)
         {

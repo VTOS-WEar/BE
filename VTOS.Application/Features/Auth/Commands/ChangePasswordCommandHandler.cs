@@ -25,6 +25,8 @@ public class ChangePasswordCommandHandler
         ChangePasswordCommand command,
         CancellationToken cancellationToken = default)
     {
+        var emailVerifications = _context.Set<Domain.Entities.EmailVerification>();
+
         // Get user
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == command.UserId && !u.IsDeleted, cancellationToken);
@@ -35,7 +37,7 @@ public class ChangePasswordCommandHandler
         }
 
         // Verify OTP
-        var verification = await _context.EmailVerifications
+        var verification = await emailVerifications
             .FirstOrDefaultAsync(e => 
                 e.Email == user.Email && 
                 e.OTPCode == command.OTP && 

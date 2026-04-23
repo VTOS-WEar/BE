@@ -26,6 +26,8 @@ public class RequestChangePasswordOTPCommandHandler
         RequestChangePasswordOTPCommand command,
         CancellationToken cancellationToken = default)
     {
+        var emailVerifications = _context.Set<EmailVerification>();
+
         // Get user email
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == command.UserId && !u.IsDeleted, cancellationToken);
@@ -36,7 +38,7 @@ public class RequestChangePasswordOTPCommandHandler
         }
 
         // Invalidate any existing unused OTPs for this user (Purpose: ChangePassword)
-        var existingOtps = await _context.EmailVerifications
+        var existingOtps = await emailVerifications
             .Where(e => e.Email == user.Email && e.Purpose == "ChangePassword" && !e.IsVerified)
             .ToListAsync(cancellationToken);
 
@@ -60,7 +62,7 @@ public class RequestChangePasswordOTPCommandHandler
             Purpose = "ChangePassword"
         };
 
-        _context.EmailVerifications.Add(emailVerification);
+        emailVerifications.Add(emailVerification);
         await _context.SaveChangesAsync(cancellationToken);
 
         // Send OTP email

@@ -34,11 +34,7 @@ public class Provider : BaseEntity
     // Navigation properties
     public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
-<<<<<<< HEAD
-    public ICollection<ProviderRating> ProviderRatings { get; set; } = new List<ProviderRating>();
-=======
     public ICollection<ProviderCatalogItem> ProviderCatalogItems { get; set; } = new List<ProviderCatalogItem>();
->>>>>>> 348dab5 (feat(be): add provider catalog and direct order pricing)
     public ICollection<SemesterPublicationProvider> SemesterPublicationProviders { get; set; } = new List<SemesterPublicationProvider>();
     public Wallet? Wallet { get; set; }
 }

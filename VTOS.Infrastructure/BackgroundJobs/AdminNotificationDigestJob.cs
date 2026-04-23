@@ -54,6 +54,7 @@ public class AdminNotificationDigestJob : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+        var notificationLogs = context.Set<Domain.Entities.NotificationLog>();
 
         var now = DateTime.UtcNow;
         var offlineCutoff = now - OfflineThreshold;
@@ -74,7 +75,7 @@ public class AdminNotificationDigestJob : BackgroundService
         foreach (var admin in offlineAdmins)
         {
             // Get IDs of notifications already emailed (tracked via NotificationLog)
-            var alreadyEmailedIds = await context.NotificationLogs
+            var alreadyEmailedIds = await notificationLogs
                 .Where(nl => nl.UserId == admin.Id
                           && nl.NotificationType == Domain.Enums.NotificationType.AdminDigest)
                 .Select(nl => nl.ReferenceId)
@@ -107,7 +108,7 @@ public class AdminNotificationDigestJob : BackgroundService
                 // Log each notification as emailed to prevent duplicates
                 foreach (var n in newNotifications)
                 {
-                    context.NotificationLogs.Add(new Domain.Entities.NotificationLog
+                    notificationLogs.Add(new Domain.Entities.NotificationLog
                     {
                         UserId = admin.Id,
                         NotificationType = Domain.Enums.NotificationType.AdminDigest,

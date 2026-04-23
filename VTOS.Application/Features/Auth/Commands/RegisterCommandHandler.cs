@@ -30,6 +30,9 @@ public class RegisterCommandHandler : IRegisterCommandHandler
         RegisterCommand command,
         CancellationToken cancellationToken = default)
     {
+        var parentProfiles = _context.Set<ParentProfile>();
+        var emailVerifications = _context.Set<EmailVerification>();
+
         // Check if email already exists
         var emailExists = await _context.Users
             .AnyAsync(u => u.Email == command.Email, cancellationToken);
@@ -121,7 +124,7 @@ public class RegisterCommandHandler : IRegisterCommandHandler
         }
         else if (roleName == "Parent")
         {
-            _context.ParentProfiles.Add(new ParentProfile
+            parentProfiles.Add(new ParentProfile
             {
                 Id = Guid.NewGuid(),
                 UserID = user.Id,
@@ -141,7 +144,7 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.EmailVerifications.Add(verification);
+        emailVerifications.Add(verification);
         await _context.SaveChangesAsync(cancellationToken);
 
         // Send OTP email

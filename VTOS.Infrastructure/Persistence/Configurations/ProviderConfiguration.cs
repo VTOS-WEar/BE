@@ -55,24 +55,5 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .IsRequired();
 
         builder.HasIndex(p => p.IsDeleted);
-<<<<<<< HEAD
-
-        // Relationships
-        builder.HasMany(p => p.CampaignOutfits)
-            .WithOne(co => co.Provider)
-            .HasForeignKey(co => co.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(p => p.ProductionBatches)
-            .WithOne(pb => pb.Provider)
-            .HasForeignKey(pb => pb.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(p => p.ProviderRatings)
-            .WithOne(pr => pr.Provider)
-            .HasForeignKey(pr => pr.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
-=======
->>>>>>> 348dab5 (feat(be): add provider catalog and direct order pricing)
     }
 }

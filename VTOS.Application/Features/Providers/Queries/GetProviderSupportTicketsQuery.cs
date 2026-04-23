@@ -36,7 +36,8 @@ public class GetProviderSupportTicketsQueryHandler : IGetProviderSupportTicketsQ
         var providerId = providerMgr.ProviderID;
 
         var q = _db.SupportTickets.AsNoTracking()
-            .Include(c => c.Campaign)
+            .Include(c => c.Order)
+            .Include(c => c.SemesterPublication)
             .Include(c => c.Provider)
             .Where(c => c.ProviderID == providerId);
 
@@ -50,8 +51,11 @@ public class GetProviderSupportTicketsQueryHandler : IGetProviderSupportTicketsQ
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(c => new SupportTicketDto(
-                c.Id, c.CampaignID, c.Campaign.CampaignName,
-                c.BatchID, c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
+                c.Id,
+                c.OrderID,
+                c.SemesterPublicationID,
+                c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
+                c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
                 c.Title, c.Description, c.Response,
                 c.Status.ToString(), c.CreatedAt, c.RespondedAt, c.ResolvedAt
             ))

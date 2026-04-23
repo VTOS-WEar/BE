@@ -99,12 +99,10 @@ public class ViewReportQueryHandler : IViewReportQueryHandler
 
     private async Task<dynamic> GetSchoolPerformanceReport(ViewReportQuery query, CancellationToken cancellationToken)
     {
-        var schoolsQuery = _context.Schools.AsQueryable();
-
-        var schools = await schoolsQuery
+        var schools = await _context.Schools
             .Include(s => s.ChildProfiles)
             .ThenInclude(cp => cp.Orders)
-            .Include(s => s.Campaigns)
+            .Include(s => s.SemesterPublications)
             .ToListAsync(cancellationToken);
 
         var performanceData = schools.Select(s => new
@@ -113,7 +111,7 @@ public class ViewReportQueryHandler : IViewReportQueryHandler
             TotalOrders = s.ChildProfiles.SelectMany(cp => cp.Orders).Count(),
             CompletedOrders = s.ChildProfiles.SelectMany(cp => cp.Orders).Count(o => o.OrderStatus == OrderStatus.Delivered),
             TotalRevenue = s.ChildProfiles.SelectMany(cp => cp.Orders).Where(o => o.OrderStatus == OrderStatus.Delivered).Sum(o => o.TotalAmount),
-            ActiveCampaigns = s.Campaigns.Count(c => c.Status == CampaignStatus.Active)
+            ActiveCampaigns = s.SemesterPublications.Count(sp => sp.Status == SemesterPublicationStatus.Active)
         }).ToList();
 
         return new
@@ -130,7 +128,6 @@ public class ViewReportQueryHandler : IViewReportQueryHandler
         var providers = await _context.Providers
             .ToListAsync(cancellationToken);
 
-        // Provider performance would include orders processed, production batches, etc.
         var performanceData = providers.Select(p => new
         {
             ProviderName = p.ProviderName,

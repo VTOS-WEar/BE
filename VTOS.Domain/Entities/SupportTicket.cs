@@ -10,10 +10,10 @@ namespace VTOS.Domain.Entities;
 /// </summary>
 public class SupportTicket : AuditableEntity
 {
-    public Guid CampaignID { get; set; }
-    public Guid? BatchID { get; set; }
+    public Guid? OrderID { get; set; }
     public Guid SchoolID { get; set; }
     public Guid? ProviderID { get; set; }
+    public Guid? SemesterPublicationID { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public SupportTicketStatus Status { get; set; } = SupportTicketStatus.Open;
@@ -23,8 +23,8 @@ public class SupportTicket : AuditableEntity
     public string? ProofImageUrls { get; set; }  // JSON array of image URLs
 
     // Navigation properties
-    public Campaign Campaign { get; set; } = null!;
-    public ProductionBatch? Batch { get; set; }
+    public Order? Order { get; set; }
     public School School { get; set; } = null!;
     public Provider? Provider { get; set; }
+    public SemesterPublication? SemesterPublication { get; set; }
 }

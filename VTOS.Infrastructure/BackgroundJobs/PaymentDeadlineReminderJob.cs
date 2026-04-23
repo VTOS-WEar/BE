@@ -51,6 +51,7 @@ public class PaymentDeadlineReminderJob : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+        var notificationLogs = context.Set<NotificationLog>();
 
         // Find Pending orders created 18+ hours ago (6h window before 24h auto-cancel)
         var cutoff = DateTime.UtcNow.AddHours(-18);
@@ -60,14 +61,13 @@ public class PaymentDeadlineReminderJob : BackgroundService
             .Where(o => o.OrderDate <= cutoff)
             .Include(o => o.ChildProfile)
                 .ThenInclude(cp => cp.ParentUser)
-            .Include(o => o.Campaign)
             .ToListAsync(ct);
 
         if (pendingOrders.Count == 0) return;
 
         // Get already-sent notification IDs to avoid duplicates
         var orderIds = pendingOrders.Select(o => o.Id).ToList();
-        var alreadySentList = await context.NotificationLogs
+        var alreadySentList = await notificationLogs
             .Where(n => n.NotificationType == NotificationType.PaymentDeadlineReminder
                      && orderIds.Contains(n.ReferenceId))
             .Select(n => n.ReferenceId)
@@ -84,8 +84,6 @@ public class PaymentDeadlineReminderJob : BackgroundService
 
             var orderCode = order.Id.ToString()[..8].ToUpper();
             var deadline = order.OrderDate.AddHours(24);
-            var campaignName = order.Campaign?.CampaignName ?? "N/A";
-
             try
             {
                 await emailService.SendPaymentDeadlineReminderAsync(
@@ -96,7 +94,7 @@ public class PaymentDeadlineReminderJob : BackgroundService
                     deadline,
                     ct);
 
-                context.NotificationLogs.Add(new NotificationLog
+                notificationLogs.Add(new NotificationLog
                 {
                     UserId = parent.Id,
                     NotificationType = NotificationType.PaymentDeadlineReminder,
@@ -110,7 +108,7 @@ public class PaymentDeadlineReminderJob : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to send payment reminder for Order {OrderId}.", order.Id);
-                context.NotificationLogs.Add(new NotificationLog
+                notificationLogs.Add(new NotificationLog
                 {
                     UserId = parent.Id,
                     NotificationType = NotificationType.PaymentDeadlineReminder,
