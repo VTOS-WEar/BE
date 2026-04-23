@@ -213,10 +213,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("RawInputJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("RawMeasurementsJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("ScannedAt")
                         .HasColumnType("timestamp without time zone");
