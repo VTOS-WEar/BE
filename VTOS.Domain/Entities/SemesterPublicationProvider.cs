@@ -15,4 +15,5 @@ public class SemesterPublicationProvider : AuditableEntity
     public SemesterPublication SemesterPublication { get; set; } = null!;
     public Provider Provider { get; set; } = null!;
     public Contract? Contract { get; set; }
+    public ICollection<ProviderCatalogItem> ProviderCatalogItems { get; set; } = new List<ProviderCatalogItem>();
 }

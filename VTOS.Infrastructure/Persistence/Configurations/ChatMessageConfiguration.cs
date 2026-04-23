@@ -35,7 +35,7 @@ public class ChatMessageConfiguration : IEntityTypeConfiguration<ChatMessage>
 
         builder.Property(m => m.MessageType)
             .IsRequired()
-            .HasDefaultValue(VTOS.Domain.Enums.ChatMessageType.Text);
+            .HasConversion<int>();
 
         builder.Property(m => m.ImageUrl)
             .HasMaxLength(2000);

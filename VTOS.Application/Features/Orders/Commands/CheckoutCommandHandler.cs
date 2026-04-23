@@ -54,6 +54,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             {
                 return Result<CheckoutResponse>.Failure(childProfileResult.Error ?? "Validation failed", childProfileResult.ErrorCode);
             }
+            var childProfile = childProfileResult.Value!;
 
             // Step 3: Fetch and validate product variants
             var productVariantsResult = await FetchAndValidateProductVariantsAsync(command.Items, cancellationToken);
@@ -63,20 +64,8 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             }
             var productVariants = productVariantsResult.Variants!;
 
-            // Step 3.5: If campaign is specified, validate that outfits are in the campaign
-            Dictionary<Guid, decimal>? campaignOutfitPrices = null;
-            if (command.CampaignId.HasValue && command.CampaignId != Guid.Empty)
-            {
-                var outfitValidationResult = await ValidateCampaignOutfitsAsync(command.CampaignId.Value, productVariants, cancellationToken);
-                if (!outfitValidationResult.Result.IsSuccess)
-                {
-                    return Result<CheckoutResponse>.Failure(outfitValidationResult.Result.Error ?? "Validation failed", outfitValidationResult.Result.ErrorCode);
-                }
-                campaignOutfitPrices = outfitValidationResult.CampaignOutfitPrices;
-            }
-
             // Step 4: Calculate total and create order items
-            var (orderItems, totalAmount) = CalculateOrderItems(command.Items, productVariants, campaignOutfitPrices);
+            var (orderItems, totalAmount) = CalculateOrderItems(command.Items, productVariants);
 
             if (totalAmount <= 0)
             {
@@ -97,12 +86,8 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             var paymentLink = paymentLinkResult.PaymentLink!;
             var orderCode = paymentLinkResult.OrderCode;
 
-            // Step 6.5: Get Wallet ID if campaign is specified
-            Guid? schoolWalletId = null;
-            if (command.CampaignId.HasValue && command.CampaignId != Guid.Empty)
-            {
-                schoolWalletId = await GetWalletIdFromCampaignAsync(command.CampaignId.Value, cancellationToken);
-            }
+            // Step 6.5: Route legacy school checkout payments to the child's school wallet.
+            var schoolWalletId = await GetSchoolWalletIdAsync(childProfile.SchoolID, cancellationToken);
 
             // Step 7: Create payment transaction
             var paymentTransaction = CreatePaymentTransaction(order.Id, totalAmount, paymentLink.PaymentLinkId, schoolWalletId);
@@ -141,14 +126,14 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     /// <summary>
     /// Validate child profile exists and belongs to the parent
     /// </summary>
-    private async Task<Result<CheckoutResponse>> ValidateChildProfileAsync(Guid childProfileId, Guid parentId, CancellationToken cancellationToken)
+    private async Task<Result<ChildProfile>> ValidateChildProfileAsync(Guid childProfileId, Guid parentId, CancellationToken cancellationToken)
     {
         var childProfile = await _context.ChildProfiles
             .FirstOrDefaultAsync(cp => cp.Id == childProfileId, cancellationToken);
 
         if (childProfile == null)
         {
-            return Result<CheckoutResponse>.Failure("Child profile not found", "CHILD_PROFILE_NOT_FOUND");
+            return Result<ChildProfile>.Failure("Child profile not found", "CHILD_PROFILE_NOT_FOUND");
         }
 
         // Check if the child profile belongs to the parent
@@ -156,15 +141,12 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
         {
             _logger.LogWarning("Unauthorized checkout attempt: Parent {ParentId} trying to checkout for child {ChildId} owned by {OwnerParentId}",
                 parentId, childProfileId, childProfile.ParentUserID);
-            return Result<CheckoutResponse>.Failure("Child profile does not belong to this parent", "UNAUTHORIZED_CHILD_ACCESS");
+            return Result<ChildProfile>.Failure("Child profile does not belong to this parent", "UNAUTHORIZED_CHILD_ACCESS");
         }
 
-        return Result<CheckoutResponse>.Success(null!);
+        return Result<ChildProfile>.Success(childProfile);
     }
 
-    /// <summary>
-    /// Fetch and validate product variants exist
-    /// </summary>
     private async Task<(string? Error, List<ProductVariant>? Variants)> FetchAndValidateProductVariantsAsync(
         List<CheckoutItemRequest> items,
         CancellationToken cancellationToken)
@@ -183,52 +165,11 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     }
 
     /// <summary>
-    /// Validate that product variants belong to the campaign (via their outfits)
-    /// Returns campaign outfit prices for each outfit
-    /// </summary>
-    private async Task<(Result<CheckoutResponse> Result, Dictionary<Guid, decimal>? CampaignOutfitPrices)> ValidateCampaignOutfitsAsync(
-        Guid campaignId,
-        List<ProductVariant> productVariants,
-        CancellationToken cancellationToken)
-    {
-        // Get all outfit IDs from product variants
-        var outfitIds = productVariants.Select(pv => pv.OutfitID).Distinct().ToList();
-
-        // Fetch campaign outfits with prices
-        var campaignOutfits = await _context.CampaignOutfits
-            .Where(co => co.CampaignID == campaignId && outfitIds.Contains(co.OutfitID))
-            .Select(co => new { co.OutfitID, co.CampaignPrice })
-            .ToListAsync(cancellationToken);
-
-        // Check if all outfits are in the campaign
-        var foundOutfitIds = campaignOutfits.Select(co => co.OutfitID).ToList();
-        var missingOutfits = outfitIds.Except(foundOutfitIds).ToList();
-
-        if (missingOutfits.Count > 0)
-        {
-            _logger.LogWarning("Campaign {CampaignId} does not contain outfits: {MissingOutfits}",
-                campaignId, string.Join(", ", missingOutfits));
-            return (
-                Result<CheckoutResponse>.Failure(
-                    "One or more products are not available in this campaign",
-                    "OUTFIT_NOT_IN_CAMPAIGN"),
-                null);
-        }
-
-        // Build price dictionary: OutfitID -> CampaignPrice
-        var priceMap = campaignOutfits.ToDictionary(co => co.OutfitID, co => co.CampaignPrice);
-
-        return (Result<CheckoutResponse>.Success(null!), priceMap);
-    }
-
-    /// <summary>
-    /// Calculate order items and total amount
-    /// If campaign outfit prices provided, use those; otherwise use product variant prices
+    /// Calculate order items and total amount using variant prices.
     /// </summary>
     private (List<OrderItem>, decimal) CalculateOrderItems(
         List<CheckoutItemRequest> items,
-        List<ProductVariant> productVariants,
-        Dictionary<Guid, decimal>? campaignOutfitPrices = null)
+        List<ProductVariant> productVariants)
     {
         var orderItems = new List<OrderItem>();
         decimal totalAmount = 0;
@@ -241,13 +182,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
                 continue;
             }
 
-            // Determine price: campaign outfit price if available, otherwise product variant price
             decimal unitPrice = productVariant.Price;
-            if (campaignOutfitPrices != null && campaignOutfitPrices.TryGetValue(productVariant.OutfitID, out var campaignPrice))
-            {
-                unitPrice = campaignPrice;
-                _logger.LogDebug("Using campaign outfit price {CampaignPrice} for outfit {OutfitId}", campaignPrice, productVariant.OutfitID);
-            }
 
             var itemTotal = unitPrice * item.Quantity;
             totalAmount += itemTotal;
@@ -281,7 +216,6 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             OrderStatus = OrderStatus.Pending,
             TotalAmount = totalAmount,
             ShippingAddress = command.ShippingAddress,
-            CampaignID = command.CampaignId,
             DeliveryMethod = command.DeliveryMethod,
             CreatedAt = DateTime.UtcNow
         };
@@ -348,32 +282,31 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
         };
     }
 
-    /// <summary>
-    /// Get Wallet ID from Campaign
-    /// </summary>
-    private async Task<Guid?> GetWalletIdFromCampaignAsync(Guid campaignId, CancellationToken cancellationToken)
+    private async Task<Guid?> GetSchoolWalletIdAsync(Guid schoolId, CancellationToken cancellationToken)
     {
         try
         {
-            var walletId = await (
-                from c in _context.Campaigns
-                join w in _context.Wallets on c.SchoolID equals w.OwnerID
-                where c.Id == campaignId && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive
-                select w.Id
-            ).FirstOrDefaultAsync(cancellationToken);
+            var walletId = await _context.Wallets
+                .AsNoTracking()
+                .Where(w =>
+                    w.OwnerID == schoolId
+                    && w.OwnerType == Domain.Enums.WalletOwnerType.School
+                    && w.IsActive)
+                .Select(w => w.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (walletId != Guid.Empty)
             {
-                _logger.LogDebug("Retrieved Wallet {WalletId} from Campaign {CampaignId}", walletId, campaignId);
+                _logger.LogDebug("Retrieved Wallet {WalletId} from School {SchoolId}", walletId, schoolId);
                 return walletId;
             }
 
-            _logger.LogWarning("No Wallet found for Campaign {CampaignId}", campaignId);
+            _logger.LogWarning("No Wallet found for School {SchoolId}", schoolId);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving Wallet from Campaign {CampaignId}", campaignId);
+            _logger.LogError(ex, "Error retrieving Wallet from School {SchoolId}", schoolId);
             return null;
         }
     }

@@ -29,6 +29,10 @@ public class UserController : ControllerBase
     private readonly GetMyChildrenQueryHandler _getMyChildrenHandler;
     private readonly FindChildrenCommandHandler _findChildrenHandler;
     private readonly IAddParentBankAccountCommandHandler _addBankAccountHandler;
+    private readonly IGetParentAddressesQueryHandler _getParentAddressesHandler;
+    private readonly IUpsertParentAddressCommandHandler _upsertParentAddressHandler;
+    private readonly IDeleteParentAddressCommandHandler _deleteParentAddressHandler;
+    private readonly ISetDefaultParentAddressCommandHandler _setDefaultParentAddressHandler;
 
     public UserController(
         ICurrentUserService currentUser,
@@ -41,7 +45,11 @@ public class UserController : ControllerBase
         IValidator<SubmitVerificationCommand> submitVerificationValidator,
         GetMyChildrenQueryHandler getMyChildrenHandler,
         FindChildrenCommandHandler findChildrenHandler,
-        IAddParentBankAccountCommandHandler addBankAccountHandler)
+        IAddParentBankAccountCommandHandler addBankAccountHandler,
+        IGetParentAddressesQueryHandler getParentAddressesHandler,
+        IUpsertParentAddressCommandHandler upsertParentAddressHandler,
+        IDeleteParentAddressCommandHandler deleteParentAddressHandler,
+        ISetDefaultParentAddressCommandHandler setDefaultParentAddressHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -54,6 +62,10 @@ public class UserController : ControllerBase
         _getMyChildrenHandler = getMyChildrenHandler;
         _findChildrenHandler = findChildrenHandler;
         _addBankAccountHandler = addBankAccountHandler;
+        _getParentAddressesHandler = getParentAddressesHandler;
+        _upsertParentAddressHandler = upsertParentAddressHandler;
+        _deleteParentAddressHandler = deleteParentAddressHandler;
+        _setDefaultParentAddressHandler = setDefaultParentAddressHandler;
     }
 
      /// <summary>
@@ -188,6 +200,95 @@ public class UserController : ControllerBase
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
         return Ok(result.Value);
+    }
+
+    [HttpGet("me/addresses")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyAddresses(CancellationToken cancellationToken)
+    {
+        var result = await _getParentAddressesHandler.HandleAsync(
+            new GetParentAddressesQuery(_currentUser.UserId),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("me/addresses")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateAddress([FromBody] UpsertParentAddressRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _upsertParentAddressHandler.HandleAsync(
+            new UpsertParentAddressCommand(
+                _currentUser.UserId,
+                null,
+                request.Label,
+                request.RecipientName,
+                request.RecipientPhone,
+                request.AddressLine,
+                request.IsDefault),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPut("me/addresses/{addressId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateAddress(Guid addressId, [FromBody] UpsertParentAddressRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _upsertParentAddressHandler.HandleAsync(
+            new UpsertParentAddressCommand(
+                _currentUser.UserId,
+                addressId,
+                request.Label,
+                request.RecipientName,
+                request.RecipientPhone,
+                request.AddressLine,
+                request.IsDefault),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    [HttpDelete("me/addresses/{addressId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteAddress(Guid addressId, CancellationToken cancellationToken)
+    {
+        var result = await _deleteParentAddressHandler.HandleAsync(
+            new DeleteParentAddressCommand(_currentUser.UserId, addressId),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(new { message = "Address deleted." });
+    }
+
+    [HttpPut("me/addresses/{addressId:guid}/default")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SetDefaultAddress(Guid addressId, CancellationToken cancellationToken)
+    {
+        var result = await _setDefaultParentAddressHandler.HandleAsync(
+            new SetDefaultParentAddressCommand(_currentUser.UserId, addressId),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(new { message = "Default address updated." });
     }
 
 

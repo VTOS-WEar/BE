@@ -32,9 +32,11 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired()
             .HasMaxLength(500);
 
-        builder.Property(o => o.CampaignID);
         builder.Property(o => o.ProviderID);
         builder.Property(o => o.SemesterPublicationID);
+        builder.Property(o => o.AppliedPricingMode)
+            .HasMaxLength(50)
+            .HasConversion<string>();
 
         builder.Property(o => o.DeliveryMethod)
             .HasMaxLength(50);
@@ -62,11 +64,6 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .WithMany(cp => cp.Orders)
             .HasForeignKey(o => o.ChildProfileID)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(o => o.Campaign)
-            .WithMany(c => c.Orders)
-            .HasForeignKey(o => o.CampaignID)
-            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(o => o.Provider)
             .WithMany(p => p.Orders)

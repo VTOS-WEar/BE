@@ -22,51 +22,6 @@ namespace VTOS.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("VTOS.Domain.Entities.AIFitAnalysis", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("AnalysisID");
-
-                    b.Property<string>("AlgorithmVersion")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DetectedBodyProportions")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int?>("FitScore")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SuggestedSize")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("TryOnID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TryOnID")
-                        .IsUnique();
-
-                    b.ToTable("AIFitAnalysis", (string)null);
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.AccountRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -292,93 +247,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("BodygramScanRecords", (string)null);
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.Campaign", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("CampaignID");
-
-                    b.Property<string>("CampaignName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<Guid>("SchoolID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SchoolID");
-
-                    b.ToTable("Campaign", (string)null);
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.CampaignOutfit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("CampaignOutfitID");
-
-                    b.Property<Guid>("CampaignID")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("CampaignPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("ContractID")
-                        .HasColumnType("uuid");
-
-                    b.Property<int?>("MaxQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("OutfitID")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ProviderID")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CampaignID");
-
-                    b.HasIndex("ContractID");
-
-                    b.HasIndex("OutfitID");
-
-                    b.HasIndex("ProviderID");
-
-                    b.ToTable("CampaignOutfit", (string)null);
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -431,9 +299,7 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<int>("MessageType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
+                        .HasColumnType("integer");
 
                     b.Property<string>("ProposalOutfitName")
                         .HasMaxLength(200)
@@ -677,159 +543,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("ContractItem", (string)null);
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.DeliveryRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("DeliveryRecordID");
-
-                    b.Property<int?>("AcceptedQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("BatchID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ConfirmedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DefectNote")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int?>("DefectiveQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("DeliveredAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("IsConfirmed")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BatchID");
-
-                    b.ToTable("DeliveryRecord", (string)null);
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.DistributionRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("DistributionRecordID");
-
-                    b.Property<Guid>("BatchID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("DistributedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Method")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid>("OrderID")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ProofImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("ShippingCompany")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("TrackingCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BatchID");
-
-                    b.HasIndex("OrderID");
-
-                    b.ToTable("DistributionRecord", (string)null);
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.DistributionSchedule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BatchID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Method")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ScheduledDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TimeSlot")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BatchID");
-
-                    b.ToTable("DistributionSchedules");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.EmailVerification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -880,9 +593,6 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("FeedbackID");
 
-                    b.Property<Guid?>("CampaignId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Comment")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -920,8 +630,6 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CampaignId");
 
                     b.HasIndex("OrderItemID");
 
@@ -1092,8 +800,9 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("OrderID");
 
-                    b.Property<Guid?>("CampaignID")
-                        .HasColumnType("uuid");
+                    b.Property<string>("AppliedPricingMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("CancelReason")
                         .HasMaxLength(500)
@@ -1160,8 +869,6 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CampaignID");
 
                     b.HasIndex("ChildProfileID");
 
@@ -1308,44 +1015,60 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("OutfitCategory", (string)null);
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.OutfitRecommendation", b =>
+            modelBuilder.Entity("VTOS.Domain.Entities.ParentAddress", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("RecommendationID");
+                        .HasColumnName("ParentAddressID");
+
+                    b.Property<string>("AddressLine")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
-                    b.Property<Guid>("OutfitID")
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ParentUserID")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("RecommendationScore")
-                        .HasColumnType("decimal(5,2)");
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
-                    b.Property<Guid?>("RuleConfigID")
-                        .HasColumnType("uuid");
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserID")
-                        .HasColumnType("uuid");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OutfitID");
+                    b.HasIndex("ParentUserID");
 
-                    b.HasIndex("UserID");
-
-                    b.ToTable("OutfitRecommendation", (string)null);
+                    b.ToTable("ParentAddress", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ParentBankAccount", b =>
@@ -1603,98 +1326,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("ProductVariant", (string)null);
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.ProductionBatch", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("BatchID");
-
-                    b.Property<string>("BatchName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<Guid>("CampaignID")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("DeliveredQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("DeliveryConfirmedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("DeliveryDeadline")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("DeliveryNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<Guid>("ProviderID")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Status")
-                        .HasMaxLength(20)
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TotalQuantity")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CampaignID");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("ProviderID");
-
-                    b.ToTable("ProductionBatch", (string)null);
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.ProductionBatchItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BatchID")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("OutfitID")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Size")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("numeric");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BatchID");
-
-                    b.HasIndex("OutfitID");
-
-                    b.ToTable("ProductionBatchItems");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Provider", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1740,9 +1371,7 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("text");
 
                     b.Property<string>("TaxCode")
                         .HasColumnType("text");
@@ -1763,9 +1392,7 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("VerificationStatus")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("WalletId")
                         .HasColumnType("uuid");
@@ -1777,6 +1404,97 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasIndex("WalletId");
 
                     b.ToTable("Provider", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderCatalogItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("ProviderCatalogItemID");
+
+                    b.Property<string>("CareInstructions")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("ContractItemID")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FullDescription")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("GalleryImageUrls")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("HiddenAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("MainImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MaterialDetails")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("OutfitID")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PostDeadlinePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PublicationPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("SemesterPublicationProviderID")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShortDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractItemID");
+
+                    b.HasIndex("OutfitID");
+
+                    b.HasIndex("ProviderID");
+
+                    b.HasIndex("SemesterPublicationProviderID", "ContractItemID")
+                        .IsUnique();
+
+                    b.ToTable("ProviderCatalogItem", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProviderManager", b =>
@@ -1974,9 +1692,7 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("text");
 
                     b.Property<string>("TaxCode")
                         .HasColumnType("text");
@@ -1993,9 +1709,7 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("VerificationStatus")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("WalletId")
                         .HasColumnType("uuid");
@@ -2381,12 +2095,6 @@ namespace VTOS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("BatchID")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CampaignID")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -2396,6 +2104,9 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("OrderID")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ProofImageUrls")
                         .HasColumnType("text");
@@ -2415,6 +2126,9 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<Guid>("SchoolID")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SemesterPublicationID")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -2430,15 +2144,66 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BatchID");
-
-                    b.HasIndex("CampaignID");
+                    b.HasIndex("OrderID");
 
                     b.HasIndex("ProviderID");
 
                     b.HasIndex("SchoolID");
 
+                    b.HasIndex("SemesterPublicationID");
+
                     b.ToTable("Complaints", (string)null);
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.TeacherReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ReportType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("TeacherUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassGroupId", "Status");
+
+                    b.HasIndex("TeacherUserId", "ClassGroupId", "SubmittedAt");
+
+                    b.ToTable("TeacherReports", (string)null);
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.TryOnHistory", b =>
@@ -2672,17 +2437,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.ToTable("WalletWithdrawalRequest", (string)null);
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.AIFitAnalysis", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.TryOnHistory", "TryOnHistory")
-                        .WithOne("AIFitAnalysis")
-                        .HasForeignKey("VTOS.Domain.Entities.AIFitAnalysis", "TryOnID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TryOnHistory");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.AccountRequest", b =>
                 {
                     b.HasOne("VTOS.Domain.Entities.User", "CreatedUser")
@@ -2731,50 +2485,6 @@ namespace VTOS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Child");
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.Campaign", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.School", "School")
-                        .WithMany("Campaigns")
-                        .HasForeignKey("SchoolID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("School");
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.CampaignOutfit", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.Campaign", "Campaign")
-                        .WithMany("CampaignOutfits")
-                        .HasForeignKey("CampaignID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VTOS.Domain.Entities.Contract", "Contract")
-                        .WithMany()
-                        .HasForeignKey("ContractID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("VTOS.Domain.Entities.Outfit", "Outfit")
-                        .WithMany("CampaignOutfits")
-                        .HasForeignKey("OutfitID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
-                        .WithMany("CampaignOutfits")
-                        .HasForeignKey("ProviderID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Campaign");
-
-                    b.Navigation("Contract");
-
-                    b.Navigation("Outfit");
-
-                    b.Navigation("Provider");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ChatMessage", b =>
@@ -2869,53 +2579,8 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Outfit");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.DeliveryRecord", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
-                        .WithMany("DeliveryRecords")
-                        .HasForeignKey("BatchID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Batch");
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.DistributionRecord", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
-                        .WithMany("DistributionRecords")
-                        .HasForeignKey("BatchID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VTOS.Domain.Entities.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Batch");
-
-                    b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.DistributionSchedule", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
-                        .WithMany()
-                        .HasForeignKey("BatchID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Batch");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Feedback", b =>
                 {
-                    b.HasOne("VTOS.Domain.Entities.Campaign", null)
-                        .WithMany("Feedbacks")
-                        .HasForeignKey("CampaignId");
-
                     b.HasOne("VTOS.Domain.Entities.OrderItem", "OrderItem")
                         .WithMany("Feedbacks")
                         .HasForeignKey("OrderItemID")
@@ -2983,11 +2648,6 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.Order", b =>
                 {
-                    b.HasOne("VTOS.Domain.Entities.Campaign", "Campaign")
-                        .WithMany("Orders")
-                        .HasForeignKey("CampaignID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("VTOS.Domain.Entities.ChildProfile", "ChildProfile")
                         .WithMany("Orders")
                         .HasForeignKey("ChildProfileID")
@@ -3003,8 +2663,11 @@ namespace VTOS.Infrastructure.Migrations
                         .WithMany("Orders")
                         .HasForeignKey("SemesterPublicationID")
                         .OnDelete(DeleteBehavior.SetNull);
+<<<<<<< HEAD
 
                     b.Navigation("Campaign");
+=======
+>>>>>>> a06415b (feat(be): add parent address book support)
 
                     b.Navigation("ChildProfile");
 
@@ -3069,23 +2732,15 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Outfit");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.OutfitRecommendation", b =>
+            modelBuilder.Entity("VTOS.Domain.Entities.ParentAddress", b =>
                 {
-                    b.HasOne("VTOS.Domain.Entities.Outfit", "Outfit")
-                        .WithMany("OutfitRecommendations")
-                        .HasForeignKey("OutfitID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("VTOS.Domain.Entities.User", "ParentUser")
+                        .WithMany("Addresses")
+                        .HasForeignKey("ParentUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("VTOS.Domain.Entities.User", "User")
-                        .WithMany("OutfitRecommendations")
-                        .HasForeignKey("UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Outfit");
-
-                    b.Navigation("User");
+                    b.Navigation("ParentUser");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ParentBankAccount", b =>
@@ -3164,44 +2819,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Outfit");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.ProductionBatch", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.Campaign", "Campaign")
-                        .WithMany("ProductionBatches")
-                        .HasForeignKey("CampaignID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
-                        .WithMany("ProductionBatches")
-                        .HasForeignKey("ProviderID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Campaign");
-
-                    b.Navigation("Provider");
-                });
-
-            modelBuilder.Entity("VTOS.Domain.Entities.ProductionBatchItem", b =>
-                {
-                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
-                        .WithMany("Items")
-                        .HasForeignKey("BatchID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VTOS.Domain.Entities.Outfit", "Outfit")
-                        .WithMany()
-                        .HasForeignKey("OutfitID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Batch");
-
-                    b.Navigation("Outfit");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Provider", b =>
                 {
                     b.HasOne("VTOS.Domain.Entities.Wallet", "Wallet")
@@ -3209,6 +2826,41 @@ namespace VTOS.Infrastructure.Migrations
                         .HasForeignKey("WalletId");
 
                     b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderCatalogItem", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.ContractItem", "ContractItem")
+                        .WithMany("ProviderCatalogItems")
+                        .HasForeignKey("ContractItemID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Outfit", "Outfit")
+                        .WithMany("ProviderCatalogItems")
+                        .HasForeignKey("OutfitID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
+                        .WithMany("ProviderCatalogItems")
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.SemesterPublicationProvider", "SemesterPublicationProvider")
+                        .WithMany("ProviderCatalogItems")
+                        .HasForeignKey("SemesterPublicationProviderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContractItem");
+
+                    b.Navigation("Outfit");
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("SemesterPublicationProvider");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProviderManager", b =>
@@ -3394,15 +3046,9 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.SupportTicket", b =>
                 {
-                    b.HasOne("VTOS.Domain.Entities.ProductionBatch", "Batch")
-                        .WithMany("Complaints")
-                        .HasForeignKey("BatchID");
-
-                    b.HasOne("VTOS.Domain.Entities.Campaign", "Campaign")
+                    b.HasOne("VTOS.Domain.Entities.Order", "Order")
                         .WithMany()
-                        .HasForeignKey("CampaignID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("OrderID");
 
                     b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
                         .WithMany()
@@ -3414,13 +3060,36 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Batch");
+                    b.HasOne("VTOS.Domain.Entities.SemesterPublication", "SemesterPublication")
+                        .WithMany()
+                        .HasForeignKey("SemesterPublicationID");
 
-                    b.Navigation("Campaign");
+                    b.Navigation("Order");
 
                     b.Navigation("Provider");
 
                     b.Navigation("School");
+
+                    b.Navigation("SemesterPublication");
+                });
+
+            modelBuilder.Entity("VTOS.Domain.Entities.TeacherReport", b =>
+                {
+                    b.HasOne("VTOS.Domain.Entities.ClassGroup", "ClassGroup")
+                        .WithMany()
+                        .HasForeignKey("ClassGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VTOS.Domain.Entities.User", "TeacherUser")
+                        .WithMany()
+                        .HasForeignKey("TeacherUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClassGroup");
+
+                    b.Navigation("TeacherUser");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.TryOnHistory", b =>
@@ -3475,17 +3144,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Measurements");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.Campaign", b =>
-                {
-                    b.Navigation("CampaignOutfits");
-
-                    b.Navigation("Feedbacks");
-
-                    b.Navigation("Orders");
-
-                    b.Navigation("ProductionBatches");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Category", b =>
                 {
                     b.Navigation("OutfitCategories");
@@ -3514,6 +3172,11 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("SemesterPublicationProviders");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.ContractItem", b =>
+                {
+                    b.Navigation("ProviderCatalogItems");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.Order", b =>
                 {
                     b.Navigation("Invoices");
@@ -3532,13 +3195,11 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.Outfit", b =>
                 {
-                    b.Navigation("CampaignOutfits");
-
                     b.Navigation("OutfitCategories");
 
-                    b.Navigation("OutfitRecommendations");
-
                     b.Navigation("ProductVariants");
+
+                    b.Navigation("ProviderCatalogItems");
 
                     b.Navigation("SemesterPublicationOutfits");
 
@@ -3562,26 +3223,17 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("OrderItems");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.ProductionBatch", b =>
-                {
-                    b.Navigation("Complaints");
-
-                    b.Navigation("DeliveryRecords");
-
-                    b.Navigation("DistributionRecords");
-
-                    b.Navigation("Items");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.Provider", b =>
                 {
-                    b.Navigation("CampaignOutfits");
-
                     b.Navigation("Contracts");
 
                     b.Navigation("Orders");
 
+<<<<<<< HEAD
                     b.Navigation("ProductionBatches");
+=======
+                    b.Navigation("ProviderCatalogItems");
+>>>>>>> a06415b (feat(be): add parent address book support)
 
                     b.Navigation("ProviderRatings");
 
@@ -3595,8 +3247,6 @@ namespace VTOS.Infrastructure.Migrations
 
             modelBuilder.Entity("VTOS.Domain.Entities.School", b =>
                 {
-                    b.Navigation("Campaigns");
-
                     b.Navigation("ChildProfiles");
 
                     b.Navigation("ClassGroups");
@@ -3619,6 +3269,11 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Providers");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.SemesterPublicationProvider", b =>
+                {
+                    b.Navigation("ProviderCatalogItems");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.SizeChart", b =>
                 {
                     b.Navigation("Outfits");
@@ -3631,13 +3286,10 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Measurements");
                 });
 
-            modelBuilder.Entity("VTOS.Domain.Entities.TryOnHistory", b =>
-                {
-                    b.Navigation("AIFitAnalysis");
-                });
-
             modelBuilder.Entity("VTOS.Domain.Entities.User", b =>
                 {
+                    b.Navigation("Addresses");
+
                     b.Navigation("BankAccounts");
 
                     b.Navigation("ChildProfiles");
@@ -3645,8 +3297,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Feedbacks");
 
                     b.Navigation("HomeroomClasses");
-
-                    b.Navigation("OutfitRecommendations");
 
                     b.Navigation("ParentProfile");
 

@@ -20,15 +20,13 @@ public class GetSalesReportQueryHandler : IGetSalesReportQueryHandler
 
     public async Task<Result<SalesReportDto>> HandleAsync(GetSalesReportQuery query, CancellationToken ct = default)
     {
-        // Get all orders related to this school
+        // Get all orders related to this school via enrolled students.
         var ordersQuery = _db.Orders
             .AsNoTracking()
+            .Include(o => o.ChildProfile)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
-            .Where(o =>
-                (o.Campaign != null && o.Campaign.SchoolID == query.SchoolId) ||
-                o.ChildProfile.SchoolID == query.SchoolId
-            );
+            .Where(o => o.ChildProfile.SchoolID == query.SchoolId);
 
         // Apply date filters
         if (query.FromDate.HasValue)

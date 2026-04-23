@@ -31,6 +31,8 @@ public class ResendOTPCommandHandler
         ResendOTPCommand command,
         CancellationToken cancellationToken = default)
     {
+        var emailVerifications = _context.Set<EmailVerification>();
+
         // Check if user exists
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == command.Email, cancellationToken);
@@ -51,7 +53,7 @@ public class ResendOTPCommandHandler
         }
 
         // Rate limiting: Check recent OTP requests (max 3 in last 10 minutes)
-        var recentOTPs = await _context.EmailVerifications
+        var recentOTPs = await emailVerifications
             .Where(v => v.Email == command.Email && 
                        v.CreatedAt > DateTime.UtcNow.AddMinutes(-10))
             .CountAsync(cancellationToken);
@@ -75,7 +77,7 @@ public class ResendOTPCommandHandler
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.EmailVerifications.Add(verification);
+        emailVerifications.Add(verification);
         await _context.SaveChangesAsync(cancellationToken);
 
         // Send OTP email

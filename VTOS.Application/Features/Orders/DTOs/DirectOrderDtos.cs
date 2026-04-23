@@ -49,6 +49,7 @@ public class MyDirectOrderListItemDto
     public decimal TotalAmount { get; set; }
     public string ChildName { get; set; } = string.Empty;
     public string ProviderName { get; set; } = string.Empty;
+    public string PricingMode { get; set; } = string.Empty;
     public string? FirstItemImageUrl { get; set; }
     public string? PaymentStatusName { get; set; }
     public string? TrackingCode { get; set; }
@@ -64,6 +65,7 @@ public class MyDirectOrderDetailDto
     public Guid SemesterPublicationId { get; set; }
     public string Semester { get; set; } = string.Empty;
     public string AcademicYear { get; set; } = string.Empty;
+    public string PricingMode { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
@@ -97,4 +99,28 @@ public class MyDirectOrderDetailItemDto
     public string Size { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+}
+
+public class ExistingProviderRatingDto
+{
+    public Guid ProviderRatingId { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SubmitProviderRatingRequest
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+}
+
+public class SubmitProviderRatingResponse
+{
+    public Guid ProviderRatingId { get; set; }
+    public Guid OrderId { get; set; }
+    public Guid ProviderId { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

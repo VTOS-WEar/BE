@@ -30,11 +30,9 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .HasMaxLength(500);
 
         builder.Property(p => p.Status)
-            .HasDefaultValue(VTOS.Domain.Enums.ProviderStatus.Pending)
             .HasConversion<string>();
 
         builder.Property(p => p.VerificationStatus)
-            .HasDefaultValue(VTOS.Domain.Enums.VerificationStatus.Pending)
             .HasConversion<string>();
 
         builder.Property(p => p.RejectionReason)
@@ -57,21 +55,5 @@ public class ProviderConfiguration : IEntityTypeConfiguration<Provider>
             .IsRequired();
 
         builder.HasIndex(p => p.IsDeleted);
-
-        // Relationships
-        builder.HasMany(p => p.CampaignOutfits)
-            .WithOne(co => co.Provider)
-            .HasForeignKey(co => co.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(p => p.ProductionBatches)
-            .WithOne(pb => pb.Provider)
-            .HasForeignKey(pb => pb.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(p => p.ProviderRatings)
-            .WithOne(pr => pr.Provider)
-            .HasForeignKey(pr => pr.ProviderID)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

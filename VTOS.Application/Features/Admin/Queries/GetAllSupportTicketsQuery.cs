@@ -15,8 +15,9 @@ public record AdminSupportTicketDto
     public string Status { get; init; } = string.Empty;
     public string SchoolName { get; init; } = string.Empty;
     public string? ProviderName { get; init; }
-    public string? CampaignName { get; init; }
-    public string? BatchName { get; init; }
+    public Guid? OrderId { get; init; }
+    public Guid? SemesterPublicationId { get; init; }
+    public string? SemesterLabel { get; init; }
     public string? Response { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? RespondedAt { get; init; }
@@ -60,8 +61,8 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
         var query = _context.SupportTickets
             .Include(c => c.School)
             .Include(c => c.Provider)
-            .Include(c => c.Campaign)
-            .Include(c => c.Batch)
+            .Include(c => c.Order)
+            .Include(c => c.SemesterPublication)
             .AsQueryable();
 
         if (status.HasValue)
@@ -87,8 +88,9 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
                 Status = c.Status.ToString(),
                 SchoolName = c.School.SchoolName,
                 ProviderName = c.Provider != null ? c.Provider.ProviderName : null,
-                CampaignName = c.Campaign.CampaignName,
-                BatchName = c.Batch != null ? c.Batch.Id.ToString().Substring(0, 8).ToUpper() : null,
+                OrderId = c.OrderID,
+                SemesterPublicationId = c.SemesterPublicationID,
+                SemesterLabel = c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
                 Response = c.Response,
                 CreatedAt = c.CreatedAt,
                 RespondedAt = c.RespondedAt,

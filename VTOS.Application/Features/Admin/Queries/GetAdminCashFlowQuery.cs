@@ -1,18 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Admin.Queries;
 
-// ── DTOs ──
-
 public record AdminCashFlowDto
 {
-    public decimal TotalParentPayments { get; init; }      // Sum of completed OrderPayment
-    public decimal TotalProviderPayments { get; init; }    // Sum of completed ProviderPayment
-    public decimal TotalRefunds { get; init; }             // Sum of completed Refund
-    public decimal PendingPayments { get; init; }          // Sum of pending OrderPayment
+    public decimal TotalParentPayments { get; init; }
+    public decimal TotalProviderPayments { get; init; }
+    public decimal TotalRefunds { get; init; }
+    public decimal PendingPayments { get; init; }
     public int TotalTransactionCount { get; init; }
     public int PendingComplaintCount { get; init; }
     public int ActiveCampaignCount { get; init; }
@@ -27,14 +25,10 @@ public record DailyRevenueDto
     public decimal Expense { get; init; }
 }
 
-// ── Interface ──
-
 public interface IGetAdminCashFlowQueryHandler
 {
     Task<Result<AdminCashFlowDto>> HandleAsync(int days = 30, CancellationToken ct = default);
 }
-
-// ── Handler ──
 
 public class GetAdminCashFlowQueryHandler : IGetAdminCashFlowQueryHandler
 {
@@ -61,13 +55,12 @@ public class GetAdminCashFlowQueryHandler : IGetAdminCashFlowQueryHandler
         var pendingComplaints = await _context.SupportTickets
             .CountAsync(c => c.Status == SupportTicketStatus.Open || c.Status == SupportTicketStatus.InProgress, ct);
 
-        var activeCampaigns = await _context.Campaigns
-            .CountAsync(c => c.Status == CampaignStatus.Active, ct);
+        var activeCampaigns = await _context.SemesterPublications
+            .CountAsync(sp => sp.Status == SemesterPublicationStatus.Active, ct);
 
         var pendingRequests = await _context.AccountRequests
             .CountAsync(a => a.Status == Domain.Enums.AccountRequestStatus.Pending, ct);
 
-        // Revenue chart — last N days
         var startDate = DateTime.UtcNow.Date.AddDays(-days);
         var recentTxns = completedTxns
             .Where(t => t.TransactionTimestamp >= startDate)

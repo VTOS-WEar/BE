@@ -21,8 +21,10 @@ public class VerifyEmailCommandHandler : IVerifyEmailCommandHandler
         VerifyEmailCommand command,
         CancellationToken cancellationToken = default)
     {
+        var emailVerifications = _context.Set<Domain.Entities.EmailVerification>();
+
         // Find the most recent unverified OTP for this email
-        var verification = await _context.EmailVerifications
+        var verification = await emailVerifications
             .Where(v => v.Email == command.Email && !v.IsVerified)
             .OrderByDescending(v => v.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);

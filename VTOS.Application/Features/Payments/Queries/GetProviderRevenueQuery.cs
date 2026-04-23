@@ -59,25 +59,17 @@ public class GetProviderRevenueQueryHandler : IGetProviderRevenueQueryHandler
                 .ToHashSet();
         }
 
-        var legacyCampaignIds = await _db.CampaignOutfits.AsNoTracking()
-            .Where(co => co.ProviderID == providerId)
-            .Select(co => co.CampaignID)
-            .Distinct()
-            .ToListAsync(ct);
-
+        // 4. Pending = direct provider orders that reached a payable fulfillment state
+        // but do not yet have a completed provider-payment transaction.
         var pendingOrders = await _db.Orders.AsNoTracking()
-            .Where(o =>
-                ((o.ProviderID == providerId && o.SemesterPublicationID != null) ||
-                 (o.CampaignID != null && legacyCampaignIds.Contains(o.CampaignID.Value))) &&
-                (o.OrderStatus == OrderStatus.Paid ||
-                 o.OrderStatus == OrderStatus.Accepted ||
-                 o.OrderStatus == OrderStatus.InProduction ||
-                 o.OrderStatus == OrderStatus.ReadyToShip ||
-                 o.OrderStatus == OrderStatus.Shipped ||
-                 o.OrderStatus == OrderStatus.Delivered ||
-                 o.OrderStatus == OrderStatus.Confirmed ||
-                 o.OrderStatus == OrderStatus.Processed) &&
-                !paidOrderIds.Contains(o.Id))
+            .Where(o => o.ProviderID == providerId
+                      && o.SemesterPublicationID != null
+                      && (o.OrderStatus == OrderStatus.Paid
+                       || o.OrderStatus == OrderStatus.Confirmed
+                       || o.OrderStatus == OrderStatus.Processed
+                       || o.OrderStatus == OrderStatus.Shipped
+                       || o.OrderStatus == OrderStatus.Delivered)
+                      && !paidOrderIds.Contains(o.Id))
             .ToListAsync(ct);
 
         return Result<ProviderRevenueDto>.Success(new ProviderRevenueDto(

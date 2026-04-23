@@ -1,15 +1,16 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
-public class TeacherReport : AuditableEntity
+public class TeacherReport : BaseEntity
 {
-    public Guid ClassGroupID { get; set; }
-    public Guid TeacherUserID { get; set; }
+    public Guid ClassGroupId { get; set; }
+    public Guid TeacherUserId { get; set; }
+    public TeacherReportType ReportType { get; set; } = TeacherReportType.General;
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
-    public string ReportType { get; set; } = "General";
-    public string Status { get; set; } = "Submitted";
+    public TeacherReportStatus Status { get; set; } = TeacherReportStatus.Submitted;
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReviewedAt { get; set; }
     public string? ReviewNote { get; set; }

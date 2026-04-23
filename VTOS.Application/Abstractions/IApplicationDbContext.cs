@@ -11,7 +11,6 @@ public interface IApplicationDbContext
 {
     DbSet<User> Users { get; }
     DbSet<Role> Roles { get; }
-    DbSet<EmailVerification> EmailVerifications { get; }
     DbSet<ChildProfile> ChildProfiles { get; }
     DbSet<Feedback> Feedbacks { get; }
     DbSet<School> Schools { get; }
@@ -31,36 +30,26 @@ public interface IApplicationDbContext
     DbSet<ProviderRating> ProviderRatings { get; }
     DbSet<PayoutRecord> PayoutRecords { get; }
     DbSet<Refund> Refunds { get; }
-    DbSet<Campaign> Campaigns { get; }
-    DbSet<CampaignOutfit> CampaignOutfits { get; }
+    DbSet<ProviderCatalogItem> ProviderCatalogItems { get; }
     DbSet<SemesterPublication> SemesterPublications { get; }
     DbSet<SemesterPublicationOutfit> SemesterPublicationOutfits { get; }
     DbSet<SemesterPublicationProvider> SemesterPublicationProviders { get; }
     DbSet<Provider> Providers { get; }
-    DbSet<ProductionBatch> ProductionBatches { get; }
-    DbSet<ProductionBatchItem> ProductionBatchItems { get; }
     DbSet<StudentDataImport> StudentDataImports { get; }
     DbSet<ImportBatch> ImportBatches { get; }
     DbSet<SupportTicket> SupportTickets { get; }
     DbSet<ParentBankAccount> ParentBankAccounts { get; }
+    DbSet<ParentAddress> ParentAddresses { get; }
     DbSet<Contract> Contracts { get; }
     DbSet<ContractItem> ContractItems { get; }
-    DbSet<DeliveryRecord> DeliveryRecords { get; }
-    DbSet<DistributionRecord> DistributionRecords { get; }
-    DbSet<DistributionSchedule> DistributionSchedules { get; }
     DbSet<ChatMessage> ChatMessages { get; }
     DbSet<Wallet> Wallets { get; }
     DbSet<Invoice> Invoices { get; }
     DbSet<WalletWithdrawalRequest> WalletWithdrawalRequests { get; }
-    DbSet<ParentProfile> ParentProfiles { get; }
     DbSet<SchoolManager> SchoolManagers { get; }
     DbSet<ProviderManager> ProviderManagers { get; }
     DbSet<AccountRequest> AccountRequests { get; }
-    DbSet<NotificationLog> NotificationLogs { get; }
     DbSet<InAppNotification> InAppNotifications { get; }
-    DbSet<BodygramScanLog> BodygramScanLogs { get; }
-    DbSet<BodygramScanRecord> BodygramScanRecords { get; }
-    DbSet<BodygramMeasurementRecord> BodygramMeasurementRecords { get; }
 
     DbSet<T> Set<T>() where T : class;
     

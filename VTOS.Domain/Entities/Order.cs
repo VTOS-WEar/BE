@@ -10,9 +10,9 @@ public class Order : AuditableEntity
     public OrderStatus OrderStatus { get; set; }
     public decimal TotalAmount { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
-    public Guid? CampaignID { get; set; }
     public Guid? ProviderID { get; set; }
     public Guid? SemesterPublicationID { get; set; }
+    public OrderPricingMode? AppliedPricingMode { get; set; }
     public string? DeliveryMethod { get; set; }
     public string? TrackingCode { get; set; }
     public string? ShippingCompany { get; set; }
@@ -23,7 +23,6 @@ public class Order : AuditableEntity
 
     // Navigation properties
     public ChildProfile ChildProfile { get; set; } = null!;
-    public Campaign? Campaign { get; set; }
     public Provider? Provider { get; set; }
     public SemesterPublication? SemesterPublication { get; set; }
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

@@ -9,9 +9,9 @@ public record GetProductionSupportTicketsQuery(Guid UserId, int Page = 1, int Pa
 
 public record SupportTicketDto(
     Guid ComplaintId,
-    Guid CampaignId,
-    string? CampaignName,
-    Guid? BatchId,
+    Guid? OrderId,
+    Guid? SemesterPublicationId,
+    string? SemesterLabel,
     Guid? ProviderId,
     string? ProviderName,
     string Title,
@@ -51,7 +51,8 @@ public class GetProductionSupportTicketsQueryHandler : IGetProductionSupportTick
         var schoolId = schoolMgr.SchoolID;
 
         var q = _db.SupportTickets.AsNoTracking()
-            .Include(c => c.Campaign)
+            .Include(c => c.Order)
+            .Include(c => c.SemesterPublication)
             .Include(c => c.Provider)
             .Where(c => c.SchoolID == schoolId);
 
@@ -66,8 +67,11 @@ public class GetProductionSupportTicketsQueryHandler : IGetProductionSupportTick
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(c => new SupportTicketDto(
-                c.Id, c.CampaignID, c.Campaign.CampaignName,
-                c.BatchID, c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
+                c.Id,
+                c.OrderID,
+                c.SemesterPublicationID,
+                c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
+                c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
                 c.Title, c.Description, c.Response,
                 c.Status.ToString(), c.CreatedAt, c.RespondedAt, c.ResolvedAt
             ))

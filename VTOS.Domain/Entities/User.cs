@@ -46,9 +46,9 @@ public class User : BaseEntity
     // Parent-specific collections (kept for backward compat, accessed via ParentProfile)
     public ICollection<ChildProfile> ChildProfiles { get; set; } = new List<ChildProfile>();
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
-    public ICollection<OutfitRecommendation> OutfitRecommendations { get; set; } = new List<OutfitRecommendation>();
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
     public ICollection<ProviderRating> ProviderRatings { get; set; } = new List<ProviderRating>();
     public ICollection<ParentBankAccount> BankAccounts { get; set; } = new List<ParentBankAccount>();
+    public ICollection<ParentAddress> Addresses { get; set; } = new List<ParentAddress>();
     public ICollection<ClassGroup> HomeroomClasses { get; set; } = new List<ClassGroup>();
 }

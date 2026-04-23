@@ -221,6 +221,7 @@ public class BodygramService : IBodygramService
     {
         try
         {
+            var scanLogs = _dbContext.Set<BodygramScanLog>();
             var child = await _dbContext.ChildProfiles
                 .FirstOrDefaultAsync(c => c.Id == childId && c.ParentUserID == parentId, cancellationToken);
                 
@@ -267,7 +268,7 @@ public class BodygramService : IBodygramService
                         Status = VTOS.Domain.Enums.BodygramScanStatus.Pending
                     };
                     
-                    _dbContext.BodygramScanLogs.Add(scanLog);
+                    scanLogs.Add(scanLog);
                     await _dbContext.SaveChangesAsync(cancellationToken);
 
                     tokenResponse.CustomScanId = customScanId;
@@ -316,7 +317,8 @@ public class BodygramService : IBodygramService
     {
         try
         {
-            var scanLog = await _dbContext.BodygramScanLogs
+            var scanLogs = _dbContext.Set<BodygramScanLog>();
+            var scanLog = await scanLogs
                 .Include(l => l.Child)
                 .FirstOrDefaultAsync(l => l.CustomScanId == customScanId && l.ChildId == childId, cancellationToken);
 
@@ -385,7 +387,8 @@ public class BodygramService : IBodygramService
 
     public async Task<BodygramScanStatusResponse> GetScanStatusAsync(string customScanId, Guid parentId, CancellationToken cancellationToken = default)
     {
-        var scanLog = await _dbContext.BodygramScanLogs
+        var scanLogs = _dbContext.Set<BodygramScanLog>();
+        var scanLog = await scanLogs
             .Include(l => l.Child)
             .FirstOrDefaultAsync(l => l.CustomScanId == customScanId, cancellationToken);
 
@@ -455,7 +458,8 @@ public class BodygramService : IBodygramService
             throw new UnauthorizedAccessException("You do not have permission to view this student's Bodygram history.");
         }
 
-        var query = _dbContext.BodygramScanRecords
+        var scanRecords = _dbContext.Set<BodygramScanRecord>();
+        var query = scanRecords
             .AsNoTracking()
             .Include(r => r.Measurements)
             .Where(r => r.ChildId == childId);
@@ -507,7 +511,8 @@ public class BodygramService : IBodygramService
 
     public async Task<BodygramScanDetailResponse> GetScanDetailAsync(Guid scanRecordId, Guid parentId, CancellationToken cancellationToken = default)
     {
-        var record = await _dbContext.BodygramScanRecords
+        var scanRecords = _dbContext.Set<BodygramScanRecord>();
+        var record = await scanRecords
             .AsNoTracking()
             .Include(r => r.Child)
             .Include(r => r.Measurements)
@@ -617,7 +622,9 @@ public class BodygramService : IBodygramService
 
     private async Task UpsertScanRecordAsync(ChildProfile child, ScanEntry entry, CancellationToken cancellationToken)
     {
-        var existingRecord = await _dbContext.BodygramScanRecords
+        var scanRecords = _dbContext.Set<BodygramScanRecord>();
+        var measurementRecords = _dbContext.Set<BodygramMeasurementRecord>();
+        var existingRecord = await scanRecords
             .Include(r => r.Measurements)
             .FirstOrDefaultAsync(r => r.BodygramScanId == entry.Id || r.CustomScanId == entry.CustomScanId, cancellationToken);
 
@@ -658,11 +665,11 @@ public class BodygramService : IBodygramService
 
         if (existingRecord == null)
         {
-            _dbContext.BodygramScanRecords.Add(scanRecord);
+            scanRecords.Add(scanRecord);
         }
         else if (existingRecord.Measurements.Count > 0)
         {
-            _dbContext.BodygramMeasurementRecords.RemoveRange(existingRecord.Measurements);
+            measurementRecords.RemoveRange(existingRecord.Measurements);
         }
 
         if (entry.Measurements?.Count > 0)
@@ -676,14 +683,15 @@ public class BodygramService : IBodygramService
                 Value = m.Value
             });
 
-            _dbContext.BodygramMeasurementRecords.AddRange(measurements);
+            measurementRecords.AddRange(measurements);
         }
     }
 
     private async Task CleanupRedundantScanLogsAsync(Guid childId, string currentCustomScanId, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        var logsToRemove = await _dbContext.BodygramScanLogs
+        var scanLogs = _dbContext.Set<BodygramScanLog>();
+        var logsToRemove = await scanLogs
             .Where(l => l.ChildId == childId && l.CustomScanId != currentCustomScanId)
             .Where(l =>
                 l.Status != VTOS.Domain.Enums.BodygramScanStatus.Pending ||
@@ -695,7 +703,7 @@ public class BodygramService : IBodygramService
             return;
         }
 
-        _dbContext.BodygramScanLogs.RemoveRange(logsToRemove);
+        scanLogs.RemoveRange(logsToRemove);
     }
 
     private static double? GetMeasurementCm(IEnumerable<BodygramMeasurementRecord> measurements, string measurementName)

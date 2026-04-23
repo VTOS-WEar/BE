@@ -30,7 +30,6 @@ public class GetOutfitDetailQueryHandler
         if (outfit == null)
             return null;
 
-        // Get feedbacks for this outfit across all orders
         var feedbacks = await _context.Feedbacks
             .AsNoTracking()
             .Include(f => f.OrderItem)
@@ -40,10 +39,8 @@ public class GetOutfitDetailQueryHandler
             .OrderByDescending(f => f.Timestamp)
             .ToListAsync(ct);
 
-        // Calculate average rating
         var averageRating = feedbacks.Any() ? (decimal)feedbacks.Average(f => f.Rating) : 0m;
 
-        // Build size chart DTO — now fully dynamic via SizeChartMeasurement
         SizeChartDto? sizeChartDto = null;
         if (outfit.SizeChart != null)
         {
@@ -72,7 +69,6 @@ public class GetOutfitDetailQueryHandler
             );
         }
 
-        // Build variants
         var variants = outfit.ProductVariants
             .Select(pv => new ProductVariantDto(
                 pv.Id,
@@ -86,34 +82,80 @@ public class GetOutfitDetailQueryHandler
             ))
             .ToList();
 
-        // Build categories
         var categories = outfit.OutfitCategories
             .Select(oc => oc.Category.CategoryName)
             .ToList();
 
         var now = DateTime.UtcNow;
-        var campaignOptions = await _context.CampaignOutfits
+        var matchingPublicationProviders = await _context.SemesterPublicationProviders
             .AsNoTracking()
-            .Where(co =>
-                co.OutfitID == query.OutfitId &&
-                co.Campaign.Status == CampaignStatus.Active &&
-                co.Campaign.StartDate <= now &&
-                co.Campaign.EndDate >= now)
-            .OrderBy(co => co.Campaign.EndDate)
-            .ThenBy(co => co.Campaign.CampaignName)
-            .Select(co => new OutfitCampaignOptionDto(
-                co.CampaignID,
-                co.Campaign.CampaignName,
-                co.Campaign.Status.ToString(),
-                co.Campaign.StartDate,
-                co.Campaign.EndDate,
-                co.Id,
-                co.CampaignPrice,
-                co.MaxQuantity
-            ))
+            .Where(spp =>
+                spp.Status == SemPublicationProviderStatus.Active
+                && spp.SemesterPublication.Status == SemesterPublicationStatus.Active
+                && spp.SemesterPublication.StartDate <= now
+                && spp.SemesterPublication.Outfits.Any(spo => spo.OutfitID == query.OutfitId))
+            .Select(spp => new
+            {
+                spp.Id,
+                spp.ContractID,
+                PublicationId = spp.SemesterPublicationID,
+                PublicationStatus = spp.SemesterPublication.Status.ToString(),
+                spp.SemesterPublication.StartDate,
+                spp.SemesterPublication.EndDate,
+                ProviderName = spp.Provider.ProviderName
+            })
             .ToListAsync(ct);
 
-        // Build review DTOs
+        var catalogItems = await _context.ProviderCatalogItems
+            .AsNoTracking()
+            .Where(item =>
+                item.OutfitID == query.OutfitId &&
+                (item.Status == ProviderCatalogItemStatus.Published || item.Status == ProviderCatalogItemStatus.Ready) &&
+                matchingPublicationProviders.Select(spp => spp.Id).Contains(item.SemesterPublicationProviderID))
+            .ToListAsync(ct);
+
+        var contractIds = matchingPublicationProviders
+            .Where(x => x.ContractID.HasValue)
+            .Select(x => x.ContractID!.Value)
+            .Distinct()
+            .ToList();
+
+        var contractItems = await _context.ContractItems
+            .AsNoTracking()
+            .Where(ci => ci.OutfitID == query.OutfitId && contractIds.Contains(ci.ContractID))
+            .ToListAsync(ct);
+
+        var campaignOptions = matchingPublicationProviders
+            .Select(spp =>
+            {
+                var catalogItem = catalogItems.FirstOrDefault(item => item.SemesterPublicationProviderID == spp.Id);
+                var contractItem = spp.ContractID.HasValue
+                    ? contractItems.FirstOrDefault(ci => ci.ContractID == spp.ContractID.Value)
+                    : null;
+
+                if (catalogItem == null && contractItem == null)
+                    return null;
+
+                var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
+                var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
+
+                return new OutfitCampaignOptionDto(
+                    spp.PublicationId,
+                    catalogItem?.DisplayName ?? $"{outfit.OutfitName} - {spp.ProviderName}",
+                    spp.PublicationStatus,
+                    spp.StartDate,
+                    spp.EndDate,
+                    catalogItem?.Id ?? contractItem!.Id,
+                    spp.EndDate >= now ? publicationPrice : postDeadlinePrice,
+                    null
+                );
+            })
+            .Where(x => x != null)
+            .Select(x => x!)
+            .OrderBy(x => x.EndDate)
+            .ThenBy(x => x.CampaignName)
+            .ToList();
+
         var reviews = feedbacks
             .Select(f => new ReviewDto(
                 f.Id,

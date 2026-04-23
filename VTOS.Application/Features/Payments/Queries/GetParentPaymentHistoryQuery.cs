@@ -21,6 +21,7 @@ public record ParentPaymentDto(
     int ItemCount,
     Guid? CampaignId,
     Guid? ProviderId,
+    string? PricingMode = null,
     string? ChildFullName = null,
     string? ChildAvatarUrl = null
 );
@@ -62,7 +63,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
 
         var q = _db.Orders.AsNoTracking()
             .Include(o => o.ChildProfile)
-            .Include(o => o.Campaign)
+            .Include(o => o.SemesterPublication)
             .Include(o => o.Provider)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
@@ -122,12 +123,15 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
                 x.pt.TransactionStatus.ToString(),
                 x.o.OrderStatus.ToString(),
                 x.pt.TransactionTimestamp,
-                x.o.Campaign != null ? x.o.Campaign.CampaignName : null,
+                x.o.SemesterPublication != null
+                    ? $"{x.o.SemesterPublication.Semester} {x.o.SemesterPublication.AcademicYear}"
+                    : null,
                 x.o.Provider != null ? x.o.Provider.ProviderName : null,
                 x.o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
                 x.o.OrderItems.Count,
-                x.o.CampaignID,
+                x.o.SemesterPublicationID,
                 x.o.ProviderID,
+                x.o.AppliedPricingMode != null ? x.o.AppliedPricingMode.ToString() : null,
                 x.o.ChildProfile.FullName,
                 x.o.ChildProfile.Avatar
             ))

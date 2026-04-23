@@ -54,11 +54,6 @@ public class TryOnHistoryConfiguration : IEntityTypeConfiguration<TryOnHistory>
             .WithMany(o => o.TryOnHistories)
             .HasForeignKey(toh => toh.OutfitID)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(toh => toh.AIFitAnalysis)
-            .WithOne(aifa => aifa.TryOnHistory)
-            .HasForeignKey<AIFitAnalysis>(aifa => aifa.TryOnID)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

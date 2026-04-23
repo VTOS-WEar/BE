@@ -37,6 +37,8 @@ public class GoogleLoginCommandHandler : IGoogleLoginCommandHandler
         GoogleLoginCommand command,
         CancellationToken ct = default)
     {
+        var parentProfiles = _context.Set<ParentProfile>();
+
         // 1. Validate Google ID token
         var googleUser = await _googleValidator.ValidateAsync(command.IdToken);
         if (googleUser == null)
@@ -104,7 +106,7 @@ public class GoogleLoginCommandHandler : IGoogleLoginCommandHandler
                 _context.Users.Add(user);
 
                 // Create ParentProfile
-                _context.ParentProfiles.Add(new ParentProfile
+                parentProfiles.Add(new ParentProfile
                 {
                     Id = Guid.NewGuid(),
                     UserID = user.Id,

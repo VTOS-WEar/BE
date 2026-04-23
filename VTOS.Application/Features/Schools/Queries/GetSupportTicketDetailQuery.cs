@@ -8,10 +8,9 @@ public record GetSupportTicketDetailQuery(Guid UserId, Guid ComplaintId);
 
 public record SupportTicketDetailDto(
     Guid ComplaintId,
-    Guid CampaignId,
-    string? CampaignName,
-    Guid? BatchId,
-    string? BatchName,
+    Guid? OrderId,
+    Guid? SemesterPublicationId,
+    string? SemesterLabel,
     Guid? ProviderId,
     string? ProviderName,
     string Title,
@@ -42,8 +41,8 @@ public class GetSupportTicketDetailQueryHandler : IGetSupportTicketDetailQueryHa
             return Result<SupportTicketDetailDto>.Failure("School not found.", "SCHOOL_NOT_FOUND");
 
         var c = await _db.SupportTickets.AsNoTracking()
-            .Include(x => x.Campaign)
-            .Include(x => x.Batch)
+            .Include(x => x.Order)
+            .Include(x => x.SemesterPublication)
             .Include(x => x.Provider)
             .FirstOrDefaultAsync(x => x.Id == query.ComplaintId && x.SchoolID == schoolMgr.SchoolID, ct);
 
@@ -51,8 +50,10 @@ public class GetSupportTicketDetailQueryHandler : IGetSupportTicketDetailQueryHa
             return Result<SupportTicketDetailDto>.Failure("SupportTicket not found.", "COMPLAINT_NOT_FOUND");
 
         return Result<SupportTicketDetailDto>.Success(new SupportTicketDetailDto(
-            c.Id, c.CampaignID, c.Campaign?.CampaignName,
-            c.BatchID, c.Batch?.BatchName,
+            c.Id,
+            c.OrderID,
+            c.SemesterPublicationID,
+            c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
             c.ProviderID, c.Provider?.ProviderName,
             c.Title, c.Description, c.Response,
             c.Status.ToString(), c.CreatedAt,

@@ -26,8 +26,7 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
             .AsNoTracking()
             .Include(o => o.ChildProfile)
             .Include(o => o.Provider)
-            .Include(o => o.Campaign)
-                .ThenInclude(c => c!.CampaignOutfits)
+            .Include(o => o.SemesterPublication)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(pv => pv.Outfit)
@@ -44,7 +43,6 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
             return Result<OrderDetailForFeedbackDto>.Failure("You are not authorized to view this order", "UNAUTHORIZED_ORDER_ACCESS");
         }
 
-        // Build items with campaign outfit information
         var items = new List<OrderItemForFeedbackDto>();
         foreach (var oi in order.OrderItems)
         {
@@ -53,16 +51,12 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
 
             var outfit = oi.ProductVariant.Outfit;
             
-            // Find the CampaignOutfit that corresponds to this order and outfit (if any)
-            var campaignOutfit = order.Campaign?.CampaignOutfits
-                .FirstOrDefault(co => co.OutfitID == outfit.Id);
-
             items.Add(new OrderItemForFeedbackDto
             {
                 OrderItemId = oi.Id,
-                CampaignOutfitId = campaignOutfit?.Id,
+                CampaignOutfitId = null,
                 ProductVariantId = oi.ProductVariantID,
-                CampaignId = order.CampaignID,
+                CampaignId = order.SemesterPublicationID,
                 OutfitId = outfit.Id,
                 OutfitName = outfit.OutfitName,
                 OutfitImage = oi.ProductVariant.VariantImageURL ?? outfit.MainImageURL,
@@ -82,8 +76,10 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
             OrderStatus = order.OrderStatus.ToString(),
             OrderDate = order.OrderDate,
             ShippingAddress = order.ShippingAddress,
-            CampaignName = order.Campaign?.CampaignName,
-            CampaignId = order.CampaignID,
+            CampaignName = order.SemesterPublication != null
+                ? $"{order.SemesterPublication.Semester} {order.SemesterPublication.AcademicYear}"
+                : null,
+            CampaignId = order.SemesterPublicationID,
             ProviderName = order.Provider?.ProviderName,
             ProviderId = order.ProviderID,
             Items = items

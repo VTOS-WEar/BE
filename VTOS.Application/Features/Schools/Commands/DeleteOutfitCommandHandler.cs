@@ -8,8 +8,7 @@ namespace VTOS.Application.Features.Schools.Commands;
 /// <summary>
 /// Soft-delete an outfit (sets IsDeleted = true).
 /// Validates that the outfit belongs to the current school.
-/// Blocked if the outfit is linked to an Active/Paused/Locked campaign
-/// (parents have placed orders — the outfit cannot be deleted).
+/// Blocked if the outfit is linked to a non-draft semester publication.
 /// </summary>
 public class DeleteOutfitCommandHandler : IDeleteOutfitCommandHandler
 {
@@ -29,7 +28,9 @@ public class DeleteOutfitCommandHandler : IDeleteOutfitCommandHandler
         if (user == null)
             return Result<bool>.Failure("User not found.", "USER_NOT_FOUND");
 
-        var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        var schoolMgr = await _db.SchoolManagers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
 
         if (schoolMgr == null)
             return Result<bool>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
@@ -40,23 +41,19 @@ public class DeleteOutfitCommandHandler : IDeleteOutfitCommandHandler
         if (outfit == null)
             return Result<bool>.Failure("Outfit not found.", "OUTFIT_NOT_FOUND");
 
-        // Security: ensure the outfit belongs to this school
         if (outfit.SchoolID != schoolMgr.SchoolID)
             return Result<bool>.Failure("You do not have permission to delete this outfit.", "OUTFIT_NOT_FOUND");
 
-        // Block deletion if outfit is linked to an Active/Paused/Locked campaign
-        var hasActiveCampaign = await _db.CampaignOutfits
+        var isInPublication = await _db.SemesterPublicationOutfits
             .AsNoTracking()
-            .AnyAsync(co =>
-                co.OutfitID == outfit.Id
-                && (co.Campaign.Status == CampaignStatus.Active
-                    || co.Campaign.Status == CampaignStatus.Paused
-                    || co.Campaign.Status == CampaignStatus.Locked), ct);
+            .AnyAsync(spo =>
+                spo.OutfitID == outfit.Id &&
+                spo.SemesterPublication.Status != SemesterPublicationStatus.Draft, ct);
 
-        if (hasActiveCampaign)
+        if (isInPublication)
             return Result<bool>.Failure(
-                "Không thể xóa đồng phục đang thuộc chiến dịch đang hoạt động.",
-                "OUTFIT_IN_ACTIVE_CAMPAIGN");
+                "Khong the xoa dong phuc da duoc dua vao dot cong bo hoc ky.",
+                "OUTFIT_IN_ACTIVE_PUBLICATION");
 
         outfit.IsDeleted = true;
         outfit.UpdatedAt = DateTime.UtcNow;

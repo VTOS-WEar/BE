@@ -55,8 +55,39 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
             requireDisputeWindow: false,
             ct);
 
-        if (!payoutResult.IsSuccess)
-            return Result<PayProviderResponse>.Failure(payoutResult.Error!, payoutResult.ErrorCode);
+        // 3. Find wallet and check balance
+        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
+        if (wallet == null || wallet.Balance < order.TotalAmount)
+            return Result<PayProviderResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
+
+        // 4. Deduct from wallet + create payment record
+        var providerName = await _db.Providers
+            .AsNoTracking()
+            .Where(p => p.Id == order.ProviderID)
+            .Select(p => p.ProviderName)
+            .FirstOrDefaultAsync(ct) ?? "Provider";
+
+        wallet.Balance -= order.TotalAmount;
+        wallet.UpdatedAt = DateTime.UtcNow;
+
+        var payment = new Domain.Entities.PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            OrderID = order.Id,
+            WalletID = wallet.Id,
+            TransactionType = TransactionType.ProviderPayment,
+            GatewayType = PaymentGatewayType.Other,
+            TransactionStatus = PaymentStatus.Completed,
+            Amount = order.TotalAmount,
+            TransactionTimestamp = DateTime.UtcNow,
+            Description = $"Thanh toán NCC: {providerName} - Đơn #{order.Id.ToString()[..8]}",
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.PaymentTransactions.Add(payment);
+
+        order.IsProviderPaid = true;
+
+        await _db.SaveChangesAsync(ct);
 
         return Result<PayProviderResponse>.Success(
             new PayProviderResponse(

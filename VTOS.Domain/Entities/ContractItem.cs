@@ -23,4 +23,5 @@ public class ContractItem : BaseEntity
     // Navigation
     public Contract Contract { get; set; } = null!;
     public Outfit Outfit { get; set; } = null!;
+    public ICollection<ProviderCatalogItem> ProviderCatalogItems { get; set; } = new List<ProviderCatalogItem>();
 }

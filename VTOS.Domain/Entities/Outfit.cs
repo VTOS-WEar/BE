@@ -23,8 +23,7 @@ public class Outfit : AuditableEntity
     public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
     public ICollection<OutfitCategory> OutfitCategories { get; set; } = new List<OutfitCategory>();
     public ICollection<TryOnHistory> TryOnHistories { get; set; } = new List<TryOnHistory>();
-    public ICollection<OutfitRecommendation> OutfitRecommendations { get; set; } = new List<OutfitRecommendation>();
-    public ICollection<CampaignOutfit> CampaignOutfits { get; set; } = new List<CampaignOutfit>();
+    public ICollection<ProviderCatalogItem> ProviderCatalogItems { get; set; } = new List<ProviderCatalogItem>();
     public ICollection<SemesterPublicationOutfit> SemesterPublicationOutfits { get; set; } = new List<SemesterPublicationOutfit>();
 }
 
