@@ -42,7 +42,7 @@ public class UpsertParentAddressCommandHandler : IUpsertParentAddressCommandHand
             return Result<ParentAddressResponse>.Failure("Only parents can manage addresses.", "FORBIDDEN");
         }
 
-        ParentAddress address;
+        ParentAddress? address;
         var utcNow = DateTime.UtcNow;
 
         if (command.AddressId.HasValue)

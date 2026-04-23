@@ -16,6 +16,8 @@ public class DeleteStudentCommandHandler : IDeleteStudentCommandHandler
             return Result<string>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
         var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
+        if (schoolMgr == null)
+            return Result<string>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
         var schoolId = schoolMgr.SchoolID;
 

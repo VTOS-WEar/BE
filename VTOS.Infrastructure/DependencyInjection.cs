@@ -28,6 +28,7 @@ using VTOS.Application.Features.Children.Queries;
 using VTOS.Infrastructure.ExternalServices.PayOS;
 using VTOS.Application.Features.Orders.Commands;
 using VTOS.Application.Features.Orders.Queries;
+using VTOS.Application.Features.Payments.Commands;
 using VTOS.Application.Features.Teachers.Commands;
 using VTOS.Application.Features.Teachers.Queries;
 namespace VTOS.Infrastructure;
@@ -223,6 +224,7 @@ public static class DependencyInjection
         services.AddScoped<IGetMyDirectOrdersQueryHandler, GetMyDirectOrdersQueryHandler>();
         services.AddScoped<IGetMyDirectOrderDetailQueryHandler, GetMyDirectOrderDetailQueryHandler>();
         services.AddScoped<IConfirmDirectOrderDeliveryCommandHandler, ConfirmDirectOrderDeliveryCommandHandler>();
+        services.AddScoped<IOrderPaymentResolutionService, OrderPaymentResolutionService>();
         services.AddScoped<IProviderPayoutService, ProviderPayoutService>();
 
         // Background Jobs
@@ -259,6 +261,12 @@ public static class DependencyInjection
             VTOS.Application.Features.Schools.Queries.GetSalesReportQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetFeedbackReportQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetFeedbackReportQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolRefundsQueryHandler,
+            VTOS.Application.Features.Schools.Queries.GetSchoolRefundsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateWithdrawalRequestCommandHandler,
+            VTOS.Application.Features.Schools.Commands.CreateWithdrawalRequestCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolBankAccountCommandHandler,
+            VTOS.Application.Features.Schools.Commands.UpdateSchoolBankAccountCommandHandler>();
 
         // School Module - UC-43: Import Student Data
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IImportStudentDataCommandHandler,

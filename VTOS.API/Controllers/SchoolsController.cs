@@ -64,6 +64,10 @@ public class SchoolsController : ControllerBase
     private readonly IGetSupportTicketDetailQueryHandler _getComplaintDetailHandler;
     private readonly ICloseSupportTicketCommandHandler _closeComplaintHandler;
     private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
+    private readonly IApproveRefundCommandHandler _approveRefundHandler;
+    private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
+    private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
+    private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -102,7 +106,11 @@ public class SchoolsController : ControllerBase
         // Phase 5
         IGetSupportTicketDetailQueryHandler getComplaintDetailHandler,
         ICloseSupportTicketCommandHandler closeComplaintHandler,
-        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler)
+        IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler,
+        IApproveRefundCommandHandler approveRefundHandler,
+        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler,
+        ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
+        IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -140,6 +148,10 @@ public class SchoolsController : ControllerBase
         _getComplaintDetailHandler = getComplaintDetailHandler;
         _closeComplaintHandler = closeComplaintHandler;
         _getContractedProvidersHandler = getContractedProvidersHandler;
+        _approveRefundHandler = approveRefundHandler;
+        _getSchoolRefundsHandler = getSchoolRefundsHandler;
+        _createWithdrawalHandler = createWithdrawalHandler;
+        _updateBankAccountHandler = updateBankAccountHandler;
     }
 
 
@@ -1024,9 +1036,6 @@ public class SchoolsController : ControllerBase
     }
 
 }
-
-<<<<<<< HEAD
-=======
 /// <summary>Request body for creating a withdrawal request.</summary>
 public record CreateWithdrawalRequest(decimal Amount);
 
@@ -1036,8 +1045,6 @@ public record UpdateSchoolBankAccountRequest(
     string? BankName = null,
     string? BankAccountNumber = null,
     string? BankAccountName = null);
-
->>>>>>> 348dab5 (feat(be): add provider catalog and direct order pricing)
 public class UploadSchoolLogoRequest
 {
     public IFormFile File { get; set; } = null!;

@@ -2663,11 +2663,6 @@ namespace VTOS.Infrastructure.Migrations
                         .WithMany("Orders")
                         .HasForeignKey("SemesterPublicationID")
                         .OnDelete(DeleteBehavior.SetNull);
-<<<<<<< HEAD
-
-                    b.Navigation("Campaign");
-=======
->>>>>>> a06415b (feat(be): add parent address book support)
 
                     b.Navigation("ChildProfile");
 
@@ -3229,11 +3224,7 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Navigation("Orders");
 
-<<<<<<< HEAD
-                    b.Navigation("ProductionBatches");
-=======
                     b.Navigation("ProviderCatalogItems");
->>>>>>> a06415b (feat(be): add parent address book support)
 
                     b.Navigation("ProviderRatings");
 

@@ -101,14 +101,6 @@ public class MyDirectOrderDetailItemDto
     public decimal UnitPrice { get; set; }
 }
 
-public class ExistingProviderRatingDto
-{
-    public Guid ProviderRatingId { get; set; }
-    public int Rating { get; set; }
-    public string? Comment { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
 public class SubmitProviderRatingRequest
 {
     public int Rating { get; set; }

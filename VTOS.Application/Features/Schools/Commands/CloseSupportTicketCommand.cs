@@ -22,6 +22,9 @@ public class CloseSupportTicketCommandHandler : ICloseSupportTicketCommandHandle
     public async Task<Result<string>> HandleAsync(CloseSupportTicketCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
+        if (user == null)
+            return Result<string>.Failure("School not found.", "SCHOOL_NOT_FOUND");
+
         var schoolMgr = await _db.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (schoolMgr?.SchoolID == null)
             return Result<string>.Failure("School not found.", "SCHOOL_NOT_FOUND");

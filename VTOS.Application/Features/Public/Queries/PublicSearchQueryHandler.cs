@@ -27,7 +27,7 @@ public class PublicSearchQueryHandler
 
         if (!isEmpty)
         {
-            var term = searchTerm.ToLower();
+            var term = searchTerm!.ToLower();
             schoolQuery = schoolQuery.Where(s =>
                 EF.Functions.Like(s.SchoolName.ToLower(), $"%{term}%")
                 || (s.ContactInfo != null && EF.Functions.Like(s.ContactInfo.ToLower(), $"%{term}%"))
@@ -61,7 +61,7 @@ public class PublicSearchQueryHandler
 
         if (!isEmpty)
         {
-            var term = searchTerm.ToLower();
+            var term = searchTerm!.ToLower();
             outfitQuery = outfitQuery.Where(o =>
                 EF.Functions.Like(o.OutfitName.ToLower(), $"%{term}%")
                 || (o.Description != null && EF.Functions.Like(o.Description.ToLower(), $"%{term}%"))

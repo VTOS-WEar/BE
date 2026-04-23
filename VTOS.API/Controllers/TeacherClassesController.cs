@@ -56,7 +56,7 @@ public class TeacherClassesController : ControllerBase
     }
 
     [HttpGet("{id:guid}/order-coverage")]
-    [ProducesResponseType(typeof(TeacherClassOrderCoverageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(VTOS.Application.Features.Teachers.DTOs.TeacherClassOrderCoverageDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrderCoverage(Guid id, CancellationToken ct = default)
     {
         var result = await _orderCoverageHandler.HandleAsync(new GetTeacherClassOrderCoverageQuery(_currentUser.UserId, id), ct);
@@ -67,7 +67,7 @@ public class TeacherClassesController : ControllerBase
     }
 
     [HttpGet("{id:guid}/feedback")]
-    [ProducesResponseType(typeof(TeacherClassFeedbackListDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(VTOS.Application.Features.Teachers.DTOs.TeacherClassFeedbackListDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFeedback(Guid id, [FromQuery] int limit = 5, CancellationToken ct = default)
     {
         var result = await _feedbackHandler.HandleAsync(new GetTeacherClassFeedbackQuery(_currentUser.UserId, id, limit), ct);

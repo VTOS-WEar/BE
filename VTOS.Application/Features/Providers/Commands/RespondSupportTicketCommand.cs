@@ -32,6 +32,9 @@ public class RespondSupportTicketCommandHandler : IRespondSupportTicketCommandHa
     public async Task<Result<string>> HandleAsync(RespondSupportTicketCommand command, CancellationToken ct = default)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == command.UserId, ct);
+        if (user == null)
+            return Result<string>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
+
         var providerMgr = await _db.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, ct);
         if (providerMgr?.ProviderID == null)
             return Result<string>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");

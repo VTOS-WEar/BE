@@ -49,7 +49,7 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
             // Step 2: Load refund with related payment → order → childProfile
             var refund = await _db.Refunds
                 .Include(r => r.PaymentTransaction)
-                    .ThenInclude(pt => pt.Order)
+                    .ThenInclude(pt => pt.Order!)
                         .ThenInclude(o => o.ChildProfile)
                 .FirstOrDefaultAsync(r => r.Id == command.RefundId, ct);
 
@@ -60,8 +60,13 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 return Result<RefundResponse>.Failure($"Refund cannot be approved. Current status: {refund.RefundStatus}", "REFUND_NOT_APPROVABLE");
 
             // Step 3: Validate that this refund belongs to the current user's school
-            var order = refund.PaymentTransaction.Order;
-            if (order.ChildProfile.SchoolID != schoolId)
+            var paymentTransaction = refund.PaymentTransaction;
+            var order = paymentTransaction?.Order;
+            var childProfile = order?.ChildProfile;
+            if (order == null || childProfile == null)
+                return Result<RefundResponse>.Failure("Refund is missing order context.", "ORDER_NOT_FOUND");
+
+            if (childProfile.SchoolID != schoolId)
                 return Result<RefundResponse>.Failure("This refund does not belong to your school.", "UNAUTHORIZED_REFUND_ACCESS");
 
             // Step 4: Load school wallet and check balance
@@ -75,7 +80,7 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
                 return Result<RefundResponse>.Failure("Insufficient school wallet balance for refund.", "INSUFFICIENT_BALANCE");
 
             // Step 5: Get parent's default bank account for payout
-            var parentId = order.ChildProfile.ParentUserID;
+            var parentId = childProfile.ParentUserID;
             var parentBank = await _db.ParentBankAccounts
                 .FirstOrDefaultAsync(b => b.ParentUserID == parentId && b.IsDefault, ct);
 
