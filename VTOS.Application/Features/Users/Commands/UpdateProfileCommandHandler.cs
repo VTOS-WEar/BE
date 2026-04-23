@@ -24,6 +24,7 @@ namespace VTOS.Application.Features.Users.Commands
 
         public async Task<Result<UpdateProfileResponse>> HandleAsync(UpdateProfileCommand command, CancellationToken cancellationToken = default)
         {
+            var parentProfiles = _context.Set<ParentProfile>();
             var user = await _context.Users.Include(x=>x.Role).Include(x => x.ParentProfile).FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
 
             if (user == null)
@@ -42,7 +43,7 @@ namespace VTOS.Application.Features.Users.Commands
                 if (user.ParentProfile == null)
                 {
                     user.ParentProfile = new ParentProfile { Id = Guid.NewGuid(), UserID = user.Id, Gender = Gender.Other };
-                    _context.ParentProfiles.Add(user.ParentProfile);
+                    parentProfiles.Add(user.ParentProfile);
                 }
                 user.ParentProfile.DOB = command.DOB;
                 isUpdated = true;
@@ -53,7 +54,7 @@ namespace VTOS.Application.Features.Users.Commands
                 if (user.ParentProfile == null)
                 {
                     user.ParentProfile = new ParentProfile { Id = Guid.NewGuid(), UserID = user.Id };
-                    _context.ParentProfiles.Add(user.ParentProfile);
+                    parentProfiles.Add(user.ParentProfile);
                 }
                 user.ParentProfile.Gender = command.Gender.Value;
                 isUpdated = true;
