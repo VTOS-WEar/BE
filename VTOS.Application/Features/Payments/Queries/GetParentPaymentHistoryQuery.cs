@@ -68,6 +68,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(pv => pv.Outfit)
+            .Where(o => childIds.Contains(o.ChildProfileID))
             .Select(o => new 
             {
                 o,
