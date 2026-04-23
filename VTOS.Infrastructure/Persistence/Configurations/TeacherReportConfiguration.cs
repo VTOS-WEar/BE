@@ -20,31 +20,33 @@ public class TeacherReportConfiguration : IEntityTypeConfiguration<TeacherReport
             .IsRequired()
             .HasMaxLength(4000);
 
+        builder.Property(x => x.ReviewNote)
+            .HasMaxLength(2000);
+
         builder.Property(x => x.ReportType)
+            .HasConversion<string>()
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(40);
 
         builder.Property(x => x.Status)
+            .HasConversion<string>()
             .IsRequired()
-            .HasMaxLength(50);
-
-        builder.Property(x => x.ReviewNote)
-            .HasMaxLength(1000);
+            .HasMaxLength(40);
 
         builder.Property(x => x.SubmittedAt)
             .IsRequired();
 
-        builder.HasIndex(x => new { x.TeacherUserID, x.Status });
-        builder.HasIndex(x => new { x.ClassGroupID, x.SubmittedAt });
+        builder.HasIndex(x => new { x.TeacherUserId, x.ClassGroupId, x.SubmittedAt });
+        builder.HasIndex(x => new { x.ClassGroupId, x.Status });
 
         builder.HasOne(x => x.ClassGroup)
             .WithMany()
-            .HasForeignKey(x => x.ClassGroupID)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(x => x.ClassGroupId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(x => x.TeacherUser)
             .WithMany()
-            .HasForeignKey(x => x.TeacherUserID)
+            .HasForeignKey(x => x.TeacherUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
