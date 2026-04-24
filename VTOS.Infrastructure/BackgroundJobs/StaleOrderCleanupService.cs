@@ -103,13 +103,7 @@ public class StaleOrderCleanupService : BackgroundService
                     order.OrderStatus = OrderStatus.Paid;
                     order.UpdatedAt = DateTime.UtcNow;
 
-                    var schoolWallet = await ResolveSchoolWalletAsync(order, context, cancellationToken);
-                    if (schoolWallet != null)
-                    {
-                        pendingTransaction.WalletID = schoolWallet.Id;
-                        schoolWallet.Balance += pendingTransaction.Amount;
-                        schoolWallet.UpdatedAt = DateTime.UtcNow;
-                    }
+                    pendingTransaction.WalletID = null;
 
                     foreach (var item in order.OrderItems)
                     {
@@ -141,36 +135,6 @@ public class StaleOrderCleanupService : BackgroundService
             _logger.LogWarning(ex, "Could not check PayOS status for stale order {OrderId}. Cancelling.", order.Id);
             CancelOrder(order);
         }
-    }
-
-    private static async Task<Wallet?> ResolveSchoolWalletAsync(
-        Order order,
-        IApplicationDbContext context,
-        CancellationToken cancellationToken)
-    {
-        var schoolId = order.ChildProfile?.SchoolID;
-        if (!schoolId.HasValue || schoolId.Value == Guid.Empty)
-            return null;
-
-        var wallet = await context.Wallets.FirstOrDefaultAsync(
-            w => w.OwnerID == schoolId.Value && w.OwnerType == WalletOwnerType.School && w.IsActive,
-            cancellationToken);
-
-        if (wallet != null)
-            return wallet;
-
-        wallet = new Wallet
-        {
-            Id = Guid.NewGuid(),
-            OwnerID = schoolId.Value,
-            OwnerType = WalletOwnerType.School,
-            Balance = 0,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        context.Wallets.Add(wallet);
-        return wallet;
     }
 
     private static void CancelOrder(Order order)

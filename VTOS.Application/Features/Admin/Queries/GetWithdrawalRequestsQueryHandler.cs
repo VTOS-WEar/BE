@@ -15,12 +15,27 @@ public class GetWithdrawalRequestsQueryHandler : IGetWithdrawalRequestsQueryHand
 
     public async Task<WithdrawalRequestListResponse> HandleAsync(GetWithdrawalRequestsQuery query, CancellationToken ct = default)
     {
-        // Manual join since Wallet nav properties (School/Provider) are ignored for polymorphic ownership
+        // Manual join since Wallet nav properties are ignored for polymorphic ownership.
         var baseQuery = from wr in _db.Set<WalletWithdrawalRequest>().AsNoTracking()
                         join w in _db.Wallets.AsNoTracking() on wr.WalletID equals w.Id
                         join s in _db.Schools.AsNoTracking() on w.OwnerID equals s.Id into schools
                         from s in schools.DefaultIfEmpty()
-                        select new { wr, w, SchoolName = s != null ? s.SchoolName : "Unknown" };
+                        join p in _db.Providers.AsNoTracking() on w.OwnerID equals p.Id into providers
+                        from p in providers.DefaultIfEmpty()
+                        join u in _db.Users.AsNoTracking() on w.OwnerID equals u.Id into parents
+                        from u in parents.DefaultIfEmpty()
+                        select new
+                        {
+                            wr,
+                            w,
+                            OwnerName = s != null
+                                ? s.SchoolName
+                                : p != null
+                                    ? p.ProviderName
+                                    : u != null
+                                        ? u.FullName
+                                        : "Unknown"
+                        };
 
         // Apply status filter
         if (!string.IsNullOrEmpty(query.Status))
@@ -39,7 +54,10 @@ public class GetWithdrawalRequestsQueryHandler : IGetWithdrawalRequestsQueryHand
                 WithdrawalRequestId = x.wr.Id,
                 WalletId = x.wr.WalletID,
                 SchoolId = x.w.OwnerID,
-                SchoolName = x.SchoolName,
+                SchoolName = x.OwnerName,
+                OwnerId = x.w.OwnerID,
+                OwnerType = x.w.OwnerType.ToString(),
+                OwnerName = x.OwnerName,
                 Amount = x.wr.Amount,
                 Status = x.wr.Status,
                 BankCode = x.w.BankCode,

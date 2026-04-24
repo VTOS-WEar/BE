@@ -78,14 +78,6 @@ public class ProviderPayoutService : IProviderPayoutService
 
         var (providerId, providerName) = providerResolution.Value;
 
-        var schoolWallet = await _paymentResolutionService.ResolveSchoolWalletAsync(order, ct);
-        if (!schoolWallet.IsSuccess)
-            return Result<ProviderPayoutResult>.Failure(schoolWallet.Error!, schoolWallet.ErrorCode);
-
-        var schoolWalletEntity = schoolWallet.Value!;
-        if (schoolWalletEntity.Balance < order.TotalAmount)
-            return Result<ProviderPayoutResult>.Failure("School wallet balance is insufficient for payout release.", "INSUFFICIENT_BALANCE");
-
         var providerWallet = await _paymentResolutionService.GetOrCreateProviderWalletAsync(providerId, processedAtUtc, ct);
 
         var payoutRecord = new PayoutRecord
@@ -102,9 +94,6 @@ public class ProviderPayoutService : IProviderPayoutService
         };
         _db.PayoutRecords.Add(payoutRecord);
 
-        schoolWalletEntity.Balance -= order.TotalAmount;
-        schoolWalletEntity.UpdatedAt = processedAtUtc;
-
         providerWallet.Balance += order.TotalAmount;
         providerWallet.UpdatedAt = processedAtUtc;
 
@@ -116,7 +105,7 @@ public class ProviderPayoutService : IProviderPayoutService
         {
             Id = Guid.NewGuid(),
             OrderID = order.Id,
-            WalletID = schoolWalletEntity.Id,
+            WalletID = null,
             PayoutRecordID = payoutRecord.Id,
             TransactionType = TransactionType.EscrowRelease,
             GatewayType = PaymentGatewayType.Other,

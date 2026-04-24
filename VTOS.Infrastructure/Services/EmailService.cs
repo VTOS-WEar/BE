@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using System.Net;
 using VTOS.Application.Abstractions;
 
 namespace VTOS.Infrastructure.Services;
@@ -317,6 +318,141 @@ public class EmailService : IEmailService
                 </body></html>",
             TextBody = $"Nhắc nhở: Đơn #{orderCode} ({amount:N0}đ) sắp hết hạn thanh toán lúc {deadlineStr}."
         };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort,
+            _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken);
+        await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
+
+    public async Task SendDirectOrderReceiptConfirmationEmailAsync(
+        string toEmail,
+        string parentName,
+        string orderCode,
+        DateTime orderDate,
+        string providerName,
+        decimal totalAmount,
+        string? shippingCompany,
+        string? trackingCode,
+        string confirmUrl,
+        IReadOnlyList<DirectOrderDeliveryEmailItem> items,
+        CancellationToken cancellationToken = default)
+    {
+        var safeParentName = WebUtility.HtmlEncode(parentName);
+        var safeOrderCode = WebUtility.HtmlEncode(orderCode);
+        var safeProviderName = WebUtility.HtmlEncode(providerName);
+        var safeShippingCompany = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(shippingCompany) ? "Chưa cập nhật" : shippingCompany);
+        var safeTrackingCode = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(trackingCode) ? "Chưa cập nhật" : trackingCode);
+        var safeConfirmUrl = WebUtility.HtmlEncode(confirmUrl);
+        var orderDateText = orderDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+
+        var itemRows = string.Join("", items.Select((item, index) =>
+        {
+            var itemName = WebUtility.HtmlEncode(item.OutfitName);
+            var itemSize = WebUtility.HtmlEncode(item.Size);
+            var image = string.IsNullOrWhiteSpace(item.ImageUrl)
+                ? ""
+                : $@"<img src='{WebUtility.HtmlEncode(item.ImageUrl)}' alt='{itemName}' style='width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #333;' />";
+
+            return $@"
+                <tr>
+                    <td style='padding: 18px 0; vertical-align: top; width: 110px;'>{image}</td>
+                    <td style='padding: 18px 0; color: #f3f4f6; vertical-align: top;'>
+                        <p style='margin: 0 0 8px; font-size: 15px; font-weight: 700;'>{index + 1}. {itemName}</p>
+                        <p style='margin: 4px 0; color: #d1d5db;'>Kích cỡ: <strong>{itemSize}</strong></p>
+                        <p style='margin: 4px 0; color: #d1d5db;'>Số lượng: <strong>{item.Quantity}</strong></p>
+                        <p style='margin: 4px 0; color: #d1d5db;'>Giá: <strong>{item.UnitPrice:N0}đ</strong></p>
+                    </td>
+                </tr>";
+        }));
+
+        if (string.IsNullOrWhiteSpace(itemRows))
+        {
+            itemRows = "<tr><td style='padding: 18px 0; color: #d1d5db;'>Không có thông tin sản phẩm.</td></tr>";
+        }
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"VTOS - Xác nhận đã nhận đơn hàng #{orderCode}";
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = $@"
+                <html>
+                <body style='margin: 0; background: #111827; font-family: Arial, sans-serif; color: #f9fafb;'>
+                    <div style='max-width: 680px; margin: 0 auto; padding: 28px 22px;'>
+                        <div style='text-align: center; margin-bottom: 26px;'>
+                            <div style='display: inline-block; color: #7c3aed; font-size: 30px; font-weight: 800;'>VTOS</div>
+                        </div>
+
+                        <p style='font-size: 17px; line-height: 1.6;'>Xin chào <strong>{safeParentName}</strong>,</p>
+                        <p style='font-size: 17px; line-height: 1.6;'>
+                            Đơn hàng <a href='{safeConfirmUrl}' style='color: #a78bfa; font-weight: 700;'>#{safeOrderCode}</a>
+                            của bạn đang ở trạng thái giao hàng và chờ bạn xác nhận đã nhận.
+                        </p>
+                        <p style='font-size: 16px; line-height: 1.7; color: #e5e7eb;'>
+                            Khi đã nhận được hàng, vui lòng đăng nhập VTOS để xác nhận trong vòng 7 ngày. Sau khi bạn xác nhận,
+                            hệ thống sẽ ghi nhận đơn hàng đã hoàn tất và bắt đầu thời gian xử lý thanh toán cho nhà cung cấp
+                            <a href='{safeConfirmUrl}' style='color: #a78bfa; font-weight: 700;'>{safeProviderName}</a>.
+                            Nếu bạn không xác nhận trong thời gian này, VTOS sẽ tự động xác nhận đơn hàng theo chính sách hệ thống.
+                        </p>
+
+                        <div style='text-align: center; margin: 24px 0 30px;'>
+                            <a href='{safeConfirmUrl}' style='display: inline-block; background: #7c3aed; color: #fff; padding: 13px 34px; text-decoration: none; border-radius: 6px; font-weight: 700;'>
+                                Đã nhận hàng
+                            </a>
+                        </div>
+
+                        <hr style='border: none; border-top: 1px solid #374151; margin: 28px 0;' />
+                        <h3 style='font-size: 16px; letter-spacing: .04em; color: #f3f4f6;'>THÔNG TIN ĐƠN HÀNG - DÀNH CHO PHỤ HUYNH</h3>
+                        <table style='width: 100%; margin: 14px 0 22px; color: #e5e7eb; border-collapse: collapse;'>
+                            <tr><td style='padding: 4px 0; color: #9ca3af;'>Mã đơn hàng:</td><td style='padding: 4px 0;'><a href='{safeConfirmUrl}' style='color: #a78bfa;'>#{safeOrderCode}</a></td></tr>
+                            <tr><td style='padding: 4px 0; color: #9ca3af;'>Ngày đặt hàng:</td><td style='padding: 4px 0;'>{orderDateText}</td></tr>
+                            <tr><td style='padding: 4px 0; color: #9ca3af;'>Nhà cung cấp:</td><td style='padding: 4px 0;'>{safeProviderName}</td></tr>
+                            <tr><td style='padding: 4px 0; color: #9ca3af;'>Đơn vị vận chuyển:</td><td style='padding: 4px 0;'>{safeShippingCompany}</td></tr>
+                            <tr><td style='padding: 4px 0; color: #9ca3af;'>Mã vận đơn:</td><td style='padding: 4px 0;'>{safeTrackingCode}</td></tr>
+                        </table>
+
+                        <table style='width: 100%; border-collapse: collapse; border-top: 1px solid #374151; border-bottom: 1px solid #374151;'>
+                            {itemRows}
+                        </table>
+
+                        <table style='width: 100%; margin: 22px 0; color: #f3f4f6; border-collapse: collapse;'>
+                            <tr><td style='padding: 4px 0; color: #9ca3af;'>Tổng thanh toán:</td><td style='padding: 4px 0; text-align: right; font-weight: 800;'>{totalAmount:N0}đ</td></tr>
+                        </table>
+
+                        <hr style='border: none; border-top: 1px solid #374151; margin: 28px 0;' />
+                        <h3 style='font-size: 16px; color: #f3f4f6;'>BƯỚC TIẾP THEO</h3>
+                        <p style='font-size: 16px; line-height: 1.7; color: #e5e7eb;'>
+                            Nếu sản phẩm có vấn đề, vui lòng liên hệ VTOS hoặc nhà cung cấp trước khi xác nhận đã nhận hàng.
+                            Sau khi bạn nhấn <strong>Đã nhận hàng</strong>, đơn hàng sẽ chuyển sang trạng thái hoàn tất và bạn có thể đánh giá nhà cung cấp.
+                        </p>
+                        <p style='font-size: 15px; line-height: 1.6; color: #d1d5db;'>Cảm ơn bạn đã sử dụng VTOS.</p>
+                    </div>
+                </body>
+                </html>",
+            TextBody = $@"
+Xin chào {parentName},
+
+Đơn hàng #{orderCode} của bạn đang ở trạng thái giao hàng và chờ bạn xác nhận đã nhận.
+Khi đã nhận được hàng, vui lòng xác nhận trong vòng 7 ngày tại: {confirmUrl}
+
+Mã đơn hàng: #{orderCode}
+Ngày đặt hàng: {orderDateText}
+Nhà cung cấp: {providerName}
+Đơn vị vận chuyển: {(string.IsNullOrWhiteSpace(shippingCompany) ? "Chưa cập nhật" : shippingCompany)}
+Mã vận đơn: {(string.IsNullOrWhiteSpace(trackingCode) ? "Chưa cập nhật" : trackingCode)}
+Tổng thanh toán: {totalAmount:N0}đ
+
+Nếu sản phẩm có vấn đề, vui lòng liên hệ VTOS hoặc nhà cung cấp trước khi xác nhận đã nhận hàng.
+
+VTOS"
+        };
+
         message.Body = bodyBuilder.ToMessageBody();
 
         using var client = new SmtpClient();

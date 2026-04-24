@@ -26,6 +26,7 @@ public class OrdersController : ControllerBase
     private readonly IGetMyDirectOrderDetailQueryHandler _getMyDirectOrderDetailQueryHandler;
     private readonly ICancelDirectOrderCommandHandler _cancelDirectOrderCommandHandler;
     private readonly ISubmitProviderRatingCommandHandler _submitProviderRatingCommandHandler;
+    private readonly IConfirmDirectOrderDeliveryCommandHandler _confirmDirectOrderDeliveryCommandHandler;
     private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
@@ -42,6 +43,7 @@ public class OrdersController : ControllerBase
         IGetMyDirectOrderDetailQueryHandler getMyDirectOrderDetailQueryHandler,
         ICancelDirectOrderCommandHandler cancelDirectOrderCommandHandler,
         ISubmitProviderRatingCommandHandler submitProviderRatingCommandHandler,
+        IConfirmDirectOrderDeliveryCommandHandler confirmDirectOrderDeliveryCommandHandler,
         ILogger<OrdersController> logger)
     {
         _currentUserService = currentUserService;
@@ -57,6 +59,7 @@ public class OrdersController : ControllerBase
         _getMyDirectOrderDetailQueryHandler = getMyDirectOrderDetailQueryHandler;
         _cancelDirectOrderCommandHandler = cancelDirectOrderCommandHandler;
         _submitProviderRatingCommandHandler = submitProviderRatingCommandHandler;
+        _confirmDirectOrderDeliveryCommandHandler = confirmDirectOrderDeliveryCommandHandler;
         _logger = logger;
     }
 
@@ -468,6 +471,22 @@ public class OrdersController : ControllerBase
     {
         var result = await _cancelDirectOrderCommandHandler.HandleAsync(
             new CancelDirectOrderCommand(_currentUserService.UserId, orderId, request?.Reason),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return result.ErrorCode == "ORDER_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpPut("{orderId:guid}/confirm-delivery")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmDirectOrderDelivery(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var result = await _confirmDirectOrderDeliveryCommandHandler.HandleAsync(
+            new ConfirmDirectOrderDeliveryCommand(_currentUserService.UserId, orderId),
             cancellationToken);
 
         if (!result.IsSuccess)

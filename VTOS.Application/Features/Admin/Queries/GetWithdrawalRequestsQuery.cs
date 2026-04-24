@@ -27,6 +27,9 @@ public class WithdrawalRequestDto
     public Guid WalletId { get; set; }
     public Guid SchoolId { get; set; }
     public string SchoolName { get; set; } = string.Empty;
+    public Guid OwnerId { get; set; }
+    public string OwnerType { get; set; } = string.Empty;
+    public string OwnerName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? BankCode { get; set; }

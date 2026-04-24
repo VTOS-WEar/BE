@@ -110,29 +110,12 @@ public class RetryPaymentCommandHandler : IRetryPaymentCommandHandler
 
             var paymentLinkResponse = await _payOSService.CreatePayOSPaymentLinkAsync(paymentLinkRequest, ct);
 
-            // 6. Legacy school-wallet routing applies only to non-direct orders.
-            Guid? schoolWalletId = null;
-            if (order.ProviderID == null || order.SemesterPublicationID == null)
-            {
-                schoolWalletId = await _context.Wallets
-                    .AsNoTracking()
-                    .Where(w =>
-                        w.OwnerID == child.SchoolID
-                        && w.OwnerType == WalletOwnerType.School
-                        && w.IsActive)
-                    .Select(w => (Guid?)w.Id)
-                    .FirstOrDefaultAsync(ct);
-
-                if (schoolWalletId == Guid.Empty)
-                    schoolWalletId = null;
-            }
-
             // 7. Create new PaymentTransaction
             var newPayment = new Domain.Entities.PaymentTransaction
             {
                 Id = Guid.NewGuid(),
                 OrderID = order.Id,
-                WalletID = schoolWalletId,
+                WalletID = null,
                 PaymentLinkId = paymentLinkResponse.PaymentLinkId,
                 GatewayType = PaymentGatewayType.PayOS,
                 TransactionType = TransactionType.OrderPayment,

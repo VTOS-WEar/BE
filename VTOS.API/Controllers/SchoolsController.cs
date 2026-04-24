@@ -66,8 +66,6 @@ public class SchoolsController : ControllerBase
     private readonly IGetContractedProvidersForOutfitsQueryHandler _getContractedProvidersHandler;
     private readonly IApproveRefundCommandHandler _approveRefundHandler;
     private readonly IGetSchoolRefundsQueryHandler _getSchoolRefundsHandler;
-    private readonly ICreateWithdrawalRequestCommandHandler _createWithdrawalHandler;
-    private readonly IUpdateSchoolBankAccountCommandHandler _updateBankAccountHandler;
 
     public SchoolsController(
         ICurrentUserService currentUser,
@@ -108,9 +106,7 @@ public class SchoolsController : ControllerBase
         ICloseSupportTicketCommandHandler closeComplaintHandler,
         IGetContractedProvidersForOutfitsQueryHandler getContractedProvidersHandler,
         IApproveRefundCommandHandler approveRefundHandler,
-        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler,
-        ICreateWithdrawalRequestCommandHandler createWithdrawalHandler,
-        IUpdateSchoolBankAccountCommandHandler updateBankAccountHandler)
+        IGetSchoolRefundsQueryHandler getSchoolRefundsHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -150,8 +146,6 @@ public class SchoolsController : ControllerBase
         _getContractedProvidersHandler = getContractedProvidersHandler;
         _approveRefundHandler = approveRefundHandler;
         _getSchoolRefundsHandler = getSchoolRefundsHandler;
-        _createWithdrawalHandler = createWithdrawalHandler;
-        _updateBankAccountHandler = updateBankAccountHandler;
     }
 
 
@@ -265,11 +259,11 @@ public class SchoolsController : ControllerBase
     [HttpPost("me/students")]
     [ProducesResponseType(typeof(StudentDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateStudent([FromBody] CreateOrUpdateStudentRequest request, CancellationToken ct)
+    public async Task<IActionResult> CreateStudent([FromBody] CreateStudentRequest request, CancellationToken ct)
     {
         var command = new CreateStudentCommand(
             _currentUser.UserId, request.FullName, request.DateOfBirth,
-            request.Grade, request.Gender, request.ParentPhone, request.HeightCm, request.WeightKg);
+            request.ClassGroupId, request.Grade, request.Gender, request.ParentPhone);
         var result = await _createStudentHandler.HandleAsync(command, ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -301,7 +295,7 @@ public class SchoolsController : ControllerBase
     {
         var command = new UpdateStudentCommand(
             _currentUser.UserId, id, request.FullName, request.DateOfBirth,
-            request.Grade, request.Gender, request.HeightCm, request.WeightKg,
+            request.ClassGroupId, request.Grade, request.Gender, request.HeightCm, request.WeightKg,
             request.ParentPhone);
         var result = await _updateStudentHandler.HandleAsync(command, ct);
         if (!result.IsSuccess)
@@ -508,6 +502,7 @@ public class SchoolsController : ControllerBase
                 request.Description,
                 request.MaterialType,
                 request.OutfitType,
+                request.CategoryId,
                 request.MainImageURL,
                 request.SizeChartID,
                 request.IsCustomizable
@@ -545,6 +540,7 @@ public class SchoolsController : ControllerBase
                 request.Description,
                 request.MaterialType,
                 request.OutfitType,
+                request.CategoryId,
                 request.MainImageURL,
                 request.SizeChartID,
                 request.IsAvailable,
@@ -564,7 +560,7 @@ public class SchoolsController : ControllerBase
     {
         var userId = _currentUser.UserId;
         var result = await _updateOutfitHandler.HandleAsync(
-            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, request.IsAvailable, null), ct);
+            new UpdateOutfitCommand(userId, id, null, null, null, null, null, null, null, request.IsAvailable, null), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -920,49 +916,6 @@ public class SchoolsController : ControllerBase
         return Ok(result.Value);
     }
 
-    /// <summary>
-    /// Create a withdrawal request from school wallet.
-    /// </summary>
-    [HttpPost("me/wallet/withdrawals")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateWithdrawalRequest(
-        [FromBody] CreateWithdrawalRequest request,
-        CancellationToken ct)
-    {
-        var result = await _createWithdrawalHandler.HandleAsync(
-            new CreateWithdrawalRequestCommand(_currentUser.UserId, request.Amount), ct);
-
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
-        return Ok(result.Value);
-    }
-
-    /// <summary>
-    /// Update school bank account information on the wallet.
-    /// </summary>
-    [HttpPut("me/wallet/bank-account")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UpdateBankAccount(
-        [FromBody] UpdateSchoolBankAccountRequest request,
-        CancellationToken ct)
-    {
-        var result = await _updateBankAccountHandler.HandleAsync(
-            new UpdateSchoolBankAccountCommand(
-                _currentUser.UserId,
-                request.BankCode,
-                request.BankName,
-                request.BankAccountNumber,
-                request.BankAccountName), ct);
-
-        if (!result.IsSuccess)
-            return BadRequest(new { error = result.Error, code = result.ErrorCode });
-
-        return Ok(result.Value);
-    }
-
     // ──────── Contract Management (Phase 2) ────────
 
     /// <summary>Create a new contract with a provider (items: outfit, price/unit, qty range).</summary>
@@ -1036,15 +989,6 @@ public class SchoolsController : ControllerBase
     }
 
 }
-/// <summary>Request body for creating a withdrawal request.</summary>
-public record CreateWithdrawalRequest(decimal Amount);
-
-/// <summary>Request body for updating school bank account (partial update).</summary>
-public record UpdateSchoolBankAccountRequest(
-    string? BankCode = null,
-    string? BankName = null,
-    string? BankAccountNumber = null,
-    string? BankAccountName = null);
 public class UploadSchoolLogoRequest
 {
     public IFormFile File { get; set; } = null!;
@@ -1066,6 +1010,7 @@ public record CreateOutfitRequest(
     string? Description,
     string? MaterialType,
     OutfitType OutfitType,
+    Guid? CategoryId,
     string? MainImageURL,
     Guid? SizeChartID,
     bool IsCustomizable
@@ -1077,6 +1022,7 @@ public record UpdateOutfitRequest(
     string? Description = null,
     string? MaterialType = null,
     OutfitType? OutfitType = null,
+    Guid? CategoryId = null,
     string? MainImageURL = null,
     Guid? SizeChartID = null,
     bool? IsAvailable = null,

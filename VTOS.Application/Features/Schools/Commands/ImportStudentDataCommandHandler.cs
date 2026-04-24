@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Services;
 using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Features.Schools.Commands;
@@ -17,15 +18,18 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
     private readonly IApplicationDbContext _db;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
+    private readonly IStudentCodeGenerator _studentCodeGenerator;
 
     public ImportStudentDataCommandHandler(
         IApplicationDbContext db,
         IPasswordHasher passwordHasher,
-        IEmailService emailService)
+        IEmailService emailService,
+        IStudentCodeGenerator studentCodeGenerator)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
+        _studentCodeGenerator = studentCodeGenerator;
     }
 
     public async Task<Result<ImportStudentResultDto>> HandleAsync(ImportStudentDataCommand command, CancellationToken ct = default)
@@ -45,6 +49,11 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
             return Result<ImportStudentResultDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
         var schoolId = schoolMgr.SchoolID;
+        var schoolLevel = await _db.Schools
+            .AsNoTracking()
+            .Where(s => s.Id == schoolId)
+            .Select(s => s.Level)
+            .FirstOrDefaultAsync(ct);
         var academicYear = GetCurrentAcademicYear();
 
         var teacherRoleId = await _db.Roles
@@ -95,6 +104,7 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
         var newClassGroups = new List<ClassGroup>();
         var pendingTeacherEmails = new List<(string Email, string TempPassword)>();
         var errors = new List<ImportErrorDto>();
+        var reservedStudentCodes = new List<string>();
 
         int rowNumber = 1;
         foreach (var columns in command.Rows)
@@ -276,6 +286,18 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                 }
 
                 var normalizedClassName = NormalizeClassName(className);
+                if (!SchoolGradePolicy.IsClassAllowedForLevel(normalizedClassName, schoolLevel, out var gradeError))
+                {
+                    errors.Add(new ImportErrorDto
+                    {
+                        RowNumber = rowNumber,
+                        StudentName = fullName,
+                        ErrorMessage = gradeError
+                    });
+                    result.ErrorCount++;
+                    continue;
+                }
+
                 var classKey = MakeClassKey(normalizedClassName, academicYear);
                 if (!classGroupsByKey.TryGetValue(classKey, out var classGroup))
                 {
@@ -316,6 +338,9 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
 
                 var genderEnum = ParseGender(gender);
                 var childId = Guid.NewGuid();
+                var studentCode = await _studentCodeGenerator.GenerateAsync(schoolId, normalizedClassName, reservedStudentCodes, ct);
+                reservedStudentCodes.Add(studentCode);
+
                 newChildren.Add(new ChildProfile
                 {
                     Id = childId,
@@ -336,6 +361,7 @@ public class ImportStudentDataCommandHandler : IImportStudentDataCommandHandler
                 {
                     Id = Guid.NewGuid(),
                     SchoolID = schoolId,
+                    StudentCode = studentCode,
                     FullName = fullName,
                     DateOfBirth = dob,
                     Class = normalizedClassName,

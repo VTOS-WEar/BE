@@ -10,6 +10,9 @@ public class StudentDetailDto
     public Guid Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? StudentCode { get; set; }
+    public Guid? ClassGroupId { get; set; }
+    public string? ClassName { get; set; }
+    public string? AcademicYear { get; set; }
     public string Grade { get; set; } = string.Empty;
     public string Gender { get; set; } = string.Empty;
     public DateTime? DateOfBirth { get; set; }
@@ -22,15 +25,23 @@ public class StudentDetailDto
 }
 
 /// <summary>
-/// Request body for creating/updating a student.
+/// Request body for creating a student.
 /// </summary>
-public class CreateOrUpdateStudentRequest
+public class CreateStudentRequest
 {
     public string FullName { get; set; } = string.Empty;
     public DateTime? DateOfBirth { get; set; }
+    public Guid? ClassGroupId { get; set; }
     public string? Grade { get; set; }
-    public string? Gender { get; set; }  // "Nam"/"Nữ"/"Male"/"Female"
+    public string? Gender { get; set; }
     public string? ParentPhone { get; set; }
+}
+
+/// <summary>
+/// Request body for updating a student.
+/// </summary>
+public class CreateOrUpdateStudentRequest : CreateStudentRequest
+{
     public int? HeightCm { get; set; }
     public float? WeightKg { get; set; }
 }

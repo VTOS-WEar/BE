@@ -56,6 +56,8 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         var nonDeletableSet = new HashSet<Guid>(nonDeletableIds);
 
         var outfits = await outfitsQuery
+            .Include(o => o.OutfitCategories)
+                .ThenInclude(oc => oc.Category)
             .OrderByDescending(o => o.CreatedAt)
             .Select(o => new OutfitDto
             {
@@ -65,6 +67,14 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
                 MaterialType = o.MaterialType,
                 Price = o.Price,
                 OutfitType = o.OutfitType,
+                CategoryId = o.OutfitCategories
+                    .OrderBy(oc => oc.Category.CategoryName)
+                    .Select(oc => (Guid?)oc.CategoryID)
+                    .FirstOrDefault(),
+                CategoryName = o.OutfitCategories
+                    .OrderBy(oc => oc.Category.CategoryName)
+                    .Select(oc => oc.Category.CategoryName)
+                    .FirstOrDefault(),
                 MainImageURL = o.MainImageURL,
                 SizeChartID = o.SizeChartID,
                 IsAvailable = o.IsAvailable,

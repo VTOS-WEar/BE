@@ -1,13 +1,4 @@
-using VTOS.Application.Common;
-
 namespace VTOS.Application.Features.Schools.Commands;
-
-public record CreateWithdrawalRequestCommand(Guid SchoolUserId, decimal Amount);
-
-public interface ICreateWithdrawalRequestCommandHandler
-{
-    Task<Result<WithdrawalRequestResponse>> HandleAsync(CreateWithdrawalRequestCommand command, CancellationToken ct = default);
-}
 
 public class WithdrawalRequestResponse
 {

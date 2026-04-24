@@ -8,7 +8,6 @@ namespace VTOS.Application.Features.Payments.Commands;
 
 public interface IOrderPaymentResolutionService
 {
-    Task<Result<Wallet>> ResolveSchoolWalletAsync(Order order, CancellationToken ct = default);
     Task<Result<(Guid ProviderId, string ProviderName)>> ResolveProviderAsync(Order order, CancellationToken ct = default);
     Task<Wallet> GetOrCreateProviderWalletAsync(Guid providerId, DateTime nowUtc, CancellationToken ct = default);
 }
@@ -20,24 +19,6 @@ public class OrderPaymentResolutionService : IOrderPaymentResolutionService
     public OrderPaymentResolutionService(IApplicationDbContext db)
     {
         _db = db;
-    }
-
-    public async Task<Result<Wallet>> ResolveSchoolWalletAsync(Order order, CancellationToken ct = default)
-    {
-        var schoolId = order.ChildProfile?.SchoolID;
-        if (schoolId == null || schoolId == Guid.Empty)
-            return Result<Wallet>.Failure("School context could not be resolved for this order.", "SCHOOL_NOT_FOUND");
-
-        var wallet = await _db.Wallets
-            .FirstOrDefaultAsync(w =>
-                w.OwnerID == schoolId.Value &&
-                w.OwnerType == WalletOwnerType.School &&
-                w.IsActive, ct);
-
-        if (wallet == null)
-            return Result<Wallet>.Failure("School wallet not found.", "WALLET_NOT_FOUND");
-
-        return Result<Wallet>.Success(wallet);
     }
 
     public async Task<Result<(Guid ProviderId, string ProviderName)>> ResolveProviderAsync(Order order, CancellationToken ct = default)

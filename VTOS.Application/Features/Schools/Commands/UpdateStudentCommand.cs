@@ -9,6 +9,7 @@ public class UpdateStudentCommand
     public Guid StudentId { get; }
     public string? FullName { get; }
     public DateTime? DateOfBirth { get; }
+    public Guid? ClassGroupId { get; }
     public string? Grade { get; }
     public string? Gender { get; }
     public int? HeightCm { get; }
@@ -16,13 +17,14 @@ public class UpdateStudentCommand
     public string? ParentPhone { get; }
 
     public UpdateStudentCommand(Guid userId, Guid studentId, string? fullName,
-        DateTime? dateOfBirth, string? grade, string? gender, int? heightCm, float? weightKg,
+        DateTime? dateOfBirth, Guid? classGroupId, string? grade, string? gender, int? heightCm, float? weightKg,
         string? parentPhone = null)
     {
         UserId = userId;
         StudentId = studentId;
         FullName = fullName;
         DateOfBirth = dateOfBirth;
+        ClassGroupId = classGroupId;
         Grade = grade;
         Gender = gender;
         HeightCm = heightCm;

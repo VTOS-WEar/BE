@@ -14,6 +14,7 @@ public record UpdateOutfitCommand(
     string? Description,
     string? MaterialType,
     OutfitType? OutfitType,
+    Guid? CategoryId,
     string? MainImageURL,
     Guid? SizeChartID,
     bool? IsAvailable,

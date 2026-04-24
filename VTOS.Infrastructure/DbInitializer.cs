@@ -30,6 +30,10 @@ public static class DbInitializer
 
     public static async Task SeedAsync(VTOSDbContext db)
     {
+        await CleanupSchoolWalletsAsync(db);
+        await BackfillParentRefundWalletsAsync(db);
+        await EnsureDefaultOutfitCategoriesAsync(db);
+
         if (await db.Roles.AnyAsync())
             return;
 
@@ -66,6 +70,168 @@ public static class DbInitializer
         db.Feedbacks.AddRange(bundle.Feedbacks);
         db.Set<TeacherReport>().AddRange(bundle.TeacherReports);
 
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task BackfillParentRefundWalletsAsync(VTOSDbContext db)
+    {
+        var existingParentRefundOrderIds = await db.PaymentTransactions
+            .AsNoTracking()
+            .Where(tx =>
+                tx.OrderID.HasValue &&
+                tx.TransactionType == TransactionType.Refund &&
+                tx.Wallet != null &&
+                tx.Wallet.OwnerType == WalletOwnerType.Parent)
+            .Select(tx => tx.OrderID!.Value)
+            .ToListAsync();
+
+        var existingOrderIdSet = existingParentRefundOrderIds.ToHashSet();
+
+        var refundedOrders = await db.Orders
+            .Include(order => order.ChildProfile)
+            .Where(order =>
+                order.OrderStatus == OrderStatus.Refunded &&
+                order.ChildProfile.ParentUserID.HasValue &&
+                !existingOrderIdSet.Contains(order.Id))
+            .ToListAsync();
+
+        if (refundedOrders.Count == 0)
+            return;
+
+        foreach (var order in refundedOrders)
+        {
+            var parentUserId = order.ChildProfile.ParentUserID!.Value;
+            var parentWallet = await db.Wallets.FirstOrDefaultAsync(wallet =>
+                wallet.OwnerID == parentUserId &&
+                wallet.OwnerType == WalletOwnerType.Parent &&
+                wallet.IsActive);
+
+            if (parentWallet == null)
+            {
+                parentWallet = new Wallet
+                {
+                    Id = Guid.NewGuid(),
+                    OwnerID = parentUserId,
+                    OwnerType = WalletOwnerType.Parent,
+                    Balance = 0m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                db.Wallets.Add(parentWallet);
+            }
+
+            parentWallet.Balance += order.TotalAmount;
+            parentWallet.UpdatedAt = DateTime.UtcNow;
+
+            db.PaymentTransactions.Add(new PaymentTransaction
+            {
+                Id = Guid.NewGuid(),
+                OrderID = order.Id,
+                WalletID = parentWallet.Id,
+                TransactionType = TransactionType.Refund,
+                GatewayType = PaymentGatewayType.Other,
+                TransactionStatus = PaymentStatus.Completed,
+                EscrowStatus = EscrowStatus.Refunded,
+                Amount = order.TotalAmount,
+                TransactionTimestamp = DateTime.UtcNow,
+                Description = $"Backfilled refund credit for order {order.Id:N}.",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await db.SaveChangesAsync();
+        await EnsureDefaultOutfitCategoriesAsync(db);
+    }
+
+    private static async Task EnsureDefaultOutfitCategoriesAsync(VTOSDbContext db)
+    {
+        var now = DateTime.UtcNow;
+        var defaults = new Dictionary<OutfitType, string>
+        {
+            [OutfitType.Uniform] = "Đồng phục",
+            [OutfitType.Sportswear] = "Đồ thể thao",
+            [OutfitType.Accessory] = "Phụ kiện",
+            [OutfitType.Other] = "Khác"
+        };
+
+        var existingCategories = await db.Categories.ToListAsync();
+        var categoriesByName = existingCategories
+            .GroupBy(category => category.CategoryName.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var categoryName in defaults.Values)
+        {
+            if (categoriesByName.ContainsKey(categoryName))
+                continue;
+
+            var category = new Category
+            {
+                Id = Guid.NewGuid(),
+                CategoryName = categoryName,
+                CreatedAt = now
+            };
+
+            db.Categories.Add(category);
+            categoriesByName[categoryName] = category;
+        }
+
+        await db.SaveChangesAsync();
+
+        var outfitsWithoutCategory = await db.Outfits
+            .Include(outfit => outfit.OutfitCategories)
+            .Where(outfit => !outfit.IsDeleted && !outfit.OutfitCategories.Any())
+            .ToListAsync();
+
+        foreach (var outfit in outfitsWithoutCategory)
+        {
+            if (!defaults.TryGetValue(outfit.OutfitType, out var categoryName))
+                continue;
+
+            if (!categoriesByName.TryGetValue(categoryName, out var category))
+                continue;
+
+            db.OutfitCategories.Add(new OutfitCategory
+            {
+                OutfitID = outfit.Id,
+                CategoryID = category.Id
+            });
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task CleanupSchoolWalletsAsync(VTOSDbContext db)
+    {
+        var schoolWalletIds = await db.Wallets
+            .Where(w => w.OwnerType == WalletOwnerType.School)
+            .Select(w => w.Id)
+            .ToListAsync();
+
+        if (schoolWalletIds.Count == 0)
+            return;
+
+        var schoolWalletIdSet = schoolWalletIds.ToHashSet();
+
+        var paymentTransactions = await db.PaymentTransactions
+            .Where(tx => tx.WalletID.HasValue && schoolWalletIds.Contains(tx.WalletID.Value))
+            .ToListAsync();
+
+        foreach (var transaction in paymentTransactions)
+            transaction.WalletID = null;
+
+        var withdrawalRequests = await db.WalletWithdrawalRequests
+            .Where(request => schoolWalletIds.Contains(request.WalletID))
+            .ToListAsync();
+
+        if (withdrawalRequests.Count > 0)
+            db.WalletWithdrawalRequests.RemoveRange(withdrawalRequests);
+
+        var schoolWallets = await db.Wallets
+            .Where(wallet => schoolWalletIdSet.Contains(wallet.Id))
+            .ToListAsync();
+
+        db.Wallets.RemoveRange(schoolWallets);
         await db.SaveChangesAsync();
     }
 
@@ -326,7 +492,6 @@ public static class DbInitializer
             var blueprint = blueprints[index];
             var schoolId = StableGuid($"{blueprint.Key}:school");
             var managerId = StableGuid($"{blueprint.Key}:manager");
-            var walletId = StableGuid($"{blueprint.Key}:wallet");
             var sizeChartId = StableGuid($"{blueprint.Key}:sizechart");
 
             var school = new School
@@ -362,26 +527,6 @@ public static class DbInitializer
                 CreatedAt = now
             };
 
-            var wallet = new Wallet
-            {
-                Id = walletId,
-                OwnerID = schoolId,
-                OwnerType = WalletOwnerType.School,
-                Balance = 0m,
-                BankCode = index switch { 0 => "VCB", 1 => "TCB", _ => "BIDV" },
-                BankName = index switch { 0 => "Vietcombank", 1 => "Techcombank", _ => "BIDV" },
-                BankAccountNumber = index switch
-                {
-                    0 => "0491000111222",
-                    1 => "19035678123456",
-                    _ => "31410007654321"
-                },
-                BankAccountName = RemoveDiacritics(blueprint.SchoolName).ToUpperInvariant(),
-                IsActive = true,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
             var sizeChart = new SizeChart
             {
                 Id = sizeChartId,
@@ -393,7 +538,6 @@ public static class DbInitializer
 
             bundle.Schools.Add(school);
             bundle.Users.Add(manager);
-            bundle.Wallets.Add(wallet);
             bundle.SizeCharts.Add(sizeChart);
             bundle.SchoolManagers.Add(new SchoolManager
             {
@@ -412,7 +556,6 @@ public static class DbInitializer
                 Blueprint = blueprint,
                 SchoolId = schoolId,
                 ManagerUserId = managerId,
-                WalletId = walletId,
                 SizeChartId = sizeChartId,
                 PrimaryProvider = primaryProvider,
                 SecondaryProvider = secondaryProvider
@@ -1192,6 +1335,7 @@ public static class DbInitializer
                     CreatePaymentTransactions(
                         bundle,
                         school,
+                        student,
                         providerId,
                         order,
                         status,
@@ -1226,6 +1370,7 @@ public static class DbInitializer
     private static void CreatePaymentTransactions(
         SeedBundle bundle,
         SchoolContext school,
+        StudentContext student,
         Guid providerId,
         Order order,
         OrderStatus status,
@@ -1244,7 +1389,7 @@ public static class DbInitializer
             {
                 Id = StableGuid($"{order.Id}:payment:pending"),
                 OrderID = order.Id,
-                WalletID = school.WalletId,
+                WalletID = null,
                 PaymentLinkId = $"payos-{order.Id:N}",
                 TransactionType = TransactionType.OrderPayment,
                 GatewayType = PaymentGatewayType.PayOS,
@@ -1263,7 +1408,7 @@ public static class DbInitializer
             {
                 Id = StableGuid($"{order.Id}:payment:completed"),
                 OrderID = order.Id,
-                WalletID = school.WalletId,
+                WalletID = null,
                 PaymentLinkId = $"payos-{order.Id:N}",
                 TransactionType = TransactionType.OrderPayment,
                 GatewayType = PaymentGatewayType.PayOS,
@@ -1277,14 +1422,17 @@ public static class DbInitializer
 
         if (status == OrderStatus.Refunded)
         {
+            var parentWallet = GetOrCreateSeedParentWallet(bundle, student.Parent!.User.Id, orderDate.AddDays(2));
+
             bundle.PaymentTransactions.Add(new PaymentTransaction
             {
                 Id = StableGuid($"{order.Id}:payment:refund"),
                 OrderID = order.Id,
-                WalletID = school.WalletId,
+                WalletID = parentWallet.Id,
                 TransactionType = TransactionType.Refund,
                 GatewayType = PaymentGatewayType.Other,
                 TransactionStatus = PaymentStatus.Completed,
+                EscrowStatus = EscrowStatus.Refunded,
                 Amount = totalAmount,
                 TransactionTimestamp = orderDate.AddDays(2),
                 Description = $"Hoàn tiền cho phụ huynh đơn {order.Id:N}.",
@@ -1298,8 +1446,8 @@ public static class DbInitializer
             {
                 Id = StableGuid($"{order.Id}:payment:provider-school"),
                 OrderID = order.Id,
-                WalletID = school.WalletId,
-                TransactionType = TransactionType.ProviderPayment,
+                WalletID = null,
+                TransactionType = TransactionType.EscrowRelease,
                 GatewayType = PaymentGatewayType.Other,
                 TransactionStatus = PaymentStatus.Completed,
                 Amount = providerPayout,
@@ -1324,6 +1472,26 @@ public static class DbInitializer
         }
     }
 
+    private static Wallet GetOrCreateSeedParentWallet(SeedBundle bundle, Guid parentUserId, DateTime now)
+    {
+        var wallet = bundle.Wallets.FirstOrDefault(x => x.OwnerID == parentUserId && x.OwnerType == WalletOwnerType.Parent);
+        if (wallet != null)
+            return wallet;
+
+        wallet = new Wallet
+        {
+            Id = StableGuid($"{parentUserId}:wallet"),
+            OwnerID = parentUserId,
+            OwnerType = WalletOwnerType.Parent,
+            Balance = 0m,
+            IsActive = true,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        bundle.Wallets.Add(wallet);
+        return wallet;
+    }
+
     private static void UpdateWalletBalances(SeedBundle bundle)
     {
         var walletLookup = bundle.Wallets.ToDictionary(x => x.Id);
@@ -1334,19 +1502,15 @@ public static class DbInitializer
         foreach (var tx in bundle.PaymentTransactions.Where(x => x.TransactionStatus == PaymentStatus.Completed && x.WalletID.HasValue))
         {
             var wallet = walletLookup[tx.WalletID!.Value];
-            if (wallet.OwnerType == WalletOwnerType.School)
+            if (wallet.OwnerType == WalletOwnerType.Provider)
             {
-                wallet.Balance += tx.TransactionType switch
-                {
-                    TransactionType.OrderPayment => tx.Amount,
-                    TransactionType.Refund => -tx.Amount,
-                    TransactionType.ProviderPayment => -tx.Amount,
-                    _ => 0m
-                };
+                wallet.Balance += tx.TransactionType is TransactionType.ProviderPayment or TransactionType.ProviderPayout
+                    ? tx.Amount
+                    : 0m;
             }
-            else if (wallet.OwnerType == WalletOwnerType.Provider)
+            else if (wallet.OwnerType == WalletOwnerType.Parent)
             {
-                wallet.Balance += tx.TransactionType == TransactionType.ProviderPayment ? tx.Amount : 0m;
+                wallet.Balance += tx.TransactionType == TransactionType.Refund ? tx.Amount : 0m;
             }
         }
 
@@ -1732,7 +1896,6 @@ public static class DbInitializer
         public SchoolBlueprint Blueprint { get; init; } = null!;
         public Guid SchoolId { get; init; }
         public Guid ManagerUserId { get; init; }
-        public Guid WalletId { get; init; }
         public Guid SizeChartId { get; init; }
         public ProviderContext PrimaryProvider { get; init; } = null!;
         public ProviderContext SecondaryProvider { get; init; } = null!;

@@ -9,6 +9,9 @@ public class StudentListItemDto
     public Guid Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? StudentCode { get; set; }
+    public Guid? ClassGroupId { get; set; }
+    public string? ClassName { get; set; }
+    public string? AcademicYear { get; set; }
     public string Grade { get; set; } = string.Empty;
     public string Gender { get; set; } = string.Empty;
     public DateTime? DateOfBirth { get; set; }

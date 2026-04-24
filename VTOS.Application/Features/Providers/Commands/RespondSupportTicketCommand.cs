@@ -68,10 +68,10 @@ public class RespondSupportTicketCommandHandler : IRespondSupportTicketCommandHa
         // Notify school about complaint response
         try
         {
-            if (ticket.SchoolID != Guid.Empty)
+            if (ticket.SchoolID.HasValue)
             {
                 var statusMsg = command.MarkResolved ? "và đánh dấu đã giải quyết" : "";
-                await _notificationService.NotifySchoolAsync(ticket.SchoolID,
+                await _notificationService.NotifySchoolAsync(ticket.SchoolID.Value,
                     "💬 NCC phản hồi khiếu nại",
                     $"NCC đã phản hồi khiếu nại: {ticket.Title} {statusMsg}".Trim(),
                     "SupportTicket", ticket.Id, "SupportTicket",

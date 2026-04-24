@@ -25,35 +25,13 @@ public class ApproveUserCommandHandler : IApproveUserCommandHandler
             return false;
 
 
-        var schoolMgr = await _context.SchoolManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
-
-
         var providerMgr = await _context.ProviderManagers.AsNoTracking().FirstOrDefaultAsync(m => m.UserID == user.Id, cancellationToken);
 
 
         user.IsActive = true;
 
-        // Auto-create wallet for School manager
-        if (schoolMgr?.SchoolID != null)
-        {
-            var existingWallet = await _context.Wallets
-                .AnyAsync(w => w.OwnerID == schoolMgr!.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School, cancellationToken);
-            if (!existingWallet)
-            {
-                _context.Wallets.Add(new Domain.Entities.Wallet
-                {
-                    Id = Guid.NewGuid(),
-                    OwnerID = schoolMgr.SchoolID,
-                    OwnerType = Domain.Enums.WalletOwnerType.School,
-                    Balance = 0,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                });
-            }
-        }
         // Auto-create wallet for Provider manager
-        else if (providerMgr != null)
+        if (providerMgr != null)
         {
             var existingWallet = await _context.Wallets
                 .AnyAsync(w => w.OwnerID == providerMgr!.ProviderID && w.OwnerType == Domain.Enums.WalletOwnerType.Provider, cancellationToken);

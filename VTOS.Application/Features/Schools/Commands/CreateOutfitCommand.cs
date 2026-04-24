@@ -13,6 +13,7 @@ public record CreateOutfitCommand(
     string? Description,
     string? MaterialType,
     OutfitType OutfitType,
+    Guid? CategoryId,
     string? MainImageURL,
     Guid? SizeChartID,
     bool IsCustomizable

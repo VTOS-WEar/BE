@@ -61,6 +61,7 @@ public class FindChildrenCommandHandler
         // and are NOT yet linked to any parent account
         var candidates = await _context.ChildProfiles
             .Include(c => c.School)
+            .Include(c => c.ClassGroup)
             .Include(c => c.ParentUser)
             .Where(c => c.ParentPhone == user.Phone && !c.IsDeleted)
             .ToListAsync(cancellationToken);
@@ -103,6 +104,9 @@ public class FindChildrenCommandHandler
                 child.FullName,
                 child.Age,
                 child.Grade,
+                child.ClassGroupID,
+                child.ClassGroup?.ClassName,
+                child.ClassGroup?.AcademicYear,
                 child.Gender.ToString(),
                 child.Avatar,
                 child.School != null

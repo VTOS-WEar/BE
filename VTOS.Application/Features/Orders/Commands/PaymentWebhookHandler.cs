@@ -105,20 +105,7 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
             if (order == null)
                 return Result<PaymentWebhookProcessResponse>.Failure("Order not found for payment transaction.", "ORDER_NOT_FOUND");
 
-            Wallet? wallet = paymentTransaction.Wallet;
-            if (wallet == null)
-            {
-                var walletResolution = await _paymentResolutionService.ResolveSchoolWalletAsync(order, cancellationToken);
-                if (!walletResolution.IsSuccess)
-                    return Result<PaymentWebhookProcessResponse>.Failure(walletResolution.Error!, walletResolution.ErrorCode);
-
-                wallet = walletResolution.Value;
-            }
-
-            var resolvedWallet = wallet!;
-
-            paymentTransaction.WalletID = resolvedWallet.Id;
-            paymentTransaction.Wallet = resolvedWallet;
+            paymentTransaction.WalletID = null;
             paymentTransaction.TransactionStatus = PaymentStatus.Completed;
             paymentTransaction.TransactionTimestamp = DateTime.UtcNow;
             paymentTransaction.TransactionType = TransactionType.OrderPayment;
@@ -128,9 +115,6 @@ public class PaymentWebhookHandler : IPaymentWebhookHandler
                 : "Payment completed";
 
             order.OrderStatus = OrderStatus.Paid;
-
-            resolvedWallet.Balance += paymentTransaction.Amount;
-            resolvedWallet.UpdatedAt = DateTime.UtcNow;
 
             if (order.OrderItems != null && order.OrderItems.Any())
             {
