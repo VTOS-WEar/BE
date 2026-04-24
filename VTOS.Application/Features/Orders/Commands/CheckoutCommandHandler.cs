@@ -86,11 +86,8 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             var paymentLink = paymentLinkResult.PaymentLink!;
             var orderCode = paymentLinkResult.OrderCode;
 
-            // Step 6.5: Route legacy school checkout payments to the child's school wallet.
-            var schoolWalletId = await GetSchoolWalletIdAsync(childProfile.SchoolID, cancellationToken);
-
             // Step 7: Create payment transaction
-            var paymentTransaction = CreatePaymentTransaction(order.Id, totalAmount, paymentLink.PaymentLinkId, schoolWalletId);
+            var paymentTransaction = CreatePaymentTransaction(order.Id, totalAmount, paymentLink.PaymentLinkId);
             _context.PaymentTransactions.Add(paymentTransaction);
 
             // Step 8: Add order items to context and save
@@ -407,13 +404,13 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     /// <summary>
     /// Create payment transaction with pending status
     /// </summary>
-    private PaymentTransaction CreatePaymentTransaction(Guid orderId, decimal totalAmount, string paymentLinkId, Guid? schoolWalletId = null)
+    private PaymentTransaction CreatePaymentTransaction(Guid orderId, decimal totalAmount, string paymentLinkId)
     {
         return new PaymentTransaction
         {
             Id = Guid.NewGuid(),
             OrderID = orderId,
-            WalletID = schoolWalletId,
+            WalletID = null,
             PaymentLinkId = paymentLinkId,
             GatewayType = PaymentGatewayType.PayOS,
             TransactionType = TransactionType.OrderPayment,
@@ -423,35 +420,6 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             TransactionLog = "Payment transaction created for checkout",
             CreatedAt = DateTime.UtcNow
         };
-    }
-
-    private async Task<Guid?> GetSchoolWalletIdAsync(Guid schoolId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var walletId = await _context.Wallets
-                .AsNoTracking()
-                .Where(w =>
-                    w.OwnerID == schoolId
-                    && w.OwnerType == Domain.Enums.WalletOwnerType.School
-                    && w.IsActive)
-                .Select(w => w.Id)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (walletId != Guid.Empty)
-            {
-                _logger.LogDebug("Retrieved Wallet {WalletId} from School {SchoolId}", walletId, schoolId);
-                return walletId;
-            }
-
-            _logger.LogWarning("No Wallet found for School {SchoolId}", schoolId);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving Wallet from School {SchoolId}", schoolId);
-            return null;
-        }
     }
 
     /// <summary>

@@ -55,20 +55,37 @@ public class RefundOrderCommandHandler : IRefundOrderCommandHandler
         if (originalPayment == null)
             return Result<RefundOrderResponse>.Failure("No payment found for this order.", "NO_PAYMENT");
 
-        // Deduct from wallet
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.OwnerID == schoolMgr.SchoolID && w.OwnerType == Domain.Enums.WalletOwnerType.School && w.IsActive, ct);
-        if (wallet == null || wallet.Balance < order.TotalAmount)
-            return Result<RefundOrderResponse>.Failure("Insufficient wallet balance for refund.", "INSUFFICIENT_BALANCE");
+        var parentId = order.ChildProfile?.ParentUserID;
+        if (!parentId.HasValue)
+            return Result<RefundOrderResponse>.Failure("Order is not linked to a parent account.", "PARENT_NOT_FOUND");
 
-        wallet.Balance -= order.TotalAmount;
-        wallet.UpdatedAt = DateTime.UtcNow;
+        var parentWallet = await _db.Wallets.FirstOrDefaultAsync(
+            w => w.OwnerID == parentId.Value && w.OwnerType == Domain.Enums.WalletOwnerType.Parent && w.IsActive, ct);
 
-        // Create refund transaction
+        if (parentWallet == null)
+        {
+            parentWallet = new Domain.Entities.Wallet
+            {
+                Id = Guid.NewGuid(),
+                OwnerID = parentId.Value,
+                OwnerType = Domain.Enums.WalletOwnerType.Parent,
+                Balance = 0,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.Wallets.Add(parentWallet);
+        }
+
+        parentWallet.Balance += order.TotalAmount;
+        parentWallet.UpdatedAt = DateTime.UtcNow;
+
+        // Create parent wallet refund transaction
         var refundTx = new Domain.Entities.PaymentTransaction
         {
             Id = Guid.NewGuid(),
             OrderID = order.Id,
-            WalletID = wallet.Id,
+            WalletID = parentWallet.Id,
             TransactionType = TransactionType.Refund,
             GatewayType = PaymentGatewayType.Other,
             TransactionStatus = PaymentStatus.Completed,

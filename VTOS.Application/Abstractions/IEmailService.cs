@@ -1,5 +1,12 @@
 namespace VTOS.Application.Abstractions;
 
+public record DirectOrderDeliveryEmailItem(
+    string OutfitName,
+    string Size,
+    int Quantity,
+    decimal UnitPrice,
+    string? ImageUrl);
+
 /// <summary>
 /// Interface for email service to send OTP codes and other emails.
 /// </summary>
@@ -41,6 +48,22 @@ public interface IEmailService
     Task SendPaymentDeadlineReminderAsync(
         string toEmail, string parentName, string orderCode,
         decimal amount, DateTime deadline,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a delivery confirmation email to parent when a direct order is ready for receipt confirmation.
+    /// </summary>
+    Task SendDirectOrderReceiptConfirmationEmailAsync(
+        string toEmail,
+        string parentName,
+        string orderCode,
+        DateTime orderDate,
+        string providerName,
+        decimal totalAmount,
+        string? shippingCompany,
+        string? trackingCode,
+        string confirmUrl,
+        IReadOnlyList<DirectOrderDeliveryEmailItem> items,
         CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Application.Common.Settings;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -94,10 +97,20 @@ public class MarkDirectOrderReadyToShipCommandHandler : AcceptDirectOrderCommand
 public class ShipDirectOrderCommandHandler : IShipDirectOrderCommandHandler
 {
     private readonly IApplicationDbContext _context;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<ShipDirectOrderCommandHandler> _logger;
+    private readonly string _frontendBaseUrl;
 
-    public ShipDirectOrderCommandHandler(IApplicationDbContext context)
+    public ShipDirectOrderCommandHandler(
+        IApplicationDbContext context,
+        IEmailService emailService,
+        IOptions<FrontendSettings> frontendSettings,
+        ILogger<ShipDirectOrderCommandHandler> logger)
     {
         _context = context;
+        _emailService = emailService;
+        _logger = logger;
+        _frontendBaseUrl = frontendSettings.Value.BaseUrl.TrimEnd('/');
     }
 
     public async Task<Result> HandleAsync(ShipDirectOrderCommand command, CancellationToken cancellationToken = default)
@@ -111,6 +124,12 @@ public class ShipDirectOrderCommandHandler : IShipDirectOrderCommandHandler
             return Result.Failure("Provider not found for current user.", "PROVIDER_NOT_FOUND");
 
         var order = await _context.Orders
+            .Include(o => o.ChildProfile)
+                .ThenInclude(c => c.ParentUser)
+            .Include(o => o.Provider)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(pv => pv.Outfit)
             .FirstOrDefaultAsync(o => o.Id == command.OrderId && o.ProviderID == providerId.Value && o.SemesterPublicationID != null, cancellationToken);
 
         if (order == null)
@@ -128,6 +147,44 @@ public class ShipDirectOrderCommandHandler : IShipDirectOrderCommandHandler
         order.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            var parent = order.ChildProfile.ParentUser;
+            if (!string.IsNullOrWhiteSpace(parent.Email))
+            {
+                var confirmUrl = string.IsNullOrWhiteSpace(_frontendBaseUrl)
+                    ? $"/my-orders/{order.Id}"
+                    : $"{_frontendBaseUrl}/my-orders/{order.Id}";
+
+                var items = order.OrderItems
+                    .Select(item => new DirectOrderDeliveryEmailItem(
+                        item.ProductVariant.Outfit.OutfitName,
+                        item.SizeOrdered,
+                        item.Quantity,
+                        item.UnitPrice,
+                        item.ProductVariant.VariantImageURL ?? item.ProductVariant.Outfit.MainImageURL))
+                    .ToList();
+
+                await _emailService.SendDirectOrderReceiptConfirmationEmailAsync(
+                    parent.Email,
+                    parent.FullName,
+                    order.Id.ToString("N")[..8].ToUpperInvariant(),
+                    order.OrderDate,
+                    order.Provider?.ProviderName ?? "Nhà cung cấp",
+                    order.TotalAmount,
+                    order.ShippingCompany,
+                    order.TrackingCode,
+                    confirmUrl,
+                    items,
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send direct order receipt confirmation email for Order {OrderId}", order.Id);
+        }
+
         return Result.Success();
     }
 }

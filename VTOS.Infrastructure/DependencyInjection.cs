@@ -31,6 +31,8 @@ using VTOS.Application.Features.Orders.Queries;
 using VTOS.Application.Features.Payments.Commands;
 using VTOS.Application.Features.Teachers.Commands;
 using VTOS.Application.Features.Teachers.Queries;
+using VTOS.Application.Features.SupportTickets;
+using VTOS.Application.Features.Schools.Services;
 namespace VTOS.Infrastructure;
 
 public static class DependencyInjection
@@ -263,12 +265,9 @@ public static class DependencyInjection
             VTOS.Application.Features.Schools.Queries.GetFeedbackReportQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSchoolRefundsQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSchoolRefundsQueryHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.ICreateWithdrawalRequestCommandHandler,
-            VTOS.Application.Features.Schools.Commands.CreateWithdrawalRequestCommandHandler>();
-        services.AddScoped<VTOS.Application.Features.Schools.Commands.IUpdateSchoolBankAccountCommandHandler,
-            VTOS.Application.Features.Schools.Commands.UpdateSchoolBankAccountCommandHandler>();
 
         // School Module - UC-43: Import Student Data
+        services.AddScoped<IStudentCodeGenerator, StudentCodeGenerator>();
         services.AddScoped<VTOS.Application.Features.Schools.Commands.IImportStudentDataCommandHandler,
             VTOS.Application.Features.Schools.Commands.ImportStudentDataCommandHandler>();
 
@@ -412,6 +411,9 @@ public static class DependencyInjection
             VTOS.Application.Features.Providers.Commands.ShipDirectOrderCommandHandler>();
 
         // Phase 5 - Complaints
+        services.AddScoped<ICreateSupportTicketCommandHandler, CreateSupportTicketCommandHandler>();
+        services.AddScoped<IGetMySupportTicketsQueryHandler, GetMySupportTicketsQueryHandler>();
+        services.AddScoped<IGetMySupportTicketDetailQueryHandler, GetMySupportTicketDetailQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSupportTicketDetailQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSupportTicketDetailQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Commands.ICloseSupportTicketCommandHandler,
@@ -480,6 +482,8 @@ public static class DependencyInjection
         services.AddScoped<IGetTotalQuantityPerItemQueryHandler, GetTotalQuantityPerItemQueryHandler>();
         services.AddScoped<IGetTotalRevenueQueryHandler, GetTotalRevenueQueryHandler>();
         services.AddScoped<IGetPaymentCompletionRateQueryHandler, GetPaymentCompletionRateQueryHandler>();
+        services.AddScoped<IGetAdminSemesterPublicationsQueryHandler, GetAdminSemesterPublicationsQueryHandler>();
+        services.AddScoped<IGetSemesterMonitorReportQueryHandler, GetSemesterMonitorReportQueryHandler>();
 
         // Admin Module - Reports & Export (UC 3.13.8-11)
         services.AddScoped<IViewReportQueryHandler, ViewReportQueryHandler>();
@@ -519,6 +523,12 @@ public static class DependencyInjection
             VTOS.Application.Features.Payments.Queries.GetProviderWalletQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetProviderWalletTransactionsQueryHandler,
             VTOS.Application.Features.Payments.Queries.GetProviderWalletTransactionsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetParentWalletQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetParentWalletQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Payments.Queries.IGetParentWalletTransactionsQueryHandler,
+            VTOS.Application.Features.Payments.Queries.GetParentWalletTransactionsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Users.Commands.ICreateParentWithdrawalRequestCommandHandler,
+            VTOS.Application.Features.Users.Commands.CreateParentWithdrawalRequestCommandHandler>();
 
         // Account Requests Module (System Improvements - Phase 01)
         services.AddScoped<VTOS.Application.Features.AccountRequests.Commands.ISubmitAccountRequestCommandHandler,

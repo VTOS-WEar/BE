@@ -27,7 +27,6 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
 
     public async Task<Result<WithdrawalRequestResponse>> HandleAsync(ApproveWithdrawalCommand command, CancellationToken ct = default)
     {
-        // Step 1: Load withdrawal request with wallet
         var withdrawal = await _db.Set<WalletWithdrawalRequest>()
             .Include(w => w.Wallet)
             .FirstOrDefaultAsync(w => w.Id == command.WithdrawalRequestId, ct);
@@ -39,44 +38,53 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
             return Result<WithdrawalRequestResponse>.Failure($"Withdrawal request cannot be approved. Current status: {withdrawal.Status}", "WITHDRAWAL_NOT_APPROVABLE");
 
         var wallet = withdrawal.Wallet;
-
-        // Step 2: Validate wallet balance
         if (wallet.Balance < withdrawal.Amount)
             return Result<WithdrawalRequestResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
 
-        // Step 3: Deduct wallet balance
         wallet.Balance -= withdrawal.Amount;
         wallet.UpdatedAt = DateTime.UtcNow;
 
-        // Step 4: Update withdrawal request status (Admin will transfer manually via banking)
         withdrawal.Status = "Approved";
         withdrawal.ApprovedAt = DateTime.UtcNow;
         withdrawal.AdminNote = command.AdminNote;
 
-        // Step 5: Save all changes
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
             "Withdrawal approved: WithdrawalId={WithdrawalId}, Amount={Amount}, WalletId={WalletId}",
             withdrawal.Id, withdrawal.Amount, wallet.Id);
 
-        // Notify wallet owner (School or Provider)
         try
         {
-            if (wallet.OwnerType == WalletOwnerType.School)
-                await _notificationService.NotifySchoolAsync(wallet.OwnerID,
-                    "✅ Rút tiền đã duyệt",
-                    $"Yêu cầu rút {withdrawal.Amount:N0}đ đã được duyệt.",
-                    "Withdrawal", withdrawal.Id, "WithdrawalRequest",
-                    "/school/dashboard", ct);
-            else
-                await _notificationService.NotifyProviderAsync(wallet.OwnerID,
-                    "✅ Rút tiền đã duyệt",
-                    $"Yêu cầu rút {withdrawal.Amount:N0}đ đã được duyệt.",
-                    "Withdrawal", withdrawal.Id, "WithdrawalRequest",
-                    "/provider/wallet", ct);
+            if (wallet.OwnerType == WalletOwnerType.Provider)
+            {
+                await _notificationService.NotifyProviderAsync(
+                    wallet.OwnerID,
+                    "Withdrawal approved",
+                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been approved.",
+                    "Withdrawal",
+                    withdrawal.Id,
+                    "WithdrawalRequest",
+                    "/provider/wallet",
+                    ct);
+            }
+            else if (wallet.OwnerType == WalletOwnerType.Parent)
+            {
+                await _notificationService.CreateAsync(
+                    wallet.OwnerID,
+                    "Withdrawal approved",
+                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been approved.",
+                    "Withdrawal",
+                    withdrawal.Id,
+                    "WithdrawalRequest",
+                    "/parentprofile/wallet",
+                    ct);
+            }
         }
-        catch { /* Don't fail */ }
+        catch
+        {
+            // Notification failure should not block approval.
+        }
 
         return Result<WithdrawalRequestResponse>.Success(new WithdrawalRequestResponse
         {

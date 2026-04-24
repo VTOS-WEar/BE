@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Services;
 
 namespace VTOS.Application.Features.Schools.Commands;
 
@@ -21,13 +22,28 @@ public class UpdateStudentCommandHandler : IUpdateStudentCommandHandler
             return Result<StudentDetailDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
         var schoolId = schoolMgr.SchoolID;
+        var schoolLevel = await _db.Schools
+            .AsNoTracking()
+            .Where(s => s.Id == schoolId)
+            .Select(s => s.Level)
+            .FirstOrDefaultAsync(ct);
 
         var child = await _db.ChildProfiles
             .Include(c => c.School)
+            .Include(c => c.ClassGroup)
             .FirstOrDefaultAsync(c => c.Id == cmd.StudentId && c.SchoolID == schoolId && !c.IsDeleted, ct);
 
         if (child == null)
             return Result<StudentDetailDto>.Failure("Student not found.", "STUDENT_NOT_FOUND");
+
+        var classGroup = cmd.ClassGroupId.HasValue
+            ? await _db.ClassGroups
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cg => cg.Id == cmd.ClassGroupId.Value && cg.SchoolID == schoolId, ct)
+            : null;
+
+        if (cmd.ClassGroupId.HasValue && classGroup == null)
+            return Result<StudentDetailDto>.Failure("Class group not found.", "CLASS_GROUP_NOT_FOUND");
 
         // Apply updates
         if (!string.IsNullOrWhiteSpace(cmd.FullName))
@@ -40,8 +56,21 @@ public class UpdateStudentCommandHandler : IUpdateStudentCommandHandler
                 (DateTime.UtcNow.DayOfYear < child.DOB.Value.DayOfYear ? 1 : 0);
         }
 
-        if (!string.IsNullOrWhiteSpace(cmd.Grade))
+        if (classGroup != null)
+        {
+            if (!SchoolGradePolicy.IsClassAllowedForLevel(classGroup.ClassName, schoolLevel, out var gradeError))
+                return Result<StudentDetailDto>.Failure(gradeError, "GRADE_NOT_ALLOWED");
+
+            child.ClassGroupID = classGroup.Id;
+            child.Grade = classGroup.ClassName;
+        }
+        else if (!string.IsNullOrWhiteSpace(cmd.Grade))
+        {
+            if (!SchoolGradePolicy.IsClassAllowedForLevel(cmd.Grade, schoolLevel, out var gradeError))
+                return Result<StudentDetailDto>.Failure(gradeError, "GRADE_NOT_ALLOWED");
+
             child.Grade = cmd.Grade.Trim();
+        }
 
         if (!string.IsNullOrWhiteSpace(cmd.Gender))
             child.Gender = ParseGender(cmd.Gender);
@@ -63,6 +92,9 @@ public class UpdateStudentCommandHandler : IUpdateStudentCommandHandler
             Id = child.Id,
             FullName = child.FullName,
             Grade = child.Grade,
+            ClassGroupId = classGroup?.Id ?? child.ClassGroupID,
+            ClassName = classGroup?.ClassName ?? child.ClassGroup?.ClassName,
+            AcademicYear = classGroup?.AcademicYear ?? child.ClassGroup?.AcademicYear,
             Gender = child.Gender.ToString(),
             DateOfBirth = child.DOB,
             HeightCm = child.HeightCm,

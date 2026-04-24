@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Services;
 using VTOS.Domain.Entities;
 
 namespace VTOS.Application.Features.Schools.Commands;
@@ -9,7 +10,13 @@ namespace VTOS.Application.Features.Schools.Commands;
 public class CreateStudentCommandHandler : ICreateStudentCommandHandler
 {
     private readonly IApplicationDbContext _db;
-    public CreateStudentCommandHandler(IApplicationDbContext db) => _db = db;
+    private readonly IStudentCodeGenerator _studentCodeGenerator;
+
+    public CreateStudentCommandHandler(IApplicationDbContext db, IStudentCodeGenerator studentCodeGenerator)
+    {
+        _db = db;
+        _studentCodeGenerator = studentCodeGenerator;
+    }
 
     public async Task<Result<StudentDetailDto>> HandleAsync(CreateStudentCommand cmd, CancellationToken ct = default)
     {
@@ -23,10 +30,24 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
             return Result<StudentDetailDto>.Failure("User is not linked to any school.", "SCHOOL_NOT_LINKED");
 
         var schoolId = schoolMgr.SchoolID;
+        var schoolLevel = await _db.Schools
+            .AsNoTracking()
+            .Where(s => s.Id == schoolId)
+            .Select(s => s.Level)
+            .FirstOrDefaultAsync(ct);
 
         // 2. Validate
         if (string.IsNullOrWhiteSpace(cmd.FullName))
             return Result<StudentDetailDto>.Failure("Student name is required.", "NAME_REQUIRED");
+
+        var classGroup = cmd.ClassGroupId.HasValue
+            ? await _db.ClassGroups
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cg => cg.Id == cmd.ClassGroupId.Value && cg.SchoolID == schoolId, ct)
+            : null;
+
+        if (cmd.ClassGroupId.HasValue && classGroup == null)
+            return Result<StudentDetailDto>.Failure("Class group not found.", "CLASS_GROUP_NOT_FOUND");
 
         // 3. Duplicate check
         var key = $"{cmd.FullName.Trim().ToLowerInvariant()}|{cmd.DateOfBirth:yyyy-MM-dd}";
@@ -43,6 +64,11 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
         int age = cmd.DateOfBirth.HasValue
             ? DateTime.UtcNow.Year - cmd.DateOfBirth.Value.Year - (DateTime.UtcNow.DayOfYear < cmd.DateOfBirth.Value.DayOfYear ? 1 : 0)
             : 0;
+        var displayClass = classGroup?.ClassName ?? cmd.Grade?.Trim() ?? string.Empty;
+        if (!SchoolGradePolicy.IsClassAllowedForLevel(displayClass, schoolLevel, out var gradeError))
+            return Result<StudentDetailDto>.Failure(gradeError, "GRADE_NOT_ALLOWED");
+
+        var studentCode = await _studentCodeGenerator.GenerateAsync(schoolId, displayClass, ct: ct);
 
         // 6. Create ChildProfile
         var childId = Guid.NewGuid();
@@ -50,15 +76,16 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
         {
             Id = childId,
             SchoolID = schoolId,
+            ClassGroupID = classGroup?.Id,
             ParentUserID = null,
             FullName = cmd.FullName.Trim(),
             DOB = cmd.DateOfBirth.HasValue ? DateTime.SpecifyKind(cmd.DateOfBirth.Value, DateTimeKind.Utc) : null,
             Age = age,
-            Grade = cmd.Grade?.Trim() ?? string.Empty,
+            Grade = displayClass,
             Gender = genderEnum,
             Avatar = string.Empty,
-            HeightCm = cmd.HeightCm ?? 0,
-            WeightKg = cmd.WeightKg ?? 0,
+            HeightCm = 0,
+            WeightKg = 0,
             IsDeleted = false,
             ParentPhone = string.IsNullOrWhiteSpace(cmd.ParentPhone) ? null : cmd.ParentPhone.Trim(),
         };
@@ -69,9 +96,10 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
         {
             Id = Guid.NewGuid(),
             SchoolID = schoolId,
+            StudentCode = studentCode,
             FullName = child.FullName,
             DateOfBirth = child.DOB,
-            Class = string.IsNullOrWhiteSpace(cmd.Grade) ? null : cmd.Grade.Trim(),
+            Class = string.IsNullOrWhiteSpace(displayClass) ? null : displayClass,
             Gender = cmd.Gender,
             ParentPhone = cmd.ParentPhone,
             IsRegistered = false,
@@ -85,7 +113,11 @@ public class CreateStudentCommandHandler : ICreateStudentCommandHandler
         {
             Id = childId,
             FullName = child.FullName,
+            StudentCode = studentCode,
             Grade = child.Grade,
+            ClassGroupId = classGroup?.Id,
+            ClassName = classGroup?.ClassName,
+            AcademicYear = classGroup?.AcademicYear,
             Gender = child.Gender.ToString(),
             DateOfBirth = child.DOB,
             HeightCm = child.HeightCm,

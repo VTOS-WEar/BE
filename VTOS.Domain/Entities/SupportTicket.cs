@@ -11,9 +11,14 @@ namespace VTOS.Domain.Entities;
 public class SupportTicket : AuditableEntity
 {
     public Guid? OrderID { get; set; }
-    public Guid SchoolID { get; set; }
+    public Guid? SchoolID { get; set; }
     public Guid? ProviderID { get; set; }
     public Guid? SemesterPublicationID { get; set; }
+    public Guid? RequesterUserID { get; set; }
+    public string RequesterRole { get; set; } = string.Empty;
+    public string RequesterName { get; set; } = string.Empty;
+    public string RequesterEmail { get; set; } = string.Empty;
+    public string Category { get; set; } = "General";
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public SupportTicketStatus Status { get; set; } = SupportTicketStatus.Open;
@@ -24,7 +29,8 @@ public class SupportTicket : AuditableEntity
 
     // Navigation properties
     public Order? Order { get; set; }
-    public School School { get; set; } = null!;
+    public School? School { get; set; }
     public Provider? Provider { get; set; }
     public SemesterPublication? SemesterPublication { get; set; }
+    public User? RequesterUser { get; set; }
 }

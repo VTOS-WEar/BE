@@ -46,6 +46,17 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         if (command.MainImageURL != null && command.MainImageURL.Length > 500)
             return Result<OutfitDto>.Failure("Image URL cannot exceed 500 characters.", "IMAGE_URL_TOO_LONG");
 
+        Category? category = null;
+        if (command.CategoryId.HasValue)
+        {
+            category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == command.CategoryId.Value, ct);
+
+            if (category == null)
+                return Result<OutfitDto>.Failure("Category not found.", "CATEGORY_NOT_FOUND");
+        }
+
         var outfit = new Outfit
         {
             Id = Guid.NewGuid(),
@@ -63,12 +74,21 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         };
 
         _db.Outfits.Add(outfit);
+        if (category != null)
+        {
+            _db.OutfitCategories.Add(new OutfitCategory
+            {
+                OutfitID = outfit.Id,
+                CategoryID = category.Id
+            });
+        }
+
         await _db.SaveChangesAsync(ct);
 
-        return Result<OutfitDto>.Success(MapToDto(outfit));
+        return Result<OutfitDto>.Success(MapToDto(outfit, category));
     }
 
-    private static OutfitDto MapToDto(Outfit outfit) => new()
+    private static OutfitDto MapToDto(Outfit outfit, Category? category) => new()
     {
         OutfitId = outfit.Id,
         OutfitName = outfit.OutfitName,
@@ -76,6 +96,8 @@ public class CreateOutfitCommandHandler : ICreateOutfitCommandHandler
         MaterialType = outfit.MaterialType,
         Price = outfit.Price,
         OutfitType = outfit.OutfitType,
+        CategoryId = category?.Id,
+        CategoryName = category?.CategoryName,
         MainImageURL = outfit.MainImageURL,
         SizeChartID = outfit.SizeChartID,
         IsAvailable = outfit.IsAvailable,

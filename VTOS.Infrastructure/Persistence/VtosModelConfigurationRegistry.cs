@@ -49,6 +49,7 @@ internal static class VtosModelConfigurationRegistry
         Apply(modelBuilder, new SizeChartDetailConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new SizeChartMeasurementConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new StudentDataImportConfiguration(), registeredConfigurations);
+        Apply(modelBuilder, new SupportTicketConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new TeacherReportConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new TryOnHistoryConfiguration(), registeredConfigurations);
         Apply(modelBuilder, new UserConfiguration(), registeredConfigurations);

@@ -45,31 +45,11 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
         if (order.OrderStatus != OrderStatus.Pending)
             return Result<PayOrderResponse>.Failure("Order is not in Pending status.", "INVALID_STATUS");
 
-        var schoolId = child.SchoolID;
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(
-            w => w.OwnerID == schoolId && w.OwnerType == WalletOwnerType.School && w.IsActive,
-            ct);
-
-        if (wallet == null)
-        {
-            wallet = new Domain.Entities.Wallet
-            {
-                Id = Guid.NewGuid(),
-                OwnerID = schoolId,
-                OwnerType = WalletOwnerType.School,
-                Balance = 0,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _db.Wallets.Add(wallet);
-        }
-
         var payment = new Domain.Entities.PaymentTransaction
         {
             Id = Guid.NewGuid(),
             OrderID = order.Id,
-            WalletID = wallet.Id,
+            WalletID = null,
             TransactionType = TransactionType.OrderPayment,
             GatewayType = PaymentGatewayType.Other,
             TransactionStatus = PaymentStatus.Completed,
@@ -81,8 +61,6 @@ public class PayOrderCommandHandler : IPayOrderCommandHandler
         };
         _db.PaymentTransactions.Add(payment);
 
-        wallet.Balance += order.TotalAmount;
-        wallet.UpdatedAt = DateTime.UtcNow;
         order.OrderStatus = OrderStatus.Paid;
 
         await _db.SaveChangesAsync(ct);

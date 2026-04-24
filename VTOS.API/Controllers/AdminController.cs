@@ -38,6 +38,8 @@ public class AdminController : ControllerBase
     private readonly IGetTotalQuantityPerItemQueryHandler _getTotalQuantityPerItemHandler;
     private readonly IGetTotalRevenueQueryHandler _getTotalRevenueHandler;
     private readonly IGetPaymentCompletionRateQueryHandler _getPaymentCompletionRateHandler;
+    private readonly IGetAdminSemesterPublicationsQueryHandler _getAdminSemesterPublicationsHandler;
+    private readonly IGetSemesterMonitorReportQueryHandler _getSemesterMonitorReportHandler;
 
     // Reports & Export (3.13.8-11)
     private readonly IViewReportQueryHandler _viewReportHandler;
@@ -86,6 +88,8 @@ public class AdminController : ControllerBase
         IGetTotalQuantityPerItemQueryHandler getTotalQuantityPerItemHandler,
         IGetTotalRevenueQueryHandler getTotalRevenueHandler,
         IGetPaymentCompletionRateQueryHandler getPaymentCompletionRateHandler,
+        IGetAdminSemesterPublicationsQueryHandler getAdminSemesterPublicationsHandler,
+        IGetSemesterMonitorReportQueryHandler getSemesterMonitorReportHandler,
         IViewReportQueryHandler viewReportHandler,
         IExportReportCommandHandler exportReportHandler,
         IGenerateSystemReportCommandHandler generateSystemReportHandler,
@@ -124,6 +128,8 @@ public class AdminController : ControllerBase
         _getTotalQuantityPerItemHandler = getTotalQuantityPerItemHandler;
         _getTotalRevenueHandler = getTotalRevenueHandler;
         _getPaymentCompletionRateHandler = getPaymentCompletionRateHandler;
+        _getAdminSemesterPublicationsHandler = getAdminSemesterPublicationsHandler;
+        _getSemesterMonitorReportHandler = getSemesterMonitorReportHandler;
 
         _viewReportHandler = viewReportHandler;
         _exportReportHandler = exportReportHandler;
@@ -393,6 +399,36 @@ public class AdminController : ControllerBase
         var result = await _getPaymentCompletionRateHandler.HandleAsync(
             new GetPaymentCompletionRateQuery(dateFrom, dateTo), ct);
         return Ok(result);
+    }
+
+    [HttpGet("semester-publications")]
+    public async Task<IActionResult> GetAdminSemesterPublications(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getAdminSemesterPublicationsHandler.HandleAsync(
+            new GetAdminSemesterPublicationsQuery(page, pageSize, status), ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("reports/semester-monitor")]
+    public async Task<IActionResult> GetSemesterMonitorReport(
+        [FromQuery] Guid semesterPublicationId,
+        CancellationToken ct = default)
+    {
+        var result = await _getSemesterMonitorReportHandler.HandleAsync(
+            new GetSemesterMonitorReportQuery(semesterPublicationId), ct);
+
+        if (!result.IsSuccess)
+            return NotFound(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
     }
 
     // ✅ 3.13.8 View Report

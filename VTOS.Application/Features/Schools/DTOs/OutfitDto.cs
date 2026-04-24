@@ -13,6 +13,8 @@ public class OutfitDto
     public string? MaterialType { get; set; }
     public decimal Price { get; set; }
     public OutfitType OutfitType { get; set; }
+    public Guid? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
     public string? MainImageURL { get; set; }
     public Guid? SizeChartID { get; set; }
     public bool IsAvailable { get; set; }

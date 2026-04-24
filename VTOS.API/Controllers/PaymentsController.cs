@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Payments.Commands;
 using VTOS.Application.Features.Payments.Queries;
+using VTOS.Application.Features.Users.Commands;
 
 namespace VTOS.API.Controllers;
 
@@ -23,6 +24,9 @@ public class PaymentsController : ControllerBase
     private readonly IGetProviderPaymentHistoryQueryHandler _getProviderPaymentsHandler;
     private readonly IGetProviderWalletQueryHandler _getProviderWalletHandler;
     private readonly IGetProviderWalletTransactionsQueryHandler _getProviderWalletTransactionsHandler;
+    private readonly IGetParentWalletQueryHandler _getParentWalletHandler;
+    private readonly IGetParentWalletTransactionsQueryHandler _getParentWalletTransactionsHandler;
+    private readonly ICreateParentWithdrawalRequestCommandHandler _createParentWithdrawalHandler;
     private readonly IUpdateWalletBankInfoCommandHandler _updateBankInfoHandler;
 
     public PaymentsController(
@@ -34,6 +38,9 @@ public class PaymentsController : ControllerBase
         IGetProviderPaymentHistoryQueryHandler getProviderPaymentsHandler,
         IGetProviderWalletQueryHandler getProviderWalletHandler,
         IGetProviderWalletTransactionsQueryHandler getProviderWalletTransactionsHandler,
+        IGetParentWalletQueryHandler getParentWalletHandler,
+        IGetParentWalletTransactionsQueryHandler getParentWalletTransactionsHandler,
+        ICreateParentWithdrawalRequestCommandHandler createParentWithdrawalHandler,
         IUpdateWalletBankInfoCommandHandler updateBankInfoHandler)
     {
         _currentUser = currentUser;
@@ -44,6 +51,9 @@ public class PaymentsController : ControllerBase
         _getProviderPaymentsHandler = getProviderPaymentsHandler;
         _getProviderWalletHandler = getProviderWalletHandler;
         _getProviderWalletTransactionsHandler = getProviderWalletTransactionsHandler;
+        _getParentWalletHandler = getParentWalletHandler;
+        _getParentWalletTransactionsHandler = getParentWalletTransactionsHandler;
+        _createParentWithdrawalHandler = createParentWithdrawalHandler;
         _updateBankInfoHandler = updateBankInfoHandler;
     }
 
@@ -73,6 +83,42 @@ public class PaymentsController : ControllerBase
     {
         var result = await _getParentPaymentsHandler.HandleAsync(
             new GetParentPaymentHistoryQuery(_currentUser.UserId, page, pageSize, startDate, endDate, status), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get parent wallet info for refunds and withdrawals.</summary>
+    [HttpGet("parent/wallet")]
+    [Authorize(Roles = "Parent")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetParentWallet(CancellationToken ct)
+    {
+        var result = await _getParentWalletHandler.HandleAsync(new GetParentWalletQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get parent wallet transaction history.</summary>
+    [HttpGet("parent/wallet/transactions")]
+    [Authorize(Roles = "Parent")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetParentWalletTransactions([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    {
+        var result = await _getParentWalletTransactionsHandler.HandleAsync(
+            new GetParentWalletTransactionsQuery(_currentUser.UserId, page, pageSize), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Create a parent wallet withdrawal request.</summary>
+    [HttpPost("parent/wallet/withdrawals")]
+    [Authorize(Roles = "Parent")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateParentWithdrawalRequest([FromBody] CreateParentWithdrawalRequest request, CancellationToken ct)
+    {
+        var result = await _createParentWithdrawalHandler.HandleAsync(
+            new CreateParentWithdrawalRequestCommand(_currentUser.UserId, request.Amount), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -150,3 +196,4 @@ public class PaymentsController : ControllerBase
 
 /// <summary>Request body for updating wallet bank info.</summary>
 public record UpdateBankInfoRequest(string BankCode, string BankName, string AccountNumber, string AccountName);
+public record CreateParentWithdrawalRequest(decimal Amount);

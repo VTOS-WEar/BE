@@ -34,6 +34,7 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
             return Result<OutfitDto>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
 
         var outfit = await _db.Outfits
+            .Include(o => o.OutfitCategories)
             .FirstOrDefaultAsync(o => o.Id == command.OutfitId && !o.IsDeleted, ct);
 
         if (outfit == null)
@@ -52,12 +53,34 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
             return Result<OutfitDto>.Failure("Material type cannot exceed 100 characters.", "MATERIAL_TOO_LONG");
         if (command.MainImageURL != null && command.MainImageURL.Length > 500)
             return Result<OutfitDto>.Failure("Image URL cannot exceed 500 characters.", "IMAGE_URL_TOO_LONG");
+        Category? category = null;
+        if (command.CategoryId.HasValue)
+        {
+            category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == command.CategoryId.Value, ct);
+
+            if (category == null)
+                return Result<OutfitDto>.Failure("Category not found.", "CATEGORY_NOT_FOUND");
+        }
 
         // Partial update — only apply non-null fields
         if (command.OutfitName != null) outfit.OutfitName = command.OutfitName.Trim();
         if (command.Description != null) outfit.Description = string.IsNullOrWhiteSpace(command.Description) ? null : command.Description.Trim();
         if (command.MaterialType != null) outfit.MaterialType = string.IsNullOrWhiteSpace(command.MaterialType) ? null : command.MaterialType.Trim();
         if (command.OutfitType.HasValue) outfit.OutfitType = command.OutfitType.Value;
+        if (category != null)
+        {
+            var existingLinks = outfit.OutfitCategories.ToList();
+            foreach (var link in existingLinks)
+                _db.OutfitCategories.Remove(link);
+
+            _db.OutfitCategories.Add(new OutfitCategory
+            {
+                OutfitID = outfit.Id,
+                CategoryID = category.Id
+            });
+        }
         if (command.MainImageURL != null) outfit.MainImageURL = string.IsNullOrWhiteSpace(command.MainImageURL) ? null : command.MainImageURL.Trim();
         if (command.SizeChartID.HasValue) outfit.SizeChartID = command.SizeChartID.Value;
         if (command.IsAvailable.HasValue) outfit.IsAvailable = command.IsAvailable.Value;
@@ -75,6 +98,8 @@ public class UpdateOutfitCommandHandler : IUpdateOutfitCommandHandler
             MaterialType = outfit.MaterialType,
             Price = outfit.Price,
             OutfitType = outfit.OutfitType,
+            CategoryId = category?.Id ?? outfit.OutfitCategories.FirstOrDefault()?.CategoryID,
+            CategoryName = category?.CategoryName,
             MainImageURL = outfit.MainImageURL,
             SizeChartID = outfit.SizeChartID,
             IsAvailable = outfit.IsAvailable,

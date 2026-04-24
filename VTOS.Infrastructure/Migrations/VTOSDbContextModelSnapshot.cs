@@ -2095,6 +2095,11 @@ namespace VTOS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -2103,7 +2108,8 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<Guid?>("OrderID")
                         .HasColumnType("uuid");
@@ -2114,6 +2120,24 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<Guid?>("ProviderID")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("RequesterEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("RequesterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RequesterRole")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("RequesterUserID")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -2121,9 +2145,10 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Response")
-                        .HasColumnType("text");
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
-                    b.Property<Guid>("SchoolID")
+                    b.Property<Guid?>("SchoolID")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("SemesterPublicationID")
@@ -2134,7 +2159,8 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -2151,6 +2177,10 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasIndex("SchoolID");
 
                     b.HasIndex("SemesterPublicationID");
+
+                    b.HasIndex("RequesterUserID", "CreatedAt");
+
+                    b.HasIndex("Status", "CreatedAt");
 
                     b.ToTable("Complaints", (string)null);
                 });
@@ -2892,7 +2922,7 @@ namespace VTOS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
-                        .WithMany("ProviderRatings")
+                        .WithMany()
                         .HasForeignKey("ProviderID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -3043,25 +3073,34 @@ namespace VTOS.Infrastructure.Migrations
                 {
                     b.HasOne("VTOS.Domain.Entities.Order", "Order")
                         .WithMany()
-                        .HasForeignKey("OrderID");
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("VTOS.Domain.Entities.Provider", "Provider")
                         .WithMany()
-                        .HasForeignKey("ProviderID");
+                        .HasForeignKey("ProviderID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("VTOS.Domain.Entities.User", "RequesterUser")
+                        .WithMany()
+                        .HasForeignKey("RequesterUserID")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("VTOS.Domain.Entities.School", "School")
                         .WithMany()
                         .HasForeignKey("SchoolID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("VTOS.Domain.Entities.SemesterPublication", "SemesterPublication")
                         .WithMany()
-                        .HasForeignKey("SemesterPublicationID");
+                        .HasForeignKey("SemesterPublicationID")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Order");
 
                     b.Navigation("Provider");
+
+                    b.Navigation("RequesterUser");
 
                     b.Navigation("School");
 
@@ -3225,8 +3264,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Orders");
 
                     b.Navigation("ProviderCatalogItems");
-
-                    b.Navigation("ProviderRatings");
 
                     b.Navigation("SemesterPublicationProviders");
                 });

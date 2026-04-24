@@ -39,7 +39,7 @@ public class RejectWithdrawalCommandHandler : IRejectWithdrawalCommandHandler
 
         withdrawal.Status = "Rejected";
         withdrawal.AdminNote = command.AdminNote;
-        withdrawal.ApprovedAt = DateTime.UtcNow; // reuse as "processed at"
+        withdrawal.ApprovedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
 
@@ -47,25 +47,39 @@ public class RejectWithdrawalCommandHandler : IRejectWithdrawalCommandHandler
             "Withdrawal request rejected: WithdrawalId={WithdrawalId}, AdminNote={AdminNote}",
             withdrawal.Id, command.AdminNote);
 
-        // Notify wallet owner (School or Provider)
         try
         {
             var wallet = withdrawal.Wallet;
-            var reason = string.IsNullOrEmpty(command.AdminNote) ? "" : $" Lý do: {command.AdminNote}";
-            if (wallet.OwnerType == WalletOwnerType.School)
-                await _notificationService.NotifySchoolAsync(wallet.OwnerID,
-                    "❌ Rút tiền bị từ chối",
-                    $"Yêu cầu rút {withdrawal.Amount:N0}đ bị từ chối.{reason}",
-                    "Withdrawal", withdrawal.Id, "WithdrawalRequest",
-                    "/school/dashboard", ct);
-            else
-                await _notificationService.NotifyProviderAsync(wallet.OwnerID,
-                    "❌ Rút tiền bị từ chối",
-                    $"Yêu cầu rút {withdrawal.Amount:N0}đ bị từ chối.{reason}",
-                    "Withdrawal", withdrawal.Id, "WithdrawalRequest",
-                    "/provider/wallet", ct);
+            var reason = string.IsNullOrEmpty(command.AdminNote) ? "" : $" Reason: {command.AdminNote}";
+            if (wallet.OwnerType == WalletOwnerType.Provider)
+            {
+                await _notificationService.NotifyProviderAsync(
+                    wallet.OwnerID,
+                    "Withdrawal rejected",
+                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been rejected.{reason}",
+                    "Withdrawal",
+                    withdrawal.Id,
+                    "WithdrawalRequest",
+                    "/provider/wallet",
+                    ct);
+            }
+            else if (wallet.OwnerType == WalletOwnerType.Parent)
+            {
+                await _notificationService.CreateAsync(
+                    wallet.OwnerID,
+                    "Withdrawal rejected",
+                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been rejected.{reason}",
+                    "Withdrawal",
+                    withdrawal.Id,
+                    "WithdrawalRequest",
+                    "/parentprofile/wallet",
+                    ct);
+            }
         }
-        catch { /* Don't fail */ }
+        catch
+        {
+            // Notification failure should not block rejection.
+        }
 
         return Result<WithdrawalRequestResponse>.Success(new WithdrawalRequestResponse
         {

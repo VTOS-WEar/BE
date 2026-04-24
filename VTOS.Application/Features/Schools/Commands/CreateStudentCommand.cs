@@ -11,23 +11,22 @@ public class CreateStudentCommand
     public Guid UserId { get; }
     public string FullName { get; }
     public DateTime? DateOfBirth { get; }
+    public Guid? ClassGroupId { get; }
     public string? Grade { get; }
     public string? Gender { get; }
     public string? ParentPhone { get; }
-    public int? HeightCm { get; }
-    public float? WeightKg { get; }
 
     public CreateStudentCommand(Guid userId, string fullName, DateTime? dateOfBirth,
-        string? grade, string? gender, string? parentPhone, int? heightCm, float? weightKg)
+        Guid? classGroupId,
+        string? grade, string? gender, string? parentPhone)
     {
         UserId = userId;
         FullName = fullName;
         DateOfBirth = dateOfBirth;
+        ClassGroupId = classGroupId;
         Grade = grade;
         Gender = gender;
         ParentPhone = parentPhone;
-        HeightCm = heightCm;
-        WeightKg = weightKg;
     }
 }
 

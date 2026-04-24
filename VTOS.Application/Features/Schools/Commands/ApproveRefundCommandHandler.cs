@@ -11,16 +11,13 @@ namespace VTOS.Application.Features.Schools.Commands;
 public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
 {
     private readonly IApplicationDbContext _db;
-    private readonly IPayOSService _payOSService;
     private readonly ILogger<ApproveRefundCommandHandler> _logger;
 
     public ApproveRefundCommandHandler(
         IApplicationDbContext db,
-        IPayOSService payOSService,
         ILogger<ApproveRefundCommandHandler> logger)
     {
         _db = db;
-        _payOSService = payOSService;
         _logger = logger;
     }
 
@@ -69,67 +66,64 @@ public class ApproveRefundCommandHandler : IApproveRefundCommandHandler
             if (childProfile.SchoolID != schoolId)
                 return Result<RefundResponse>.Failure("This refund does not belong to your school.", "UNAUTHORIZED_REFUND_ACCESS");
 
-            // Step 4: Load school wallet and check balance
-            var wallet = await _db.Set<Wallet>()
-                .FirstOrDefaultAsync(w => w.OwnerID == schoolId && w.OwnerType == WalletOwnerType.School && w.IsActive, ct);
-
-            if (wallet == null)
-                return Result<RefundResponse>.Failure("School wallet not found or inactive.", "WALLET_NOT_FOUND");
-
-            if (wallet.Balance < refund.RefundAmount)
-                return Result<RefundResponse>.Failure("Insufficient school wallet balance for refund.", "INSUFFICIENT_BALANCE");
-
-            // Step 5: Get parent's default bank account for payout
+            // Step 4: Resolve the parent wallet that will receive refund credit.
             var parentId = childProfile.ParentUserID;
-            var parentBank = await _db.ParentBankAccounts
-                .FirstOrDefaultAsync(b => b.ParentUserID == parentId && b.IsDefault, ct);
+            if (!parentId.HasValue)
+                return Result<RefundResponse>.Failure("Order is not linked to a parent account.", "PARENT_NOT_FOUND");
 
-            if (parentBank == null)
-                return Result<RefundResponse>.Failure("Parent does not have a default bank account configured.", "PARENT_BANK_NOT_FOUND");
+            var parentWallet = await _db.Set<Wallet>()
+                .FirstOrDefaultAsync(w => w.OwnerID == parentId.Value && w.OwnerType == WalletOwnerType.Parent && w.IsActive, ct);
 
-            if (string.IsNullOrWhiteSpace(parentBank.BankCode))
-                return Result<RefundResponse>.Failure("Parent bank account is missing bank code.", "PARENT_BANK_CODE_MISSING");
-
-            // Step 6: Call PayOS to perform actual payout to parent's bank account
-            var payoutRequest = new CreatePayoutRequest
+            if (parentWallet == null)
             {
-                ReferenceId = $"REFUND-{refund.Id}",
-                Amount = (long)refund.RefundAmount,
-                Description = $"Refund for order {order.Id.ToString().Substring(0,5)}",
-                ToBin = parentBank.BankCode,
-                ToAccountNumber = parentBank.AccountNumber,
-                Category = new List<string>() { "REFUND"}
+                parentWallet = new Wallet
+                {
+                    Id = Guid.NewGuid(),
+                    OwnerID = parentId.Value,
+                    OwnerType = WalletOwnerType.Parent,
+                    Balance = 0,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _db.Set<Wallet>().Add(parentWallet);
+            }
+
+            // Step 5: Credit parent wallet from system escrow.
+            parentWallet.Balance += refund.RefundAmount;
+            parentWallet.UpdatedAt = DateTime.UtcNow;
+
+            var parentRefundTransaction = new PaymentTransaction
+            {
+                Id = Guid.NewGuid(),
+                OrderID = order.Id,
+                WalletID = parentWallet.Id,
+                TransactionType = TransactionType.Refund,
+                GatewayType = PaymentGatewayType.Other,
+                TransactionStatus = PaymentStatus.Completed,
+                EscrowStatus = EscrowStatus.Refunded,
+                Amount = refund.RefundAmount,
+                TransactionTimestamp = DateTime.UtcNow,
+                Description = $"Refund credited for order {order.Id.ToString()[..5]}"
             };
+            _db.PaymentTransactions.Add(parentRefundTransaction);
 
-            var payoutResult = await _payOSService.CreatePayoutAsync(payoutRequest, ct);
-
-            if (payoutResult == null || string.IsNullOrEmpty(payoutResult.Id))
-                return Result<RefundResponse>.Failure("Payout to parent bank account failed.", "PAYOUT_FAILED");
-
-            _logger.LogInformation(
-                "PayOS payout created: PayoutId={PayoutId}, RefundId={RefundId}, Amount={Amount}",
-                payoutResult.Id, refund.Id, refund.RefundAmount);
-
-            // Step 7: Deduct school wallet balance
-            wallet.Balance -= refund.RefundAmount;
-            wallet.UpdatedAt = DateTime.UtcNow;
-
-            // Step 8: Update refund status to Completed
+            // Step 6: Update refund status to Completed
             refund.RefundStatus = RefundStatus.Completed;
             refund.UpdatedAt = DateTime.UtcNow;
             refund.PaymentTransaction.EscrowStatus = EscrowStatus.Refunded;
             refund.PaymentTransaction.UpdatedAt = DateTime.UtcNow;
 
-            // Step 9: Update order status to Refunded
+            // Step 7: Update order status to Refunded
             order.OrderStatus = OrderStatus.Refunded;
             order.UpdatedAt = DateTime.UtcNow;
 
-            // Step 10: Save all changes
+            // Step 8: Save all changes
             await _db.SaveChangesAsync(ct);
 
             _logger.LogInformation(
-                "Refund approved: RefundId={RefundId}, Amount={Amount}, Wallet={WalletId}, PayoutId={PayoutId}, PayoutTo={BankAccount}",
-                refund.Id, refund.RefundAmount, wallet.Id, payoutResult.Id, parentBank.AccountNumber);
+                "Refund approved and credited to parent wallet: RefundId={RefundId}, Amount={Amount}, ParentWallet={ParentWalletId}",
+                refund.Id, refund.RefundAmount, parentWallet.Id);
 
             return Result<RefundResponse>.Success(new RefundResponse
             {

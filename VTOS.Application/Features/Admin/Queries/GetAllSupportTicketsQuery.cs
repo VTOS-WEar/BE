@@ -12,8 +12,12 @@ public record AdminSupportTicketDto
     public Guid Id { get; init; }
     public string Title { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
+    public string Category { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
-    public string SchoolName { get; init; } = string.Empty;
+    public string RequesterRole { get; init; } = string.Empty;
+    public string RequesterName { get; init; } = string.Empty;
+    public string RequesterEmail { get; init; } = string.Empty;
+    public string? SchoolName { get; init; }
     public string? ProviderName { get; init; }
     public Guid? OrderId { get; init; }
     public Guid? SemesterPublicationId { get; init; }
@@ -85,8 +89,12 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
                 Id = c.Id,
                 Title = c.Title,
                 Description = c.Description,
+                Category = c.Category,
                 Status = c.Status.ToString(),
-                SchoolName = c.School.SchoolName,
+                RequesterRole = c.RequesterRole,
+                RequesterName = c.RequesterName,
+                RequesterEmail = c.RequesterEmail,
+                SchoolName = c.School != null ? c.School.SchoolName : null,
                 ProviderName = c.Provider != null ? c.Provider.ProviderName : null,
                 OrderId = c.OrderID,
                 SemesterPublicationId = c.SemesterPublicationID,

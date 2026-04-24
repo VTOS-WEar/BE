@@ -6,18 +6,12 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Admin.Commands;
 
-// ── Command ──
-
 public record AdminInterventionCommand(Guid ComplaintId, string Note, string? Action);
-
-// ── Interface ──
 
 public interface IAdminInterventionCommandHandler
 {
     Task<Result<string>> HandleAsync(AdminInterventionCommand command, CancellationToken ct = default);
 }
-
-// ── Handler ──
 
 public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
 {
@@ -38,15 +32,17 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
         if (ticket == null)
             return Result<string>.Failure("SupportTicket not found.", "NOT_FOUND");
 
-        // Admin can add note (append to response), change status
-        var adminNote = $"[Admin - {DateTime.UtcNow:dd/MM/yyyy HH:mm}] {command.Note}";
+        if (string.IsNullOrWhiteSpace(command.Note))
+            return Result<string>.Failure("Admin note is required.", "NOTE_REQUIRED");
+
+        var adminNote = $"[Admin - {DateTime.UtcNow:dd/MM/yyyy HH:mm}] {command.Note.Trim()}";
         ticket.Response = string.IsNullOrEmpty(ticket.Response)
             ? adminNote
             : ticket.Response + "\n\n" + adminNote;
 
         if (!string.IsNullOrEmpty(command.Action))
         {
-            switch (command.Action.ToLower())
+            switch (command.Action.ToLowerInvariant())
             {
                 case "escalate":
                     ticket.Status = SupportTicketStatus.InProgress;
@@ -65,31 +61,71 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
         ticket.RespondedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
 
-        // Notify both school and provider about admin intervention
         try
         {
-            var statusLabel = command.Action?.ToLower() switch
+            var statusLabel = command.Action?.ToLowerInvariant() switch
             {
-                "resolve" => "Giải quyết",
-                "close" => "Đóng",
-                "escalate" => "Chuyển tiếp",
-                _ => "Ghi chú"
+                "resolve" => "giai quyet",
+                "close" => "dong",
+                "escalate" => "chuyen tiep",
+                _ => "ghi chu"
             };
-            if (ticket.SchoolID != Guid.Empty)
-                await _notificationService.NotifySchoolAsync(ticket.SchoolID,
-                    "👨‍⚖️ Admin can thiệp khiếu nại",
-                    $"Admin {statusLabel} khiếu nại: {ticket.Title}",
-                    "SupportTicket", ticket.Id, "SupportTicket",
-                    "/school/complaints", ct);
-            if (ticket.ProviderID.HasValue)
-                await _notificationService.NotifyProviderAsync(ticket.ProviderID.Value,
-                    "👨‍⚖️ Admin can thiệp khiếu nại",
-                    $"Admin {statusLabel} khiếu nại: {ticket.Title}",
-                    "SupportTicket", ticket.Id, "SupportTicket",
-                    "/provider/complaints", ct);
+
+            if (ticket.RequesterUserID.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    ticket.RequesterUserID.Value,
+                    "Admin da cap nhat yeu cau ho tro",
+                    $"Admin da {statusLabel} yeu cau ho tro: {ticket.Title}",
+                    "SupportTicket",
+                    ticket.Id,
+                    "SupportTicket",
+                    ResolveRequesterSupportUrl(ticket.RequesterRole),
+                    ct);
+            }
+            else if (ticket.SchoolID.HasValue)
+            {
+                await _notificationService.NotifySchoolAsync(
+                    ticket.SchoolID.Value,
+                    "Admin can thiep khieu nai",
+                    $"Admin da {statusLabel} khieu nai: {ticket.Title}",
+                    "SupportTicket",
+                    ticket.Id,
+                    "SupportTicket",
+                    "/school/complaints",
+                    ct);
+            }
+
+            if (!ticket.RequesterUserID.HasValue && ticket.ProviderID.HasValue)
+            {
+                await _notificationService.NotifyProviderAsync(
+                    ticket.ProviderID.Value,
+                    "Admin can thiep khieu nai",
+                    $"Admin da {statusLabel} khieu nai: {ticket.Title}",
+                    "SupportTicket",
+                    ticket.Id,
+                    "SupportTicket",
+                    "/provider/complaints",
+                    ct);
+            }
         }
-        catch { /* Don't fail */ }
+        catch
+        {
+            // Admin handling should not fail because notification delivery failed.
+        }
 
         return Result<string>.Success($"Intervention added. Status: {ticket.Status}");
+    }
+
+    private static string ResolveRequesterSupportUrl(string? requesterRole)
+    {
+        return requesterRole?.ToLowerInvariant() switch
+        {
+            "parent" => "/parentprofile/support",
+            "provider" => "/provider/support",
+            "school" => "/school/support",
+            "homeroomteacher" => "/teacher/support",
+            _ => "/"
+        };
     }
 }

@@ -74,6 +74,5 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
         VtosModelConfigurationRegistry.Apply(modelBuilder);
 
         // Q4: SupportTicket was renamed from Complaint — keep old table name to avoid migration rename
-        modelBuilder.Entity<SupportTicket>().ToTable("Complaints");
     }
 }
