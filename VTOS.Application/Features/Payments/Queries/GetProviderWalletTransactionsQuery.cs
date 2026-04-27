@@ -41,18 +41,43 @@ public class GetProviderWalletTransactionsQueryHandler : IGetProviderWalletTrans
             .OrderByDescending(pt => pt.TransactionTimestamp);
 
         var total = await q.CountAsync(ct);
-        var items = await q
+        var transactions = await q
+            .Include(pt => pt.Order)
+                .ThenInclude(o => o!.ChildProfile)
+                    .ThenInclude(cp => cp.ParentUser)
+            .Include(pt => pt.Order)
+                .ThenInclude(o => o!.OrderItems)
+                    .ThenInclude(oi => oi.ProductVariant)
+                        .ThenInclude(pv => pv.Outfit)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
+            .ToListAsync(ct);
+
+        var items = transactions
             .Select(pt => new WalletTransactionDto(
                 pt.Id,
                 pt.TransactionType.ToString(),
                 pt.Amount,
                 pt.TransactionStatus.ToString(),
                 pt.Description,
-                pt.TransactionTimestamp
+                pt.TransactionTimestamp,
+                pt.OrderID,
+                pt.Order?.ChildProfile.ParentUser?.FullName,
+                pt.Order?.ChildProfile.FullName,
+                pt.Order?.OrderStatus.ToString(),
+                pt.Order?.OrderItems
+                    .Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL)
+                    .FirstOrDefault(),
+                pt.Order?.OrderItems
+                    .Select(oi => oi.ProductVariant.Outfit.OutfitName)
+                    .FirstOrDefault(),
+                pt.Order?.OrderItems.Count,
+                pt.Order?.OrderItems.Sum(oi => oi.Quantity),
+                pt.Order != null
+                    ? string.Join(", ", pt.Order.OrderItems.Select(oi => oi.SizeOrdered).Distinct())
+                    : null
             ))
-            .ToListAsync(ct);
+            .ToList();
 
         return Result<WalletTransactionsResponse>.Success(new WalletTransactionsResponse(items, total));
     }

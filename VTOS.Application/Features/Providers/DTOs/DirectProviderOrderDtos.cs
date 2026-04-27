@@ -59,4 +59,13 @@ public class ProviderOrderStatsDto
     public int CompletedShipmentOrders { get; set; }
     public decimal TotalRevenue { get; set; }
     public Dictionary<string, int> StatusCounts { get; set; } = new();
+    public List<ProviderOrderMonthlyMetricDto> MonthlyMetrics { get; set; } = new();
+}
+
+public class ProviderOrderMonthlyMetricDto
+{
+    public string Month { get; set; } = string.Empty;
+    public int Orders { get; set; }
+    public decimal Revenue { get; set; }
+    public decimal CompletedRevenue { get; set; }
 }

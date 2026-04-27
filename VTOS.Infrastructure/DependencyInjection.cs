@@ -382,6 +382,8 @@ public static class DependencyInjection
         // Provider Module - Withdrawal Request
         services.AddScoped<VTOS.Application.Features.Providers.Commands.ICreateProviderWithdrawalRequestCommandHandler,
             VTOS.Application.Features.Providers.Commands.CreateProviderWithdrawalRequestCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderWithdrawalRequestsQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderWithdrawalRequestsQueryHandler>();
 
         // Provider Module - Profile
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderProfileQueryHandler,

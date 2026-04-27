@@ -6,7 +6,14 @@ using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Providers.Queries;
 
-public record GetProviderIncomingOrdersQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
+public record GetProviderIncomingOrdersQuery(
+    Guid UserId,
+    int Page = 1,
+    int PageSize = 10,
+    string? Status = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
+    string? Search = null);
 
 public interface IGetProviderIncomingOrdersQueryHandler
 {
@@ -52,8 +59,42 @@ public class GetProviderIncomingOrdersQueryHandler : IGetProviderIncomingOrdersQ
             .Include(o => o.OrderItems)
             .Where(o => o.ProviderID == providerId.Value && o.SemesterPublicationID != null);
 
-        if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<OrderStatus>(query.Status, true, out var parsedStatus))
-            ordersQuery = ordersQuery.Where(o => o.OrderStatus == parsedStatus);
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var parsedStatuses = query.Status
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(status => Enum.TryParse<OrderStatus>(status, true, out var parsedStatus)
+                    ? (OrderStatus?)parsedStatus
+                    : null)
+                .Where(status => status.HasValue)
+                .Select(status => status!.Value)
+                .ToHashSet();
+
+            if (parsedStatuses.Count > 0)
+                ordersQuery = ordersQuery.Where(o => parsedStatuses.Contains(o.OrderStatus));
+        }
+
+        if (query.FromDate.HasValue)
+        {
+            var fromDate = query.FromDate.Value.Date;
+            ordersQuery = ordersQuery.Where(o => o.OrderDate >= fromDate);
+        }
+
+        if (query.ToDate.HasValue)
+        {
+            var toDateExclusive = query.ToDate.Value.Date.AddDays(1);
+            ordersQuery = ordersQuery.Where(o => o.OrderDate < toDateExclusive);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            ordersQuery = ordersQuery.Where(o =>
+                o.Id.ToString().ToLower().Contains(search) ||
+                (o.TrackingCode != null && o.TrackingCode.ToLower().Contains(search)) ||
+                o.ChildProfile.FullName.ToLower().Contains(search) ||
+                (o.ChildProfile.ParentUser != null && o.ChildProfile.ParentUser.FullName.ToLower().Contains(search)));
+        }
 
         var totalCount = await ordersQuery.CountAsync(cancellationToken);
         var orders = await ordersQuery
@@ -178,6 +219,31 @@ public class GetProviderOrderStatsQueryHandler : IGetProviderOrderStatsQueryHand
             .Where(o => o.ProviderID == providerId.Value && o.SemesterPublicationID != null)
             .ToListAsync(cancellationToken);
 
+        var currentMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        var firstMonth = currentMonth.AddMonths(-11);
+        var monthlyMetrics = Enumerable.Range(0, 12)
+            .Select(offset =>
+            {
+                var monthStart = firstMonth.AddMonths(offset);
+                var monthEnd = monthStart.AddMonths(1);
+                var monthOrders = orders
+                    .Where(o => o.OrderDate >= monthStart && o.OrderDate < monthEnd)
+                    .ToList();
+
+                return new ProviderOrderMonthlyMetricDto
+                {
+                    Month = $"T{monthStart.Month}",
+                    Orders = monthOrders.Count,
+                    Revenue = monthOrders
+                        .Where(o => o.OrderStatus != OrderStatus.Cancelled && o.OrderStatus != OrderStatus.Refunded)
+                        .Sum(o => o.TotalAmount),
+                    CompletedRevenue = monthOrders
+                        .Where(o => o.OrderStatus == OrderStatus.Shipped || o.OrderStatus == OrderStatus.Delivered)
+                        .Sum(o => o.TotalAmount)
+                };
+            })
+            .ToList();
+
         return Result<ProviderOrderStatsDto>.Success(new ProviderOrderStatsDto
         {
             TotalOrders = orders.Count,
@@ -186,7 +252,8 @@ public class GetProviderOrderStatsQueryHandler : IGetProviderOrderStatsQueryHand
             InProgressOrders = orders.Count(o => o.OrderStatus == OrderStatus.Accepted || o.OrderStatus == OrderStatus.InProduction || o.OrderStatus == OrderStatus.ReadyToShip),
             CompletedShipmentOrders = orders.Count(o => o.OrderStatus == OrderStatus.Shipped || o.OrderStatus == OrderStatus.Delivered),
             TotalRevenue = orders.Where(o => o.OrderStatus != OrderStatus.Cancelled && o.OrderStatus != OrderStatus.Refunded).Sum(o => o.TotalAmount),
-            StatusCounts = orders.GroupBy(o => o.OrderStatus.ToString()).ToDictionary(g => g.Key, g => g.Count())
+            StatusCounts = orders.GroupBy(o => o.OrderStatus.ToString()).ToDictionary(g => g.Key, g => g.Count()),
+            MonthlyMetrics = monthlyMetrics
         });
     }
 }
