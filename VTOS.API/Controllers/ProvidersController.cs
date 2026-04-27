@@ -37,6 +37,7 @@ public class ProvidersController : ControllerBase
     private readonly IRespondSupportTicketCommandHandler _respondComplaintHandler;
     // Withdrawal
     private readonly ICreateProviderWithdrawalRequestCommandHandler _createWithdrawalHandler;
+    private readonly IGetProviderWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
     private readonly IGetProviderIncomingOrdersQueryHandler _getProviderIncomingOrdersHandler;
     private readonly IGetProviderDirectOrderDetailQueryHandler _getProviderDirectOrderDetailHandler;
     private readonly IAcceptDirectOrderCommandHandler _acceptDirectOrderHandler;
@@ -61,6 +62,7 @@ public class ProvidersController : ControllerBase
         IGetProviderSupportTicketDetailQueryHandler getProviderComplaintDetailHandler,
         IRespondSupportTicketCommandHandler respondComplaintHandler,
         ICreateProviderWithdrawalRequestCommandHandler createWithdrawalHandler,
+        IGetProviderWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler,
         IGetProviderIncomingOrdersQueryHandler getProviderIncomingOrdersHandler,
         IGetProviderDirectOrderDetailQueryHandler getProviderDirectOrderDetailHandler,
         IAcceptDirectOrderCommandHandler acceptDirectOrderHandler,
@@ -83,6 +85,7 @@ public class ProvidersController : ControllerBase
         _getProviderComplaintDetailHandler = getProviderComplaintDetailHandler;
         _respondComplaintHandler = respondComplaintHandler;
         _createWithdrawalHandler = createWithdrawalHandler;
+        _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
         _getProviderIncomingOrdersHandler = getProviderIncomingOrdersHandler;
         _getProviderDirectOrderDetailHandler = getProviderDirectOrderDetailHandler;
         _acceptDirectOrderHandler = acceptDirectOrderHandler;
@@ -280,16 +283,36 @@ public class ProvidersController : ControllerBase
         return Ok(result.Value);
     }
 
+    /// <summary>List withdrawal requests for the current provider wallet.</summary>
+    [HttpGet("me/wallet/withdrawals")]
+    [ProducesResponseType(typeof(ProviderWithdrawalRequestsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetWithdrawalRequests(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _getWithdrawalRequestsHandler.HandleAsync(
+            new GetProviderWithdrawalRequestsQuery(_currentUser.UserId, page, pageSize, status), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
     [HttpGet("me/orders")]
     [ProducesResponseType(typeof(ProviderIncomingOrdersResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetIncomingOrders(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? status = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
         var result = await _getProviderIncomingOrdersHandler.HandleAsync(
-            new GetProviderIncomingOrdersQuery(_currentUser.UserId, page, pageSize, status), ct);
+            new GetProviderIncomingOrdersQuery(_currentUser.UserId, page, pageSize, status, fromDate, toDate, search), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);

@@ -53,7 +53,16 @@ public class GetParentWalletTransactionsQueryHandler : IGetParentWalletTransacti
                 pt.Amount,
                 pt.TransactionStatus.ToString(),
                 pt.Description,
-                pt.TransactionTimestamp))
+                pt.TransactionTimestamp,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null))
             .ToListAsync(ct);
 
         return Result<WalletTransactionsResponse>.Success(new WalletTransactionsResponse(items, total));

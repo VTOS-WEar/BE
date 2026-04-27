@@ -17,7 +17,16 @@ public record WalletTransactionDto(
     decimal Amount,
     string Status,
     string? Description,
-    DateTime Timestamp
+    DateTime Timestamp,
+    Guid? OrderId = null,
+    string? ParentName = null,
+    string? ChildName = null,
+    string? OrderStatus = null,
+    string? FirstItemImageUrl = null,
+    string? FirstOutfitName = null,
+    int? ItemCount = null,
+    int? QuantityTotal = null,
+    string? SizeSummary = null
 );
 
 public record WalletTransactionsResponse(List<WalletTransactionDto> Items, int Total);
