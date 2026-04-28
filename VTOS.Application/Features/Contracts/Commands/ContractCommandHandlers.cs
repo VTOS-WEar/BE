@@ -50,7 +50,7 @@ internal static class ContractMapper
         c.ContractPdfUrl,
         // Items
         c.ContractItems.Select(ci => new ContractItemDto(
-            ci.Id, ci.OutfitID, ci.Outfit?.OutfitName ?? "", ci.PricePerUnit, ci.MinQuantity, ci.MaxQuantity
+            ci.Id, ci.OutfitID, ci.Outfit?.OutfitName ?? "", ci.Outfit?.MainImageURL, ci.PricePerUnit, ci.MinQuantity, ci.MaxQuantity
         )).ToList()
     );
 

@@ -215,6 +215,9 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
                 SchoolName = accountRequest.OrganizationName,
                 ContactInfo = "{}",
                 Level = "",
+                Status = SchoolStatus.Active,
+                VerificationStatus = VerificationStatus.Approved,
+                RejectionReason = null,
             };
             _context.Schools.Add(school);
 
@@ -233,9 +236,22 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
                 ProviderName = accountRequest.OrganizationName,
                 Email = email,
                 Status = ProviderStatus.Active,
+                VerificationStatus = VerificationStatus.Approved,
+                RejectionReason = null,
                 IsDeleted = false
             };
             _context.Providers.Add(provider);
+
+            _context.Wallets.Add(new Wallet
+            {
+                Id = Guid.NewGuid(),
+                OwnerID = provider.Id,
+                OwnerType = WalletOwnerType.Provider,
+                Balance = 0,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
 
             _context.ProviderManagers.Add(new ProviderManager
             {

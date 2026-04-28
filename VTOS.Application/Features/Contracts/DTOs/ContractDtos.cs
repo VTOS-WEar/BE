@@ -51,6 +51,7 @@ public record ContractItemDto(
     Guid ItemId,
     Guid OutfitId,
     string OutfitName,
+    string? MainImageURL,
     decimal? PricePerUnit,
     int? MinQuantity,
     int? MaxQuantity
