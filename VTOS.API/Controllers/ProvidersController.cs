@@ -45,6 +45,8 @@ public class ProvidersController : ControllerBase
     private readonly IMarkDirectOrderReadyToShipCommandHandler _markDirectOrderReadyToShipHandler;
     private readonly IShipDirectOrderCommandHandler _shipDirectOrderHandler;
     private readonly IGetProviderOrderStatsQueryHandler _getProviderOrderStatsHandler;
+    private readonly IGetProviderCatalogQueryHandler _getProviderCatalogHandler;
+    private readonly IUpsertProviderCatalogItemCommandHandler _upsertProviderCatalogItemHandler;
 
     public ProvidersController(
         ICurrentUserService currentUser,
@@ -69,7 +71,9 @@ public class ProvidersController : ControllerBase
         IUpdateDirectOrderInProductionCommandHandler updateDirectOrderInProductionHandler,
         IMarkDirectOrderReadyToShipCommandHandler markDirectOrderReadyToShipHandler,
         IShipDirectOrderCommandHandler shipDirectOrderHandler,
-        IGetProviderOrderStatsQueryHandler getProviderOrderStatsHandler)
+        IGetProviderOrderStatsQueryHandler getProviderOrderStatsHandler,
+        IGetProviderCatalogQueryHandler getProviderCatalogHandler,
+        IUpsertProviderCatalogItemCommandHandler upsertProviderCatalogItemHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -93,6 +97,8 @@ public class ProvidersController : ControllerBase
         _markDirectOrderReadyToShipHandler = markDirectOrderReadyToShipHandler;
         _shipDirectOrderHandler = shipDirectOrderHandler;
         _getProviderOrderStatsHandler = getProviderOrderStatsHandler;
+        _getProviderCatalogHandler = getProviderCatalogHandler;
+        _upsertProviderCatalogItemHandler = upsertProviderCatalogItemHandler;
     }
 
     // ──────── Profile ────────
@@ -129,6 +135,38 @@ public class ProvidersController : ControllerBase
         );
 
         var result = await _updateProfileHandler.HandleAsync(command, ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    // ──────── Catalog Management ────────
+
+    /// <summary>List provider-managed catalog items for approved semester publications.</summary>
+    [HttpGet("me/catalog")]
+    [ProducesResponseType(typeof(ProviderCatalogResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetCatalog(CancellationToken ct)
+    {
+        var result = await _getProviderCatalogHandler.HandleAsync(
+            new GetProviderCatalogQuery(_currentUser.UserId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    /// <summary>Create or update provider-owned catalog data for one outfit in a semester publication.</summary>
+    [HttpPut("me/catalog/{semesterPublicationProviderId:guid}/items/{outfitId:guid}")]
+    [ProducesResponseType(typeof(ProviderCatalogItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpsertCatalogItem(
+        Guid semesterPublicationProviderId,
+        Guid outfitId,
+        [FromBody] UpsertProviderCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        var result = await _upsertProviderCatalogItemHandler.HandleAsync(
+            new UpsertProviderCatalogItemCommand(_currentUser.UserId, semesterPublicationProviderId, outfitId, request), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
