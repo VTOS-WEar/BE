@@ -35,6 +35,9 @@ public class GetSchoolSemesterCatalogQueryHandler
             return null;
         }
 
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+
         var publicationOutfits = await _context.SemesterPublicationOutfits
             .AsNoTracking()
             .Where(spo => spo.SemesterPublicationID == publication.Id)
@@ -47,7 +50,13 @@ public class GetSchoolSemesterCatalogQueryHandler
 
         var approvedProviders = await _context.SemesterPublicationProviders
             .AsNoTracking()
-            .Where(spp => spp.SemesterPublicationID == publication.Id && spp.Status == SemPublicationProviderStatus.Active)
+            .Where(spp =>
+                spp.SemesterPublicationID == publication.Id
+                && spp.Status == SemPublicationProviderStatus.Active
+                && spp.ContractID.HasValue
+                && spp.Contract != null
+                && usableContractStatuses.Contains(spp.Contract.Status)
+                && spp.Contract.ExpiresAt > now)
             .Select(spp => new
             {
                 spp.Id,
@@ -59,11 +68,6 @@ public class GetSchoolSemesterCatalogQueryHandler
 
         var outfitIds = publicationOutfits.Select(x => x.OutfitID).Distinct().ToList();
         var publishedCatalogItems = await SemesterCatalogQueryHelpers.GetVisibleCatalogItemsAsync(_context, publication.Id, outfitIds, ct);
-        var contractItemLookup = await SemesterCatalogQueryHelpers.GetContractItemLookupAsync(
-            _context,
-            approvedProviders.Where(p => p.ContractID.HasValue).Select(p => p.ContractID!.Value).Distinct().ToList(),
-            outfitIds,
-            ct);
         var providerStats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(
             _context,
             approvedProviders.Select(p => p.ProviderID).Distinct().ToList(),
@@ -93,18 +97,14 @@ public class GetSchoolSemesterCatalogQueryHandler
                         var catalogItem = publishedCatalogItems
                             .FirstOrDefault(ci => ci.SemesterPublicationProviderID == p.Id && ci.OutfitID == x.OutfitID);
 
-                        var contractItem = p.ContractID.HasValue
-                            ? contractItemLookup.GetValueOrDefault((p.ContractID.Value, x.OutfitID))
-                            : null;
-
-                        if (catalogItem == null && contractItem == null)
+                        if (catalogItem == null)
                         {
                             return null;
                         }
 
                         var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
-                        var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
-                        var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
+                        var publicationPrice = catalogItem.PublicationPrice;
+                        var postDeadlinePrice = catalogItem.PostDeadlinePrice;
 
                         return new SemesterCatalogProviderDto
                         {
@@ -173,9 +173,12 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
 
     public async Task<List<SchoolSemesterCatalogResponse>> HandleAsync(GetAllSchoolSemesterCatalogsQuery query, CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+
         var publications = await _context.SemesterPublications
             .AsNoTracking()
-            .Where(sp => sp.SchoolID == query.SchoolId)
+            .Where(sp => sp.SchoolID == query.SchoolId && sp.Status == SemesterPublicationStatus.Active)
             .OrderByDescending(sp => sp.StartDate)
             .ToListAsync(ct);
 
@@ -200,7 +203,13 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
 
             var approvedProviders = await _context.SemesterPublicationProviders
                 .AsNoTracking()
-                .Where(spp => spp.SemesterPublicationID == publication.Id && spp.Status == SemPublicationProviderStatus.Active)
+                .Where(spp =>
+                    spp.SemesterPublicationID == publication.Id
+                    && spp.Status == SemPublicationProviderStatus.Active
+                    && spp.ContractID.HasValue
+                    && spp.Contract != null
+                    && usableContractStatuses.Contains(spp.Contract.Status)
+                    && spp.Contract.ExpiresAt > now)
                 .Select(spp => new
                 {
                     spp.Id,
@@ -212,11 +221,6 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
 
             var outfitIds = publicationOutfits.Select(x => x.OutfitID).Distinct().ToList();
             var publishedCatalogItems = await SemesterCatalogQueryHelpers.GetVisibleCatalogItemsAsync(_context, publication.Id, outfitIds, ct);
-            var contractItemLookup = await SemesterCatalogQueryHelpers.GetContractItemLookupAsync(
-                _context,
-                approvedProviders.Where(p => p.ContractID.HasValue).Select(p => p.ContractID!.Value).Distinct().ToList(),
-                outfitIds,
-                ct);
             var providerStats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(
                 _context,
                 approvedProviders.Select(p => p.ProviderID).Distinct().ToList(),
@@ -246,18 +250,14 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                             var catalogItem = publishedCatalogItems
                                 .FirstOrDefault(ci => ci.SemesterPublicationProviderID == p.Id && ci.OutfitID == x.OutfitID);
 
-                            var contractItem = p.ContractID.HasValue
-                                ? contractItemLookup.GetValueOrDefault((p.ContractID.Value, x.OutfitID))
-                                : null;
-
-                            if (catalogItem == null && contractItem == null)
+                            if (catalogItem == null)
                             {
                                 return null;
                             }
 
                             var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
-                            var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
-                            var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
+                            var publicationPrice = catalogItem.PublicationPrice;
+                            var postDeadlinePrice = catalogItem.PostDeadlinePrice;
 
                             return new SemesterCatalogProviderDto
                             {
@@ -329,9 +329,12 @@ public class GetProvidersForPublicationOutfitQueryHandler
 
     public async Task<List<SemesterCatalogProviderDto>?> HandleAsync(GetProvidersForPublicationOutfitQuery query, CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+
         var publication = await _context.SemesterPublications
             .AsNoTracking()
-            .FirstOrDefaultAsync(sp => sp.Id == query.SemesterPublicationId && sp.Status != SemesterPublicationStatus.Draft, ct);
+            .FirstOrDefaultAsync(sp => sp.Id == query.SemesterPublicationId && sp.Status == SemesterPublicationStatus.Active, ct);
 
         if (publication == null)
         {
@@ -349,7 +352,13 @@ public class GetProvidersForPublicationOutfitQueryHandler
 
         var providers = await _context.SemesterPublicationProviders
             .AsNoTracking()
-            .Where(spp => spp.SemesterPublicationID == query.SemesterPublicationId && spp.Status == SemPublicationProviderStatus.Active)
+            .Where(spp =>
+                spp.SemesterPublicationID == query.SemesterPublicationId
+                && spp.Status == SemPublicationProviderStatus.Active
+                && spp.ContractID.HasValue
+                && spp.Contract != null
+                && usableContractStatuses.Contains(spp.Contract.Status)
+                && spp.Contract.ExpiresAt > now)
             .Select(spp => new
             {
                 spp.Id,
@@ -360,11 +369,6 @@ public class GetProvidersForPublicationOutfitQueryHandler
             .ToListAsync(ct);
 
         var publishedCatalogItems = await SemesterCatalogQueryHelpers.GetVisibleCatalogItemsAsync(_context, query.SemesterPublicationId, new List<Guid> { query.OutfitId }, ct);
-        var contractItemLookup = await SemesterCatalogQueryHelpers.GetContractItemLookupAsync(
-            _context,
-            providers.Where(p => p.ContractID.HasValue).Select(p => p.ContractID!.Value).Distinct().ToList(),
-            new List<Guid> { query.OutfitId },
-            ct);
         var providerStats = await SemesterCatalogQueryHelpers.GetProviderStatsAsync(
             _context,
             providers.Select(p => p.ProviderID).Distinct().ToList(),
@@ -378,18 +382,14 @@ public class GetProvidersForPublicationOutfitQueryHandler
                 var catalogItem = publishedCatalogItems
                     .FirstOrDefault(ci => ci.SemesterPublicationProviderID == p.Id && ci.OutfitID == query.OutfitId);
 
-                var contractItem = p.ContractID.HasValue
-                    ? contractItemLookup.GetValueOrDefault((p.ContractID.Value, query.OutfitId))
-                    : null;
-
-                if (catalogItem == null && contractItem == null)
+                if (catalogItem == null)
                 {
                     return null;
                 }
 
                 var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
-                var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
-                var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
+                var publicationPrice = catalogItem.PublicationPrice;
+                var postDeadlinePrice = catalogItem.PostDeadlinePrice;
 
                 return new SemesterCatalogProviderDto
                 {
@@ -664,23 +664,6 @@ internal static class SemesterCatalogQueryHelpers
                 .ThenByDescending(x => x.ProviderRatingId)
                 .First())
             .ToList();
-    }
-
-    internal static async Task<Dictionary<(Guid ContractId, Guid OutfitId), ContractItem>> GetContractItemLookupAsync(
-        IApplicationDbContext context,
-        IReadOnlyCollection<Guid> contractIds,
-        IReadOnlyCollection<Guid> outfitIds,
-        CancellationToken ct)
-    {
-        if (contractIds.Count == 0 || outfitIds.Count == 0)
-            return new Dictionary<(Guid ContractId, Guid OutfitId), ContractItem>();
-
-        var items = await context.ContractItems
-            .AsNoTracking()
-            .Where(ci => contractIds.Contains(ci.ContractID) && outfitIds.Contains(ci.OutfitID))
-            .ToListAsync(ct);
-
-        return items.ToDictionary(ci => (ci.ContractID, ci.OutfitID), ci => ci);
     }
 
     internal static bool IsAfterDeadline(DateTime endDate)

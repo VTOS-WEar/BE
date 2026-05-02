@@ -276,8 +276,6 @@ public class ApproveContractCommandHandler : IApproveContractCommandHandler
         if (contract == null) return Result<ContractDto>.Failure("Contract not found.", "NOT_FOUND");
         if (contract.Status != "Pending")
             return Result<ContractDto>.Failure($"Contract is '{contract.Status}', only Pending contracts can be approved.", "INVALID_STATUS");
-        if (contract.ContractItems.Any(ci => ci.PricePerUnit <= 0))
-            return Result<ContractDto>.Failure("Set provider pricing for every item before approving the contract.", "PRICING_REQUIRED");
 
         // Transition: Pending → PendingSchoolSign (awaiting School's digital signature)
         contract.Status = "PendingSchoolSign";

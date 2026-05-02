@@ -47,6 +47,7 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
 
         var publicationProvider = await _context.SemesterPublicationProviders
             .Include(x => x.SemesterPublication)
+            .Include(x => x.Contract)
             .FirstOrDefaultAsync(x =>
                 x.Id == command.SemesterPublicationProviderId &&
                 x.ProviderID == providerId.Value,
@@ -58,8 +59,12 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
         if (publicationProvider.Status == SemPublicationProviderStatus.Suspended)
             return Result<ProviderCatalogItemDto>.Failure("Suspended providers cannot update catalog items for this publication.", "PROVIDER_SUSPENDED");
 
-        if (!publicationProvider.ContractID.HasValue)
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+        if (!publicationProvider.ContractID.HasValue || publicationProvider.Contract == null)
             return Result<ProviderCatalogItemDto>.Failure("A linked supplier agreement is required before catalog items can be managed.", "CONTRACT_REQUIRED");
+        if (!usableContractStatuses.Contains(publicationProvider.Contract.Status) || publicationProvider.Contract.ExpiresAt <= now)
+            return Result<ProviderCatalogItemDto>.Failure("The linked supplier agreement has expired or is not active.", "CONTRACT_NOT_ACTIVE");
 
         var publicationOutfit = await _context.SemesterPublicationOutfits
             .Include(x => x.Outfit)
@@ -86,7 +91,6 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
                 x.ContractItemID == contractItem.Id,
                 cancellationToken);
 
-        var now = DateTime.UtcNow;
         if (catalogItem == null)
         {
             catalogItem = new ProviderCatalogItem

@@ -76,11 +76,14 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
         if (child.ParentUserID != command.ParentId)
             return Result<CreateDirectOrderResponse>.Failure("Child profile does not belong to current parent.", "FORBIDDEN_CHILD");
 
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+
         var publication = await _context.SemesterPublications
             .AsNoTracking()
             .FirstOrDefaultAsync(
                 sp => sp.Id == command.SemesterPublicationId
-                    && sp.Status != SemesterPublicationStatus.Draft,
+                    && sp.Status == SemesterPublicationStatus.Active,
                 cancellationToken);
 
         if (publication == null)
@@ -91,7 +94,11 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
             .FirstOrDefaultAsync(
                 spp => spp.SemesterPublicationID == command.SemesterPublicationId
                     && spp.ProviderID == command.ProviderId
-                    && spp.Status == SemPublicationProviderStatus.Active,
+                    && spp.Status == SemPublicationProviderStatus.Active
+                    && spp.ContractID.HasValue
+                    && spp.Contract != null
+                    && usableContractStatuses.Contains(spp.Contract.Status)
+                    && spp.Contract.ExpiresAt > now,
                 cancellationToken);
 
         if (publicationProvider == null)
@@ -125,39 +132,25 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
                 && (ci.Status == ProviderCatalogItemStatus.Published || ci.Status == ProviderCatalogItemStatus.Ready))
             .ToListAsync(cancellationToken);
 
-        var pricingMode = ResolvePricingMode(publication.EndDate, DateTime.UtcNow);
-        var contractItems = publicationProvider.ContractID.HasValue
-            ? await _context.ContractItems
-                .AsNoTracking()
-                .Where(ci => ci.ContractID == publicationProvider.ContractID.Value && outfitIds.Contains(ci.OutfitID))
-                .ToListAsync(cancellationToken)
-            : new List<ContractItem>();
+        var pricingMode = ResolvePricingMode(publication.EndDate, now);
 
         var pricingByOutfit = new Dictionary<Guid, (decimal PublicationPrice, decimal PostDeadlinePrice)>();
         foreach (var outfitId in outfitIds)
         {
             var catalogItem = catalogItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
-            if (catalogItem != null)
+            if (catalogItem == null)
             {
-                if (catalogItem.PostDeadlinePrice < catalogItem.PublicationPrice)
-                    return Result<CreateDirectOrderResponse>.Failure(
-                        "Provider listing data is invalid because post-deadline price is lower than publication price.",
-                        "INVALID_CATALOG_PRICING");
-
-                pricingByOutfit[outfitId] = (catalogItem.PublicationPrice, catalogItem.PostDeadlinePrice);
-                continue;
+                return Result<CreateDirectOrderResponse>.Failure(
+                    "One or more outfits are not available for this provider in the selected semester publication.",
+                    "CATALOG_ITEM_NOT_AVAILABLE");
             }
 
-            var contractItem = contractItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
-            if (contractItem != null)
-            {
-                pricingByOutfit[outfitId] = (contractItem.PricePerUnit, contractItem.PricePerUnit);
-                continue;
-            }
+            if (catalogItem.PostDeadlinePrice < catalogItem.PublicationPrice)
+                return Result<CreateDirectOrderResponse>.Failure(
+                    "Provider listing data is invalid because post-deadline price is lower than publication price.",
+                    "INVALID_CATALOG_PRICING");
 
-            return Result<CreateDirectOrderResponse>.Failure(
-                "One or more outfits are not available for this provider in the selected semester publication.",
-                "CATALOG_ITEM_NOT_AVAILABLE");
+            pricingByOutfit[outfitId] = (catalogItem.PublicationPrice, catalogItem.PostDeadlinePrice);
         }
 
         var order = new Order
