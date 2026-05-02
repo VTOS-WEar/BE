@@ -6,7 +6,10 @@ namespace VTOS.Application.Features.Admin.Queries;
 public record GetAdminSemesterPublicationsQuery(
     int Page = 1,
     int PageSize = 100,
-    string? Status = null
+    string? Status = null,
+    Guid? SchoolId = null,
+    string? Search = null,
+    string? AcademicYear = null
 );
 
 public interface IGetAdminSemesterPublicationsQueryHandler

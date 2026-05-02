@@ -36,12 +36,34 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         if (schoolMgr == null)
             return Result<OutfitListResponse>.Failure("School profile not set up yet.", "SCHOOL_NOT_FOUND");
 
-        var outfitsQuery = _db.Outfits
+        var baseOutfitsQuery = _db.Outfits
             .AsNoTracking()
             .Where(o => o.SchoolID == schoolMgr.SchoolID && !o.IsDeleted);
 
+        var summary = new OutfitListSummaryDto
+        {
+            Total = await baseOutfitsQuery.CountAsync(ct),
+            Available = await baseOutfitsQuery.CountAsync(o => o.IsAvailable, ct),
+            Unavailable = await baseOutfitsQuery.CountAsync(o => !o.IsAvailable, ct)
+        };
+
+        var outfitsQuery = baseOutfitsQuery;
+
         if (query.IsAvailable.HasValue)
             outfitsQuery = outfitsQuery.Where(o => o.IsAvailable == query.IsAvailable.Value);
+
+        if (query.CategoryId.HasValue)
+            outfitsQuery = outfitsQuery.Where(o => o.OutfitCategories.Any(oc => oc.CategoryID == query.CategoryId.Value));
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            outfitsQuery = outfitsQuery.Where(o =>
+                o.OutfitName.ToLower().Contains(search) ||
+                (o.Description != null && o.Description.ToLower().Contains(search)) ||
+                (o.MaterialType != null && o.MaterialType.ToLower().Contains(search)) ||
+                o.OutfitCategories.Any(oc => oc.Category.CategoryName.ToLower().Contains(search)));
+        }
 
         var nonDeletableIds = await _db.SemesterPublicationOutfits
             .AsNoTracking()
@@ -55,10 +77,16 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
 
         var nonDeletableSet = new HashSet<Guid>(nonDeletableIds);
 
+        var page = Math.Max(1, query.Page);
+        var pageSize = Math.Clamp(query.PageSize, 1, 50);
+        var totalCount = await outfitsQuery.CountAsync(ct);
+
         var outfits = await outfitsQuery
             .Include(o => o.OutfitCategories)
                 .ThenInclude(oc => oc.Category)
             .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(o => new OutfitDto
             {
                 OutfitId = o.Id,
@@ -90,7 +118,12 @@ public class GetSchoolOutfitsQueryHandler : IGetSchoolOutfitsQueryHandler
         return Result<OutfitListResponse>.Success(new OutfitListResponse
         {
             Items = outfits,
-            Total = outfits.Count
+            Total = totalCount,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+            Summary = summary
         });
     }
 }

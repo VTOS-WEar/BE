@@ -57,6 +57,29 @@ public record ContractItemDto(
     int? MaxQuantity
 );
 
+public class ContractListResponse
+{
+    public List<ContractDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
+    public ContractListSummaryDto Summary { get; set; } = new();
+}
+
+public class ContractListSummaryDto
+{
+    public int Total { get; set; }
+    public int Pending { get; set; }
+    public int WaitingSchool { get; set; }
+    public int WaitingProvider { get; set; }
+    public int Active { get; set; }
+    public int Fulfilled { get; set; }
+    public int Rejected { get; set; }
+    public int Issue { get; set; }
+    public int ExpiringSoon { get; set; }
+}
+
 /// <summary>Request body for creating a contract (School).</summary>
 public record CreateContractRequest(
     string ContractName,

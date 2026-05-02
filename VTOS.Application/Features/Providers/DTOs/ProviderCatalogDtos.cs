@@ -3,6 +3,19 @@ namespace VTOS.Application.Features.Providers.DTOs;
 public class ProviderCatalogResponse
 {
     public List<ProviderCatalogPublicationDto> Publications { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
+    public ProviderCatalogSummaryDto Summary { get; set; } = new();
+}
+
+public class ProviderCatalogSummaryDto
+{
+    public int Publications { get; set; }
+    public int Items { get; set; }
+    public int Published { get; set; }
+    public int NeedsSetup { get; set; }
 }
 
 public class ProviderCatalogPublicationDto

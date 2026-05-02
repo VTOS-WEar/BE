@@ -39,6 +39,26 @@ public class GetAdminSemesterPublicationsQueryHandler : IGetAdminSemesterPublica
             publicationsQuery = publicationsQuery.Where(x => x.Status == status);
         }
 
+        if (query.SchoolId.HasValue)
+        {
+            publicationsQuery = publicationsQuery.Where(x => x.SchoolID == query.SchoolId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.AcademicYear))
+        {
+            var academicYear = query.AcademicYear.Trim();
+            publicationsQuery = publicationsQuery.Where(x => x.AcademicYear == academicYear);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            publicationsQuery = publicationsQuery.Where(x =>
+                x.School.SchoolName.ToLower().Contains(search) ||
+                x.Semester.ToLower().Contains(search) ||
+                x.AcademicYear.ToLower().Contains(search));
+        }
+
         var total = await publicationsQuery.CountAsync(ct);
 
         var items = await publicationsQuery

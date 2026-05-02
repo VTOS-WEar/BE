@@ -28,4 +28,16 @@ public class OutfitListResponse
 {
     public List<OutfitDto> Items { get; set; } = new();
     public int Total { get; set; }
+    public int TotalCount { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
+    public OutfitListSummaryDto Summary { get; set; } = new();
+}
+
+public class OutfitListSummaryDto
+{
+    public int Total { get; set; }
+    public int Available { get; set; }
+    public int Unavailable { get; set; }
 }

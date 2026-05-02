@@ -7,10 +7,9 @@ namespace VTOS.Application.Features.Admin.Queries;
 
 public record AdminCashFlowDto
 {
-    public decimal TotalParentPayments { get; init; }
-    public decimal TotalProviderPayments { get; init; }
-    public decimal TotalRefunds { get; init; }
-    public decimal PendingPayments { get; init; }
+    public decimal TotalOrderFees { get; init; }
+    public decimal TotalWithdrawalFees { get; init; }
+    public decimal TotalPlatformFees { get; init; }
     public int TotalTransactionCount { get; init; }
     public int PendingComplaintCount { get; init; }
     public int ActiveCampaignCount { get; init; }
@@ -21,8 +20,9 @@ public record AdminCashFlowDto
 public record DailyRevenueDto
 {
     public string Date { get; init; } = string.Empty;
-    public decimal Income { get; init; }
-    public decimal Expense { get; init; }
+    public decimal OrderFees { get; init; }
+    public decimal WithdrawalFees { get; init; }
+    public decimal TotalFees { get; init; }
 }
 
 public interface IGetAdminCashFlowQueryHandler
@@ -38,17 +38,20 @@ public class GetAdminCashFlowQueryHandler : IGetAdminCashFlowQueryHandler
 
     public async Task<Result<AdminCashFlowDto>> HandleAsync(int days = 30, CancellationToken ct = default)
     {
-        var completedTxns = await _context.PaymentTransactions
-            .Where(t => t.TransactionStatus == PaymentStatus.Completed)
+        var feeTxns = await _context.PaymentTransactions
+            .Where(t =>
+                t.TransactionStatus == PaymentStatus.Completed &&
+                (t.TransactionType == TransactionType.PlatformOrderFee ||
+                 t.TransactionType == TransactionType.ProviderWithdrawalFee))
             .ToListAsync(ct);
 
-        var totalParent = completedTxns.Where(t => t.TransactionType == TransactionType.OrderPayment).Sum(t => t.Amount);
-        var totalProvider = completedTxns.Where(t => t.TransactionType == TransactionType.ProviderPayment).Sum(t => t.Amount);
-        var totalRefunds = completedTxns.Where(t => t.TransactionType == TransactionType.Refund).Sum(t => t.Amount);
+        var totalOrderFees = feeTxns
+            .Where(t => t.TransactionType == TransactionType.PlatformOrderFee)
+            .Sum(t => t.Amount);
 
-        var pendingPayments = await _context.PaymentTransactions
-            .Where(t => t.TransactionStatus == PaymentStatus.Pending && t.TransactionType == TransactionType.OrderPayment)
-            .SumAsync(t => t.Amount, ct);
+        var totalWithdrawalFees = feeTxns
+            .Where(t => t.TransactionType == TransactionType.ProviderWithdrawalFee)
+            .Sum(t => t.Amount);
 
         var totalCount = await _context.PaymentTransactions.CountAsync(ct);
 
@@ -62,29 +65,34 @@ public class GetAdminCashFlowQueryHandler : IGetAdminCashFlowQueryHandler
             .CountAsync(a => a.Status == Domain.Enums.AccountRequestStatus.Pending, ct);
 
         var startDate = DateTime.UtcNow.Date.AddDays(-days);
-        var recentTxns = completedTxns
+        var revenueChart = feeTxns
             .Where(t => t.TransactionTimestamp >= startDate)
             .GroupBy(t => t.TransactionTimestamp.Date)
-            .Select(g => new DailyRevenueDto
+            .OrderBy(g => g.Key)
+            .Select(g =>
             {
-                Date = g.Key.ToString("dd/MM"),
-                Income = g.Where(t => t.TransactionType == TransactionType.OrderPayment).Sum(t => t.Amount),
-                Expense = g.Where(t => t.TransactionType == TransactionType.ProviderPayment || t.TransactionType == TransactionType.Refund).Sum(t => t.Amount)
+                var orderFees = g.Where(t => t.TransactionType == TransactionType.PlatformOrderFee).Sum(t => t.Amount);
+                var withdrawalFees = g.Where(t => t.TransactionType == TransactionType.ProviderWithdrawalFee).Sum(t => t.Amount);
+                return new DailyRevenueDto
+                {
+                    Date = g.Key.ToString("dd/MM"),
+                    OrderFees = orderFees,
+                    WithdrawalFees = withdrawalFees,
+                    TotalFees = orderFees + withdrawalFees
+                };
             })
-            .OrderBy(d => d.Date)
             .ToList();
 
         return Result<AdminCashFlowDto>.Success(new AdminCashFlowDto
         {
-            TotalParentPayments = totalParent,
-            TotalProviderPayments = totalProvider,
-            TotalRefunds = totalRefunds,
-            PendingPayments = pendingPayments,
+            TotalOrderFees = totalOrderFees,
+            TotalWithdrawalFees = totalWithdrawalFees,
+            TotalPlatformFees = totalOrderFees + totalWithdrawalFees,
             TotalTransactionCount = totalCount,
             PendingComplaintCount = pendingComplaints,
             ActiveCampaignCount = activeCampaigns,
             PendingAccountRequestCount = pendingRequests,
-            RevenueChart = recentTxns
+            RevenueChart = revenueChart
         });
     }
 }

@@ -6,7 +6,8 @@ namespace VTOS.Application.Features.Admin.Queries;
 public record GetWithdrawalRequestsQuery(
     int Page = 1,
     int PageSize = 10,
-    string? Status = null);
+    string? Status = null,
+    string? Search = null);
 
 public interface IGetWithdrawalRequestsQueryHandler
 {

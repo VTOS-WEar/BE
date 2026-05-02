@@ -146,10 +146,15 @@ public class ProvidersController : ControllerBase
     [HttpGet("me/catalog")]
     [ProducesResponseType(typeof(ProviderCatalogResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetCatalog(CancellationToken ct)
+    public async Task<IActionResult> GetCatalog(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 5,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
     {
         var result = await _getProviderCatalogHandler.HandleAsync(
-            new GetProviderCatalogQuery(_currentUser.UserId), ct);
+            new GetProviderCatalogQuery(_currentUser.UserId, page, pageSize, status, search), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
@@ -176,11 +181,16 @@ public class ProvidersController : ControllerBase
 
     /// <summary>List contracts sent to this provider, with optional status filter.</summary>
     [HttpGet("me/contracts")]
-    [ProducesResponseType(typeof(List<ContractDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetContracts([FromQuery] string? status, CancellationToken ct)
+    [ProducesResponseType(typeof(ContractListResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContracts(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
     {
         var result = await _getContractsHandler.HandleAsync(
-            new GetContractsQuery(_currentUser.UserId, "Provider", status), ct);
+            new GetContractsQuery(_currentUser.UserId, "Provider", status, page, pageSize, search), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);

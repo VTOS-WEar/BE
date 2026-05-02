@@ -46,6 +46,9 @@ public interface IGetAllSupportTicketsQueryHandler
     Task<Result<AdminSupportTicketListResult>> HandleAsync(
         int page = 1, int pageSize = 20,
         SupportTicketStatus? status = null,
+        string? search = null,
+        string? requesterRole = null,
+        string? category = null,
         CancellationToken ct = default);
 }
 
@@ -60,6 +63,9 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
     public async Task<Result<AdminSupportTicketListResult>> HandleAsync(
         int page = 1, int pageSize = 20,
         SupportTicketStatus? status = null,
+        string? search = null,
+        string? requesterRole = null,
+        string? category = null,
         CancellationToken ct = default)
     {
         var query = _context.SupportTickets
@@ -71,6 +77,19 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
 
         if (status.HasValue)
             query = query.Where(c => c.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(c =>
+                c.Title.ToLower().Contains(s) ||
+                c.RequesterName.ToLower().Contains(s) ||
+                c.RequesterEmail.ToLower().Contains(s) ||
+                (c.School != null && c.School.SchoolName.ToLower().Contains(s)));
+        }
+        if (!string.IsNullOrWhiteSpace(requesterRole))
+            query = query.Where(c => c.RequesterRole == requesterRole);
+        if (!string.IsNullOrWhiteSpace(category))
+            query = query.Where(c => c.Category == category);
 
         var totalCount = await query.CountAsync(ct);
 

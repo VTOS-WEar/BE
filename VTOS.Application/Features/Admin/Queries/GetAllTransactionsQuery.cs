@@ -39,6 +39,7 @@ public interface IGetAllTransactionsQueryHandler
         int page = 1, int pageSize = 20,
         TransactionType? type = null, PaymentStatus? status = null,
         DateTime? from = null, DateTime? to = null,
+        string? search = null,
         CancellationToken ct = default);
 }
 
@@ -54,6 +55,7 @@ public class GetAllTransactionsQueryHandler : IGetAllTransactionsQueryHandler
         int page = 1, int pageSize = 20,
         TransactionType? type = null, PaymentStatus? status = null,
         DateTime? from = null, DateTime? to = null,
+        string? search = null,
         CancellationToken ct = default)
     {
         var query = _context.PaymentTransactions
@@ -72,6 +74,14 @@ public class GetAllTransactionsQueryHandler : IGetAllTransactionsQueryHandler
             query = query.Where(t => t.TransactionTimestamp >= from.Value);
         if (to.HasValue)
             query = query.Where(t => t.TransactionTimestamp <= to.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(t =>
+                (t.Description != null && t.Description.ToLower().Contains(s)) ||
+                (t.Wallet != null && t.Wallet.School != null && t.Wallet.School.SchoolName.ToLower().Contains(s)) ||
+                (t.Wallet != null && t.Wallet.Provider != null && t.Wallet.Provider.ProviderName.ToLower().Contains(s)));
+        }
 
         var totalCount = await query.CountAsync(ct);
         var totalAmount = await query.SumAsync(t => t.Amount, ct);

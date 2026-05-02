@@ -16,6 +16,10 @@ public class PayoutRecordConfiguration : IEntityTypeConfiguration<PayoutRecord>
         builder.Property(p => p.ProviderID).IsRequired();
         builder.Property(p => p.OrderID).IsRequired();
         builder.Property(p => p.Amount).IsRequired().HasColumnType("decimal(18,2)");
+        builder.Property(p => p.GrossAmount).IsRequired().HasColumnType("decimal(18,2)");
+        builder.Property(p => p.PlatformFeeRate).IsRequired().HasColumnType("decimal(5,4)");
+        builder.Property(p => p.PlatformFeeAmount).IsRequired().HasColumnType("decimal(18,2)");
+        builder.Property(p => p.NetAmount).IsRequired().HasColumnType("decimal(18,2)");
         builder.Property(p => p.Status).IsRequired().HasMaxLength(50);
         builder.Property(p => p.PayoutMethod).IsRequired().HasMaxLength(50);
         builder.Property(p => p.AdminNote).HasMaxLength(500);

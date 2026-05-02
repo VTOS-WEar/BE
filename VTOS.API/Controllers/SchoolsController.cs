@@ -478,11 +478,17 @@ public class SchoolsController : ControllerBase
     /// </summary>
     [HttpGet("me/outfits")]
     [ProducesResponseType(typeof(OutfitListResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOutfits([FromQuery] bool? isAvailable, CancellationToken ct)
+    public async Task<IActionResult> GetOutfits(
+        [FromQuery] bool? isAvailable,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 8,
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? categoryId = null,
+        CancellationToken ct = default)
     {
         var userId = _currentUser.UserId;
         var result = await _getOutfitsHandler.HandleAsync(
-            new GetSchoolOutfitsQuery(userId, isAvailable), ct);
+            new GetSchoolOutfitsQuery(userId, isAvailable, page, pageSize, search, categoryId), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
@@ -932,11 +938,16 @@ public class SchoolsController : ControllerBase
 
     /// <summary>List contracts for the current school, optionally filtered by status.</summary>
     [HttpGet("me/contracts")]
-    [ProducesResponseType(typeof(List<ContractDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetContracts([FromQuery] string? status, CancellationToken ct)
+    [ProducesResponseType(typeof(ContractListResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContracts(
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 9,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
     {
         var result = await _getContractsHandler.HandleAsync(
-            new GetContractsQuery(_currentUser.UserId, "School", status), ct);
+            new GetContractsQuery(_currentUser.UserId, "School", status, page, pageSize, search), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
     }
