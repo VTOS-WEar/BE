@@ -8,11 +8,17 @@ namespace VTOS.Application.Features.Contracts.Queries;
 /// Used by both School (filter by SchoolId) and Provider (filter by ProviderId).
 /// The handler resolves the correct scope from UserId + Role.
 /// </summary>
-public record GetContractsQuery(Guid UserId, string Role, string? StatusFilter);
+public record GetContractsQuery(
+    Guid UserId,
+    string Role,
+    string? StatusFilter,
+    int Page = 1,
+    int PageSize = 10,
+    string? Search = null);
 
 public interface IGetContractsQueryHandler
 {
-    Task<Result<List<ContractDto>>> HandleAsync(GetContractsQuery query, CancellationToken ct = default);
+    Task<Result<ContractListResponse>> HandleAsync(GetContractsQuery query, CancellationToken ct = default);
 }
 
 // ── Contract Detail ──

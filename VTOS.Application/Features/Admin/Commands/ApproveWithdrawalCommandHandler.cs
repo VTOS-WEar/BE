@@ -41,12 +41,40 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
         if (wallet.Balance < withdrawal.Amount)
             return Result<WithdrawalRequestResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
 
+        var now = DateTime.UtcNow;
+
         wallet.Balance -= withdrawal.Amount;
-        wallet.UpdatedAt = DateTime.UtcNow;
+        wallet.UpdatedAt = now;
 
         withdrawal.Status = "Approved";
-        withdrawal.ApprovedAt = DateTime.UtcNow;
+        withdrawal.ApprovedAt = now;
         withdrawal.AdminNote = command.AdminNote;
+
+        _db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            WalletID = wallet.Id,
+            TransactionType = TransactionType.ProviderWithdrawal,
+            GatewayType = PaymentGatewayType.Other,
+            TransactionStatus = PaymentStatus.Completed,
+            Amount = withdrawal.NetAmount,
+            TransactionTimestamp = now,
+            Description = $"Provider withdrawal (net) for request #{withdrawal.Id.ToString()[..8]}",
+            CreatedAt = now
+        });
+
+        _db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            WalletID = null,
+            TransactionType = TransactionType.ProviderWithdrawalFee,
+            GatewayType = PaymentGatewayType.Other,
+            TransactionStatus = PaymentStatus.Completed,
+            Amount = withdrawal.FeeAmount,
+            TransactionTimestamp = now,
+            Description = $"Platform withdrawal fee (2%) for request #{withdrawal.Id.ToString()[..8]}",
+            CreatedAt = now
+        });
 
         await _db.SaveChangesAsync(ct);
 
@@ -91,6 +119,9 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
             WithdrawalRequestId = withdrawal.Id,
             WalletId = wallet.Id,
             Amount = withdrawal.Amount,
+            FeeRate = withdrawal.FeeRate,
+            FeeAmount = withdrawal.FeeAmount,
+            NetAmount = withdrawal.NetAmount,
             Status = withdrawal.Status,
             RequestedAt = withdrawal.RequestedAt,
             ApprovedAt = withdrawal.ApprovedAt,

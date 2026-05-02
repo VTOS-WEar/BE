@@ -20,6 +20,18 @@ public class WalletWithdrawalRequestConfiguration : IEntityTypeConfiguration<Wal
             .IsRequired()
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(w => w.FeeRate)
+            .IsRequired()
+            .HasColumnType("decimal(5,4)");
+
+        builder.Property(w => w.FeeAmount)
+            .IsRequired()
+            .HasColumnType("decimal(18,2)");
+
+        builder.Property(w => w.NetAmount)
+            .IsRequired()
+            .HasColumnType("decimal(18,2)");
+
         builder.Property(w => w.Status)
             .IsRequired()
             .HasMaxLength(30);

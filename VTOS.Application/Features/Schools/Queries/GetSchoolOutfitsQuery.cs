@@ -6,7 +6,13 @@ namespace VTOS.Application.Features.Schools.Queries;
 /// <summary>
 /// Query to list all outfits belonging to the current school.
 /// </summary>
-public record GetSchoolOutfitsQuery(Guid UserId, bool? IsAvailable = null);
+public record GetSchoolOutfitsQuery(
+    Guid UserId,
+    bool? IsAvailable = null,
+    int Page = 1,
+    int PageSize = 8,
+    string? Search = null,
+    Guid? CategoryId = null);
 
 public interface IGetSchoolOutfitsQueryHandler
 {

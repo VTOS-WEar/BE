@@ -7,6 +7,10 @@ public class PayoutRecord : BaseEntity
     public Guid ProviderID { get; set; }
     public Guid OrderID { get; set; }
     public decimal Amount { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal PlatformFeeRate { get; set; }
+    public decimal PlatformFeeAmount { get; set; }
+    public decimal NetAmount { get; set; }
     public string Status { get; set; } = "Completed";
     public string PayoutMethod { get; set; } = "SystemCredits";
     public DateTime? ProcessedAt { get; set; }

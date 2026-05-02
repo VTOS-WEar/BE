@@ -10,6 +10,9 @@ public class WalletWithdrawalRequest : BaseEntity
 {
     public Guid WalletID { get; set; }
     public decimal Amount { get; set; }
+    public decimal FeeRate { get; set; }
+    public decimal FeeAmount { get; set; }
+    public decimal NetAmount { get; set; }
     public string Status { get; set; } = string.Empty; // Pending | Approved | Rejected | Paid
     public DateTime RequestedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }

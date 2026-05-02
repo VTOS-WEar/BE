@@ -43,6 +43,16 @@ public class GetWithdrawalRequestsQueryHandler : IGetWithdrawalRequestsQueryHand
             baseQuery = baseQuery.Where(x => x.wr.Status == query.Status);
         }
 
+        // Apply search filter on owner name or bank name
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            baseQuery = baseQuery.Where(x =>
+                x.OwnerName.ToLower().Contains(search) ||
+                (x.w.BankName != null && x.w.BankName.ToLower().Contains(search)) ||
+                (x.w.BankAccountNumber != null && x.w.BankAccountNumber.ToLower().Contains(search)));
+        }
+
         var totalCount = await baseQuery.CountAsync(ct);
 
         var items = await baseQuery

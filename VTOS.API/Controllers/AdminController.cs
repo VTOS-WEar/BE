@@ -155,9 +155,15 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("users")]
-    public async Task<IActionResult> GetUsers(CancellationToken ct)
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? role = null,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
     {
-        var result = await _usersHandler.HandleAsync(new GetAllUsersQuery(), ct);
+        var result = await _usersHandler.HandleAsync(new GetAllUsersQuery(page, pageSize, search, role, status), ct);
         return Ok(result);
     }
 
@@ -210,10 +216,11 @@ public class AdminController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
         var result = await _getWithdrawalRequestsHandler.HandleAsync(
-            new GetWithdrawalRequestsQuery(page, pageSize, status), ct);
+            new GetWithdrawalRequestsQuery(page, pageSize, status, search), ct);
 
         return Ok(result);
     }
@@ -406,10 +413,13 @@ public class AdminController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 100,
         [FromQuery] string? status = null,
+        [FromQuery] Guid? schoolId = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? academicYear = null,
         CancellationToken ct = default)
     {
         var result = await _getAdminSemesterPublicationsHandler.HandleAsync(
-            new GetAdminSemesterPublicationsQuery(page, pageSize, status), ct);
+            new GetAdminSemesterPublicationsQuery(page, pageSize, status, schoolId, search, academicYear), ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
@@ -661,9 +671,10 @@ public class AdminController : ControllerBase
         [FromQuery] Domain.Enums.TransactionType? type = null,
         [FromQuery] Domain.Enums.PaymentStatus? status = null,
         [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
-        var result = await _allTransactionsHandler.HandleAsync(page, pageSize, type, status, from, to, ct);
+        var result = await _allTransactionsHandler.HandleAsync(page, pageSize, type, status, from, to, search, ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error });
         return Ok(result.Value);
     }
@@ -672,9 +683,12 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetAllComplaints(
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
         [FromQuery] Domain.Enums.SupportTicketStatus? status = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? requesterRole = null,
+        [FromQuery] string? category = null,
         CancellationToken ct = default)
     {
-        var result = await _allComplaintsHandler.HandleAsync(page, pageSize, status, ct);
+        var result = await _allComplaintsHandler.HandleAsync(page, pageSize, status, search, requesterRole, category, ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error });
         return Ok(result.Value);
     }

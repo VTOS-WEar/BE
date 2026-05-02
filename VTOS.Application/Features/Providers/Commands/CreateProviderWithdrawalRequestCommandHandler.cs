@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.Commands;
+using VTOS.Domain.Common;
 using VTOS.Domain.Entities;
 using VTOS.Application.Features.Notifications;
 
@@ -67,12 +68,18 @@ public class CreateProviderWithdrawalRequestCommandHandler : ICreateProviderWith
         if (hasPending)
             return Result<WithdrawalRequestResponse>.Failure("There is already a pending withdrawal request.", "PENDING_EXISTS");
 
-        // Step 6: Create withdrawal request
+        // Step 6: Create withdrawal request with fee breakdown
+        var feeAmount = Math.Round(command.Amount * PlatformFeeConstants.WithdrawalFeeRate, 2);
+        var netAmount = command.Amount - feeAmount;
+
         var withdrawalRequest = new WalletWithdrawalRequest
         {
             Id = Guid.NewGuid(),
             WalletID = wallet.Id,
             Amount = command.Amount,
+            FeeRate = PlatformFeeConstants.WithdrawalFeeRate,
+            FeeAmount = feeAmount,
+            NetAmount = netAmount,
             Status = "Pending",
             RequestedAt = DateTime.UtcNow
         };
@@ -102,6 +109,9 @@ public class CreateProviderWithdrawalRequestCommandHandler : ICreateProviderWith
             WithdrawalRequestId = withdrawalRequest.Id,
             WalletId = wallet.Id,
             Amount = withdrawalRequest.Amount,
+            FeeRate = withdrawalRequest.FeeRate,
+            FeeAmount = withdrawalRequest.FeeAmount,
+            NetAmount = withdrawalRequest.NetAmount,
             Status = withdrawalRequest.Status,
             RequestedAt = withdrawalRequest.RequestedAt
         });

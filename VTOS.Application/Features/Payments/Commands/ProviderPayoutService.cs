@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Domain.Common;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -9,7 +10,9 @@ namespace VTOS.Application.Features.Payments.Commands;
 public record ProviderPayoutResult(
     Guid PayoutRecordId,
     Guid ProviderWalletId,
-    decimal Amount,
+    decimal GrossAmount,
+    decimal PlatformFeeAmount,
+    decimal NetAmount,
     string ProviderName);
 
 public interface IProviderPayoutService
@@ -80,12 +83,20 @@ public class ProviderPayoutService : IProviderPayoutService
 
         var providerWallet = await _paymentResolutionService.GetOrCreateProviderWalletAsync(providerId, processedAtUtc, ct);
 
+        var grossAmount = order.TotalAmount;
+        var feeAmount = Math.Round(grossAmount * PlatformFeeConstants.OrderFeeRate, 2);
+        var netAmount = grossAmount - feeAmount;
+
         var payoutRecord = new PayoutRecord
         {
             Id = Guid.NewGuid(),
             ProviderID = providerId,
             OrderID = order.Id,
-            Amount = order.TotalAmount,
+            Amount = netAmount,
+            GrossAmount = grossAmount,
+            PlatformFeeRate = PlatformFeeConstants.OrderFeeRate,
+            PlatformFeeAmount = feeAmount,
+            NetAmount = netAmount,
             Status = "Completed",
             PayoutMethod = "SystemCredits",
             ProcessedAt = processedAtUtc,
@@ -94,7 +105,7 @@ public class ProviderPayoutService : IProviderPayoutService
         };
         _db.PayoutRecords.Add(payoutRecord);
 
-        providerWallet.Balance += order.TotalAmount;
+        providerWallet.Balance += netAmount;
         providerWallet.UpdatedAt = processedAtUtc;
 
         escrowPayment.EscrowStatus = EscrowStatus.Released;
@@ -111,7 +122,7 @@ public class ProviderPayoutService : IProviderPayoutService
             GatewayType = PaymentGatewayType.Other,
             TransactionStatus = PaymentStatus.Completed,
             EscrowStatus = EscrowStatus.Released,
-            Amount = order.TotalAmount,
+            Amount = grossAmount,
             TransactionTimestamp = processedAtUtc,
             Description = $"Escrow released for order #{order.Id.ToString()[..8]}",
             TransactionLog = note,
@@ -128,9 +139,26 @@ public class ProviderPayoutService : IProviderPayoutService
             GatewayType = PaymentGatewayType.Other,
             TransactionStatus = PaymentStatus.Completed,
             EscrowStatus = EscrowStatus.Released,
-            Amount = order.TotalAmount,
+            Amount = netAmount,
             TransactionTimestamp = processedAtUtc,
-            Description = $"Provider payout for order #{order.Id.ToString()[..8]}",
+            Description = $"Provider payout (net) for order #{order.Id.ToString()[..8]}",
+            TransactionLog = note,
+            CreatedAt = processedAtUtc
+        });
+
+        _db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = Guid.NewGuid(),
+            OrderID = order.Id,
+            WalletID = null,
+            PayoutRecordID = payoutRecord.Id,
+            TransactionType = TransactionType.PlatformOrderFee,
+            GatewayType = PaymentGatewayType.Other,
+            TransactionStatus = PaymentStatus.Completed,
+            EscrowStatus = EscrowStatus.Released,
+            Amount = feeAmount,
+            TransactionTimestamp = processedAtUtc,
+            Description = $"Platform order fee (1%) for order #{order.Id.ToString()[..8]}",
             TransactionLog = note,
             CreatedAt = processedAtUtc
         });
@@ -144,7 +172,9 @@ public class ProviderPayoutService : IProviderPayoutService
         return Result<ProviderPayoutResult>.Success(new ProviderPayoutResult(
             payoutRecord.Id,
             providerWallet.Id,
-            order.TotalAmount,
+            grossAmount,
+            feeAmount,
+            netAmount,
             providerName));
     }
 

@@ -65,7 +65,7 @@ public class PayProviderCommandHandler : IPayProviderCommandHandler
         return Result<PayProviderResponse>.Success(
             new PayProviderResponse(
                 payout.PayoutRecordId,
-                payout.Amount,
+                payout.NetAmount,
                 payout.ProviderName));
     }
 }

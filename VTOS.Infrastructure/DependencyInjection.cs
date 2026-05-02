@@ -403,6 +403,10 @@ public static class DependencyInjection
             VTOS.Application.Features.Providers.Queries.GetProviderDirectOrderDetailQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderOrderStatsQueryHandler,
             VTOS.Application.Features.Providers.Queries.GetProviderOrderStatsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Queries.IGetProviderCatalogQueryHandler,
+            VTOS.Application.Features.Providers.Queries.GetProviderCatalogQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpsertProviderCatalogItemCommandHandler,
+            VTOS.Application.Features.Providers.Commands.UpsertProviderCatalogItemCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IAcceptDirectOrderCommandHandler,
             VTOS.Application.Features.Providers.Commands.AcceptDirectOrderCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateDirectOrderInProductionCommandHandler,

@@ -22,10 +22,19 @@ public class GetDashboardAnalyticsQueryHandler : IGetDashboardAnalyticsQueryHand
         var totalUsers = await _context.Users.Where(u => !u.IsDeleted).CountAsync(cancellationToken);
         var totalSchools = await _context.Schools.Where(s => !s.IsDeleted).CountAsync(cancellationToken);
         var totalProviders = await _context.Providers.Where(p => !p.IsDeleted).CountAsync(cancellationToken);
+        var totalParents = await _context.Users
+            .Where(u => !u.IsDeleted && u.Role.RoleName == "Parent")
+            .CountAsync(cancellationToken);
         var totalOrders = await _context.Orders.Where(o => o.OrderStatus != OrderStatus.Cancelled).CountAsync(cancellationToken);
         var totalRevenue = await _context.Orders
             .Where(o => o.OrderStatus == OrderStatus.Delivered)
             .SumAsync(o => o.TotalAmount, cancellationToken);
+        var pendingApprovals = await _context.AccountRequests
+            .Where(a => a.Status == AccountRequestStatus.Pending)
+            .CountAsync(cancellationToken);
+        var pendingWithdrawals = await _context.WalletWithdrawalRequests
+            .Where(w => w.Status == "Pending")
+            .CountAsync(cancellationToken);
 
         // Get date range
         var now = DateTime.UtcNow;
@@ -60,6 +69,55 @@ public class GetDashboardAnalyticsQueryHandler : IGetDashboardAnalyticsQueryHand
             .Select(x => new MonthlyRevenueDto($"{x.Year}-{x.Month:D2}", x.Revenue))
             .ToList();
 
+        // Users per month by role
+        var usersPerMonthTemp = await _context.Users
+            .Where(u => !u.IsDeleted && u.CreatedAt >= startDate)
+            .GroupBy(u => new { u.CreatedAt.Year, u.CreatedAt.Month, u.Role.RoleName })
+            .Select(g => new
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                Role = g.Key.RoleName,
+                Count = g.Count()
+            })
+            .OrderBy(x => x.Year).ThenBy(x => x.Month).ThenBy(x => x.Role)
+            .ToListAsync(cancellationToken);
+
+        var usersPerMonth = usersPerMonthTemp
+            .Select(x => new MonthlyUserDto($"{x.Year}-{x.Month:D2}", x.Role, x.Count))
+            .ToList();
+
+        // System status breakdowns
+        var orderStatusBreakdownTemp = await _context.Orders
+            .GroupBy(o => o.OrderStatus)
+            .Select(g => new
+            {
+                Status = g.Key,
+                Count = g.Count(),
+                TotalAmount = g.Sum(o => o.TotalAmount)
+            })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync(cancellationToken);
+
+        var orderStatusBreakdown = orderStatusBreakdownTemp
+            .Select(x => new StatusBreakdownDto(x.Status.ToString(), x.Count, x.TotalAmount))
+            .ToList();
+
+        var paymentStatusBreakdownTemp = await _context.PaymentTransactions
+            .GroupBy(p => p.TransactionStatus)
+            .Select(g => new
+            {
+                Status = g.Key,
+                Count = g.Count(),
+                TotalAmount = g.Sum(p => p.Amount)
+            })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync(cancellationToken);
+
+        var paymentStatusBreakdown = paymentStatusBreakdownTemp
+            .Select(x => new StatusBreakdownDto(x.Status.ToString(), x.Count, x.TotalAmount))
+            .ToList();
+
         // Top selling uniforms
         var topSellingTemp = await _context.OrderItems
             .Include(oi => oi.ProductVariant)
@@ -85,10 +143,16 @@ public class GetDashboardAnalyticsQueryHandler : IGetDashboardAnalyticsQueryHand
             totalUsers,
             totalSchools,
             totalProviders,
+            totalParents,
             totalOrders,
             totalRevenue,
+            pendingApprovals,
+            pendingWithdrawals,
             ordersPerMonth,
             revenuePerMonth,
+            usersPerMonth,
+            orderStatusBreakdown,
+            paymentStatusBreakdown,
             topSelling
         );
     }
