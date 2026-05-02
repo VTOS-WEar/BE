@@ -87,12 +87,17 @@ public class GetOutfitDetailQueryHandler
             .ToList();
 
         var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
         var matchingPublicationProviders = await _context.SemesterPublicationProviders
             .AsNoTracking()
             .Where(spp =>
                 spp.Status == SemPublicationProviderStatus.Active
                 && spp.SemesterPublication.Status == SemesterPublicationStatus.Active
                 && spp.SemesterPublication.StartDate <= now
+                && spp.ContractID.HasValue
+                && spp.Contract != null
+                && usableContractStatuses.Contains(spp.Contract.Status)
+                && spp.Contract.ExpiresAt > now
                 && spp.SemesterPublication.Outfits.Any(spo => spo.OutfitID == query.OutfitId))
             .Select(spp => new
             {
@@ -114,38 +119,24 @@ public class GetOutfitDetailQueryHandler
                 matchingPublicationProviders.Select(spp => spp.Id).Contains(item.SemesterPublicationProviderID))
             .ToListAsync(ct);
 
-        var contractIds = matchingPublicationProviders
-            .Where(x => x.ContractID.HasValue)
-            .Select(x => x.ContractID!.Value)
-            .Distinct()
-            .ToList();
-
-        var contractItems = await _context.ContractItems
-            .AsNoTracking()
-            .Where(ci => ci.OutfitID == query.OutfitId && contractIds.Contains(ci.ContractID))
-            .ToListAsync(ct);
-
         var campaignOptions = matchingPublicationProviders
             .Select(spp =>
             {
                 var catalogItem = catalogItems.FirstOrDefault(item => item.SemesterPublicationProviderID == spp.Id);
-                var contractItem = spp.ContractID.HasValue
-                    ? contractItems.FirstOrDefault(ci => ci.ContractID == spp.ContractID.Value)
-                    : null;
 
-                if (catalogItem == null && contractItem == null)
+                if (catalogItem == null)
                     return null;
 
-                var publicationPrice = catalogItem?.PublicationPrice ?? contractItem!.PricePerUnit;
-                var postDeadlinePrice = catalogItem?.PostDeadlinePrice ?? contractItem!.PricePerUnit;
+                var publicationPrice = catalogItem.PublicationPrice;
+                var postDeadlinePrice = catalogItem.PostDeadlinePrice;
 
                 return new OutfitCampaignOptionDto(
                     spp.PublicationId,
-                    catalogItem?.DisplayName ?? $"{outfit.OutfitName} - {spp.ProviderName}",
+                    catalogItem.DisplayName ?? $"{outfit.OutfitName} - {spp.ProviderName}",
                     spp.PublicationStatus,
                     spp.StartDate,
                     spp.EndDate,
-                    catalogItem?.Id ?? contractItem!.Id,
+                    catalogItem.Id,
                     spp.EndDate >= now ? publicationPrice : postDeadlinePrice,
                     null
                 );

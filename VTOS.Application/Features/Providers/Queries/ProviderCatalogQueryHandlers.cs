@@ -33,12 +33,20 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
         if (!providerId.HasValue)
             return Result<ProviderCatalogResponse>.Failure("Provider not found for current user.", "PROVIDER_NOT_FOUND");
 
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+
         var publicationProviders = await _context.SemesterPublicationProviders
             .AsNoTracking()
             .Include(x => x.SemesterPublication)
                 .ThenInclude(x => x.School)
             .Include(x => x.Contract)
             .Where(x => x.ProviderID == providerId.Value)
+            .Where(x =>
+                x.ContractID.HasValue
+                && x.Contract != null
+                && usableContractStatuses.Contains(x.Contract.Status)
+                && x.Contract.ExpiresAt > now)
             .ToListAsync(cancellationToken);
 
         var publicationIds = publicationProviders.Select(x => x.SemesterPublicationID).Distinct().ToList();

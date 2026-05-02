@@ -155,10 +155,13 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
                 "MISSING_PUBLICATION");
         }
 
+        var now = DateTime.UtcNow;
+        var usableContractStatuses = new[] { "Active", "InUse" };
+
         var publication = await _context.SemesterPublications
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                sp => sp.Id == command.CampaignId.Value && sp.Status != SemesterPublicationStatus.Draft,
+                sp => sp.Id == command.CampaignId.Value && sp.Status == SemesterPublicationStatus.Active,
                 cancellationToken);
 
         if (publication == null)
@@ -201,7 +204,11 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
                 outfitIds.Contains(ci.OutfitID) &&
                 (ci.Status == ProviderCatalogItemStatus.Published || ci.Status == ProviderCatalogItemStatus.Ready) &&
                 ci.SemesterPublicationProvider.SemesterPublicationID == publication.Id &&
-                ci.SemesterPublicationProvider.Status == SemPublicationProviderStatus.Active)
+                ci.SemesterPublicationProvider.Status == SemPublicationProviderStatus.Active &&
+                ci.SemesterPublicationProvider.ContractID.HasValue &&
+                ci.SemesterPublicationProvider.Contract != null &&
+                usableContractStatuses.Contains(ci.SemesterPublicationProvider.Contract.Status) &&
+                ci.SemesterPublicationProvider.Contract.ExpiresAt > now)
             .Select(ci => ci.ProviderID)
             .Distinct()
             .ToListAsync(cancellationToken);
@@ -219,7 +226,11 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             .FirstOrDefaultAsync(
                 spp => spp.SemesterPublicationID == publication.Id
                     && spp.ProviderID == providerId
-                    && spp.Status == SemPublicationProviderStatus.Active,
+                    && spp.Status == SemPublicationProviderStatus.Active
+                    && spp.ContractID.HasValue
+                    && spp.Contract != null
+                    && usableContractStatuses.Contains(spp.Contract.Status)
+                    && spp.Contract.ExpiresAt > now,
                 cancellationToken);
 
         if (publicationProvider == null)
@@ -238,42 +249,27 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
                 && (ci.Status == ProviderCatalogItemStatus.Published || ci.Status == ProviderCatalogItemStatus.Ready))
             .ToListAsync(cancellationToken);
 
-        var contractItems = publicationProvider.ContractID.HasValue
-            ? await _context.ContractItems
-                .AsNoTracking()
-                .Where(ci => ci.ContractID == publicationProvider.ContractID.Value && outfitIds.Contains(ci.OutfitID))
-                .ToListAsync(cancellationToken)
-            : new List<ContractItem>();
-
-        var pricingMode = ResolvePricingMode(publication.EndDate, DateTime.UtcNow);
+        var pricingMode = ResolvePricingMode(publication.EndDate, now);
         var pricingByOutfit = new Dictionary<Guid, (decimal PublicationPrice, decimal PostDeadlinePrice)>();
 
         foreach (var outfitId in outfitIds)
         {
             var catalogItem = catalogItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
-            if (catalogItem != null)
+            if (catalogItem == null)
             {
-                if (catalogItem.PostDeadlinePrice < catalogItem.PublicationPrice)
-                {
-                    return Result<CheckoutContext>.Failure(
-                        "Provider listing data is invalid because post-deadline price is lower than publication price.",
-                        "INVALID_CATALOG_PRICING");
-                }
-
-                pricingByOutfit[outfitId] = (catalogItem.PublicationPrice, catalogItem.PostDeadlinePrice);
-                continue;
+                return Result<CheckoutContext>.Failure(
+                    "One or more outfits are not available for this provider in the selected semester publication.",
+                    "CATALOG_ITEM_NOT_AVAILABLE");
             }
 
-            var contractItem = contractItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
-            if (contractItem != null)
+            if (catalogItem.PostDeadlinePrice < catalogItem.PublicationPrice)
             {
-                pricingByOutfit[outfitId] = (contractItem.PricePerUnit, contractItem.PricePerUnit);
-                continue;
+                return Result<CheckoutContext>.Failure(
+                    "Provider listing data is invalid because post-deadline price is lower than publication price.",
+                    "INVALID_CATALOG_PRICING");
             }
 
-            return Result<CheckoutContext>.Failure(
-                "One or more outfits are not available for this provider in the selected semester publication.",
-                "CATALOG_ITEM_NOT_AVAILABLE");
+            pricingByOutfit[outfitId] = (catalogItem.PublicationPrice, catalogItem.PostDeadlinePrice);
         }
 
         return Result<CheckoutContext>.Success(new CheckoutContext(

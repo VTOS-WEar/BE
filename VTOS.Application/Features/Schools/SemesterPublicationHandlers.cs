@@ -477,11 +477,13 @@ public class ApproveProviderCommandHandler : IApproveProviderCommandHandler
         if (duplicate)
             return Result<SemesterPublicationDetailDto>.Failure("Provider is already approved for this publication.", "DUPLICATE_PROVIDER");
 
+        var now = DateTime.UtcNow;
         var usableContractStatuses = new[] { "Active", "InUse" };
         IQueryable<Contract> contractQuery = _db.Contracts.AsNoTracking()
             .Where(x => x.SchoolID == publication.SchoolID
                      && x.ProviderID == command.ProviderId
-                     && usableContractStatuses.Contains(x.Status));
+                     && usableContractStatuses.Contains(x.Status)
+                     && x.ExpiresAt > now);
 
         if (command.ContractId.HasValue)
             contractQuery = contractQuery.Where(x => x.Id == command.ContractId.Value);
@@ -501,10 +503,10 @@ public class ApproveProviderCommandHandler : IApproveProviderCommandHandler
             ProviderID = command.ProviderId,
             ContractID = contract.Id,
             Status = SemPublicationProviderStatus.Active,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now
         });
 
-        publication.UpdatedAt = DateTime.UtcNow;
+        publication.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
 
         return Result<SemesterPublicationDetailDto>.Success(await _context.BuildDetailDtoAsync(publication, ct));
