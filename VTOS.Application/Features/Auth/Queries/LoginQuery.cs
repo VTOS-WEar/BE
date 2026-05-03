@@ -8,7 +8,8 @@ namespace VTOS.Application.Features.Auth.Queries;
 /// </summary>
 public record LoginQuery(
     string Email,
-    string Password
+    string Password,
+    string TurnstileToken
 );
 
 /// <summary>

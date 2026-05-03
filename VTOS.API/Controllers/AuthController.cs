@@ -159,7 +159,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var query = new LoginQuery(request.Email, request.Password);
+        var query = new LoginQuery(request.Email, request.Password, request.TurnstileToken);
 
         // Validate
         var validationResult = await _loginValidator.ValidateAsync(query, cancellationToken);

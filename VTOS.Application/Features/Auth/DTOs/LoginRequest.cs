@@ -5,5 +5,6 @@ namespace VTOS.Application.Features.Auth.DTOs;
 /// </summary>
 public record LoginRequest(
     string Email,
-    string Password
+    string Password,
+    string TurnstileToken
 );

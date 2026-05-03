@@ -14,6 +14,7 @@ public class LoginQueryHandler : ILoginQueryHandler
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly ITurnstileVerifier _turnstileVerifier;
 
     // Roles that MUST have 2FA enabled
     private static readonly HashSet<string> MandatoryTwoFactorRoles = new(StringComparer.OrdinalIgnoreCase)
@@ -24,17 +25,41 @@ public class LoginQueryHandler : ILoginQueryHandler
     public LoginQueryHandler(
         IApplicationDbContext context,
         IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator)
+        IJwtTokenGenerator jwtTokenGenerator,
+        ITurnstileVerifier turnstileVerifier)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _turnstileVerifier = turnstileVerifier;
     }
 
     public async Task<Result<LoginResponse>> HandleAsync(
         LoginQuery query,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(query.TurnstileToken))
+        {
+            return Result<LoginResponse>.Failure(
+                "Captcha verification is required.",
+                "CAPTCHA_REQUIRED");
+        }
+
+        if (query.TurnstileToken.Length > 2048)
+        {
+            return Result<LoginResponse>.Failure(
+                "Captcha verification token is invalid.",
+                "CAPTCHA_INVALID");
+        }
+
+        var turnstileResult = await _turnstileVerifier.VerifyAsync(query.TurnstileToken, cancellationToken);
+        if (!turnstileResult.Success)
+        {
+            return Result<LoginResponse>.Failure(
+                "Captcha verification failed. Please try again.",
+                "CAPTCHA_INVALID");
+        }
+
         // Find user by email (include Role for response)
         var user = await _context.Users
             .Include(u => u.Role)
