@@ -31,8 +31,15 @@ public interface IGetParentTryOnHistoryQueryHandler
 public class GetParentTryOnHistoryQueryHandler : IGetParentTryOnHistoryQueryHandler
 {
     private readonly IApplicationDbContext _db;
+    private readonly ITryOnImageAccessService _tryOnImageAccessService;
 
-    public GetParentTryOnHistoryQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetParentTryOnHistoryQueryHandler(
+        IApplicationDbContext db,
+        ITryOnImageAccessService tryOnImageAccessService)
+    {
+        _db = db;
+        _tryOnImageAccessService = tryOnImageAccessService;
+    }
 
     public async Task<Result<GetParentTryOnHistoryResponse>> HandleAsync(
         GetParentTryOnHistoryQuery query, CancellationToken ct = default)
@@ -46,18 +53,20 @@ public class GetParentTryOnHistoryQueryHandler : IGetParentTryOnHistoryQueryHand
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Include(t => t.Outfit)
-            .Select(t => new TryOnHistoryDto(
-                t.Id,
-                t.OutfitID,
-                t.Outfit != null ? t.Outfit.OutfitName : "Unknown",
-                t.Outfit != null ? t.Outfit.MainImageURL : null,
-                t.ResultPhotoURL,
-                t.UploadedPhotoURL,
-                t.TryOnTimestamp
-            ))
+            .Select(t => t)
             .ToListAsync(ct);
 
+        var dtos = items.Select(t => new TryOnHistoryDto(
+            t.Id,
+            t.OutfitID,
+            t.Outfit != null ? t.Outfit.OutfitName : "Unknown",
+            t.Outfit != null ? t.Outfit.MainImageURL : null,
+            _tryOnImageAccessService.CreateImageUrl(t, TryOnImageAssetKind.Result) ?? t.ResultPhotoURL,
+            _tryOnImageAccessService.CreateImageUrl(t, TryOnImageAssetKind.Uploaded) ?? t.UploadedPhotoURL,
+            t.TryOnTimestamp
+        )).ToList();
+
         return Result<GetParentTryOnHistoryResponse>.Success(
-            new GetParentTryOnHistoryResponse(items, total, query.Page, query.PageSize));
+            new GetParentTryOnHistoryResponse(dtos, total, query.Page, query.PageSize));
     }
 }

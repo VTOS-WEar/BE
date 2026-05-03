@@ -24,11 +24,22 @@ public class TryOnHistoryConfiguration : IEntityTypeConfiguration<TryOnHistory>
             .IsRequired();
 
         builder.Property(toh => toh.UploadedPhotoURL)
-            .IsRequired()
             .HasMaxLength(500);
 
         builder.Property(toh => toh.ResultPhotoURL)
             .HasMaxLength(500);
+
+        builder.Property(toh => toh.UploadedPhotoObjectKey)
+            .HasMaxLength(1024);
+
+        builder.Property(toh => toh.UploadedPhotoContentType)
+            .HasMaxLength(100);
+
+        builder.Property(toh => toh.ResultPhotoObjectKey)
+            .HasMaxLength(1024);
+
+        builder.Property(toh => toh.ResultPhotoContentType)
+            .HasMaxLength(100);
 
         builder.Property(toh => toh.TryOnTimestamp)
             .IsRequired();

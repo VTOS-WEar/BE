@@ -24,20 +24,26 @@ public class TryOnSettings
 public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
 {
     private readonly IApplicationDbContext _context;
-    private readonly IImageUploadService _imageUploadService;
+    private readonly IPrivateImageStorageService _privateImageStorageService;
+    private readonly IImageDownloadService _imageDownloadService;
+    private readonly ITryOnImageAccessService _tryOnImageAccessService;
     private readonly IVirtualTryOnService _virtualTryOnService;
     private readonly ILogger<GuestTryOnCommandHandler> _logger;
     private readonly int _maxTriesPerSession;
 
     public GuestTryOnCommandHandler(
         IApplicationDbContext context,
-        IImageUploadService imageUploadService,
+        IPrivateImageStorageService privateImageStorageService,
+        IImageDownloadService imageDownloadService,
+        ITryOnImageAccessService tryOnImageAccessService,
         IVirtualTryOnService virtualTryOnService,
         ILogger<GuestTryOnCommandHandler> logger,
         IOptions<TryOnSettings> settings)
     {
         _context = context;
-        _imageUploadService = imageUploadService;
+        _privateImageStorageService = privateImageStorageService;
+        _imageDownloadService = imageDownloadService;
+        _tryOnImageAccessService = tryOnImageAccessService;
         _virtualTryOnService = virtualTryOnService;
         _logger = logger;
         _maxTriesPerSession = settings.Value.MaxGuestTriesPerSession;
@@ -93,17 +99,24 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
         }
 
         // Step 4: Upload human photo to get public URL
+        PrivateImageUploadResult humanImage;
         string humanImageUrl;
         try
         {
             await using var stream = command.Photo.OpenReadStream();
-            humanImageUrl = await _imageUploadService.UploadAsync(
+            humanImage = await _privateImageStorageService.UploadPrivateAsync(
                 stream, 
                 command.Photo.FileName, 
                 "tryon",
+                command.Photo.ContentType,
                 cancellationToken);
 
-            _logger.LogDebug("Human photo uploaded: {Url}", humanImageUrl);
+            humanImageUrl = await _privateImageStorageService.CreateReadUrlAsync(
+                humanImage.ObjectKey,
+                TimeSpan.FromMinutes(5),
+                cancellationToken);
+
+            _logger.LogDebug("Human photo uploaded privately: {ObjectKey}", humanImage.ObjectKey);
         }
         catch (Exception ex)
         {
@@ -137,33 +150,20 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
                 "TRYON_FAILED");
         }
 
-        // Step 7: If result is a base64 data URL, upload to MinIO to get a proper URL
+        // Step 7: Upload the generated result to private MinIO storage.
         var resultImageUrl = tryOnResult.ImageUrl;
-        if (resultImageUrl.StartsWith("data:image/"))
+        PrivateImageUploadResult resultImage;
+        try
         {
-            try
-            {
-                // Parse: data:image/jpeg;base64,/9j/4AAQ...
-                var commaIdx = resultImageUrl.IndexOf(',');
-                var base64Data = resultImageUrl.Substring(commaIdx + 1);
-                var headerPart = resultImageUrl.Substring(0, commaIdx); // data:image/jpeg;base64
-                var mimeType = headerPart.Replace("data:", "").Replace(";base64", ""); // image/jpeg
-                var ext = mimeType.Contains("png") ? "png" : "jpg";
-
-                var imageBytes = Convert.FromBase64String(base64Data);
-                using var ms = new MemoryStream(imageBytes);
-                var fileName = $"tryon-result-{Guid.NewGuid():N}.{ext}";
-
-                resultImageUrl = await _imageUploadService.UploadAsync(
-                    ms, fileName, "tryon-results", cancellationToken);
-
-                _logger.LogInformation("Try-on result uploaded to storage: {Url}", resultImageUrl);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to upload try-on result image, returning data URL directly");
-                // Fallback: still return data URL to client, but don't save to DB
-            }
+            resultImage = await StoreTryOnResultAsync(resultImageUrl, cancellationToken);
+            _logger.LogInformation("Try-on result uploaded privately: {ObjectKey}", resultImage.ObjectKey);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to secure try-on result image");
+            return Result<GuestTryOnResponse>.Failure(
+                "Failed to secure try-on result image. Please try again.",
+                "TRYON_RESULT_STORAGE_FAILED");
         }
 
         // Step 8: Save to TryOnHistory
@@ -172,8 +172,14 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
             GuestSessionID = guestSessionId,
             UserID = command.UserId,
             OutfitID = command.OutfitId,
-            UploadedPhotoURL = humanImageUrl,
-            ResultPhotoURL = resultImageUrl,
+            UploadedPhotoURL = string.Empty,
+            ResultPhotoURL = null,
+            UploadedPhotoObjectKey = humanImage.ObjectKey,
+            UploadedPhotoContentType = humanImage.ContentType,
+            UploadedPhotoSizeBytes = humanImage.SizeBytes,
+            ResultPhotoObjectKey = resultImage.ObjectKey,
+            ResultPhotoContentType = resultImage.ContentType,
+            ResultPhotoSizeBytes = resultImage.SizeBytes,
             TryOnTimestamp = DateTime.UtcNow,
             SourcePlatform = "Web"
         };
@@ -184,14 +190,58 @@ public class GuestTryOnCommandHandler : IGuestTryOnCommandHandler
         _logger.LogInformation("Guest try-on completed. TryOnId: {TryOnId}, Session: {SessionId}", 
             history.Id, guestSessionId);
 
-        // Step 8: Return result with remaining tries
+        // Step 9: Return result with remaining tries
         var remainingTries = _maxTriesPerSession - (tryCount + 1);
+        var secureResultUrl = _tryOnImageAccessService.CreateImageUrl(history, TryOnImageAssetKind.Result);
 
         return Result<GuestTryOnResponse>.Success(new GuestTryOnResponse(
             history.Id,
-            resultImageUrl,
+            secureResultUrl ?? string.Empty,
             guestSessionId,
             remainingTries
         ));
+    }
+
+    private async Task<PrivateImageUploadResult> StoreTryOnResultAsync(
+        string resultImageUrl,
+        CancellationToken cancellationToken)
+    {
+        if (resultImageUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            var commaIdx = resultImageUrl.IndexOf(',');
+            if (commaIdx < 0)
+            {
+                throw new InvalidOperationException("Try-on result data URL is malformed.");
+            }
+
+            var base64Data = resultImageUrl[(commaIdx + 1)..];
+            var headerPart = resultImageUrl[..commaIdx];
+            var mimeType = headerPart.Replace("data:", string.Empty).Replace(";base64", string.Empty);
+            var ext = mimeType.Contains("png", StringComparison.OrdinalIgnoreCase)
+                ? "png"
+                : mimeType.Contains("webp", StringComparison.OrdinalIgnoreCase)
+                    ? "webp"
+                    : "jpg";
+
+            var imageBytes = Convert.FromBase64String(base64Data);
+            using var ms = new MemoryStream(imageBytes);
+            var fileName = $"tryon-result-{Guid.NewGuid():N}.{ext}";
+
+            return await _privateImageStorageService.UploadPrivateAsync(
+                ms,
+                fileName,
+                "tryon-results",
+                mimeType,
+                cancellationToken);
+        }
+
+        var downloaded = await _imageDownloadService.DownloadAsync(resultImageUrl, cancellationToken);
+        using var downloadedStream = new MemoryStream(downloaded.Bytes);
+        return await _privateImageStorageService.UploadPrivateAsync(
+            downloadedStream,
+            downloaded.FileName,
+            "tryon-results",
+            downloaded.ContentType,
+            cancellationToken);
     }
 }

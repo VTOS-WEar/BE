@@ -50,6 +50,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.LastLogin);
 
+        builder.Property(u => u.TermsAcceptedAt);
+
+        builder.Property(u => u.TermsVersion)
+            .HasMaxLength(32);
+
+        builder.Property(u => u.ImageConsentAcceptedAt);
+
         // Password Reset Token (SHA-256 hash = 64 chars)
         builder.Property(u => u.PasswordResetToken)
             .HasMaxLength(64);

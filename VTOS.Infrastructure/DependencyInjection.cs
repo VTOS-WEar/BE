@@ -84,6 +84,7 @@ public static class DependencyInjection
         services.Configure<GeminiTryOnSettings>(configuration.GetSection(GeminiTryOnSettings.SectionName));
         services.Configure<TryOnProviderSettings>(configuration.GetSection(TryOnProviderSettings.SectionName));
         services.Configure<MinioSettings>(configuration.GetSection(MinioSettings.SectionName));
+        services.Configure<TryOnImageSecuritySettings>(configuration.GetSection(TryOnImageSecuritySettings.SectionName));
 
 
         // Register PayOS Settings
@@ -123,7 +124,12 @@ public static class DependencyInjection
             );
             return selector;
         });
-        services.AddSingleton<IImageUploadService, MinioImageService>();
+        services.AddSingleton<MinioImageService>();
+        services.AddSingleton<IImageUploadService>(sp => sp.GetRequiredService<MinioImageService>());
+        services.AddSingleton<IPrivateImageStorageService>(sp => sp.GetRequiredService<MinioImageService>());
+        services.AddScoped<ITryOnImageAccessService, TryOnImageAccessService>();
+        services.AddSingleton<IImageWatermarkService, ImageWatermarkService>();
+        services.AddHttpClient<IImageDownloadService, ImageDownloadService>();
 
         //Register PayOS Service
         services.AddHttpClient<IPayOSService, PayOSService>();

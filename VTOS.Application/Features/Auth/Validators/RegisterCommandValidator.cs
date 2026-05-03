@@ -27,5 +27,12 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
             .NotEmpty().WithMessage("Full name is required")
             .MinimumLength(2).WithMessage("Full name must be at least 2 characters")
             .MaximumLength(100).WithMessage("Full name must not exceed 100 characters");
+
+        RuleFor(x => x.AcceptedTerms)
+            .Equal(true).WithMessage("You must accept the terms of use");
+
+        RuleFor(x => x.TermsVersion)
+            .NotEmpty().WithMessage("Terms version is required")
+            .MaximumLength(32).WithMessage("Terms version must not exceed 32 characters");
     }
 }

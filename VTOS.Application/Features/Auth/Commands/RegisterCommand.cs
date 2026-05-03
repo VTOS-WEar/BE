@@ -10,7 +10,9 @@ public record RegisterCommand(
     string Email,
     string Password,
     string FullName,
-    string? RoleName = null
+    string? RoleName = null,
+    bool AcceptedTerms = false,
+    string? TermsVersion = null
 );
 
 /// <summary>

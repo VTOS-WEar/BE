@@ -26,7 +26,9 @@ internal static class AccountRequestMapper
         r.ProcessedByUser?.FullName,
         r.CreatedUserId,
         r.CreatedAt,
-        r.ProcessedAt
+        r.ProcessedAt,
+        r.TermsAcceptedAt,
+        r.TermsVersion
     );
 
     internal static AccountRequestListItemDto MapToListDto(AccountRequest r) => new(
@@ -77,6 +79,9 @@ public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHa
         if (req.Address != null && req.Address.Length > 500)
             return Result<AccountRequestDetailDto>.Failure("Địa chỉ không được vượt quá 500 ký tự.", "ADDRESS_TOO_LONG");
 
+        if (!req.AcceptedTerms || string.IsNullOrWhiteSpace(req.TermsVersion))
+            return Result<AccountRequestDetailDto>.Failure("Vui lòng đồng ý với Điều khoản sử dụng.", "TERMS_NOT_ACCEPTED");
+
         // Check duplicate pending requests by email
         var existingRequest = await _context.AccountRequests
             .AnyAsync(ar => ar.ContactEmail == req.ContactEmail
@@ -86,6 +91,7 @@ public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHa
             return Result<AccountRequestDetailDto>.Failure(
                 "Đã có yêu cầu đang chờ xử lý với email này.", "DUPLICATE_REQUEST");
 
+        var acceptedAt = DateTime.UtcNow;
         var accountRequest = new AccountRequest
         {
             Id = Guid.NewGuid(),
@@ -97,7 +103,10 @@ public class SubmitAccountRequestCommandHandler : ISubmitAccountRequestCommandHa
             Address = req.Address?.Trim(),
             ContactPersonName = req.ContactPersonName?.Trim(),
             Status = AccountRequestStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = acceptedAt,
+            TermsAcceptedAt = acceptedAt,
+            TermsVersion = req.TermsVersion.Trim(),
+            ImageConsentAcceptedAt = acceptedAt,
         };
 
         _context.AccountRequests.Add(accountRequest);
@@ -202,7 +211,10 @@ public class CreateAccountForRequestCommandHandler : ICreateAccountForRequestCom
             RoleID = role.Id,
             IsActive = true,  // Active immediately (no OTP needed — admin-created)
             IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            TermsAcceptedAt = accountRequest.TermsAcceptedAt,
+            TermsVersion = accountRequest.TermsVersion,
+            ImageConsentAcceptedAt = accountRequest.ImageConsentAcceptedAt
         };
         _context.Users.Add(user);
 

@@ -90,13 +90,26 @@ public class AuthController : ControllerBase
             request.Email,
             request.Password,
             request.FullName,
-            request.RoleName
+            request.RoleName,
+            request.AcceptedTerms,
+            request.TermsVersion
         );
 
         // Validate
         var validationResult = await _registerValidator.ValidateAsync(command, cancellationToken);
         if (!validationResult.IsValid)
         {
+            if (validationResult.Errors.Any(e =>
+                    e.PropertyName == nameof(RegisterCommand.AcceptedTerms) ||
+                    e.PropertyName == nameof(RegisterCommand.TermsVersion)))
+            {
+                return BadRequest(new
+                {
+                    error = "You must accept the terms of use",
+                    code = "TERMS_NOT_ACCEPTED"
+                });
+            }
+
             return BadRequest(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
         }
 

@@ -27,7 +27,9 @@ public record AccountRequestDetailDto(
     string? ProcessedByName,
     Guid? CreatedUserId,
     DateTime CreatedAt,
-    DateTime? ProcessedAt
+    DateTime? ProcessedAt,
+    DateTime? TermsAcceptedAt,
+    string? TermsVersion
 );
 
 public record SubmitAccountRequestDto(
@@ -37,7 +39,9 @@ public record SubmitAccountRequestDto(
     string? ContactPersonName,
     int Type,         // 1=School, 2=Provider
     string? Description,
-    string? Address
+    string? Address,
+    bool AcceptedTerms = false,
+    string? TermsVersion = null
 );
 
 public record CreateAccountForRequestDto(

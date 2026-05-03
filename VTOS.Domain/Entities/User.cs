@@ -30,6 +30,11 @@ public class User : BaseEntity
     public string? GoogleId { get; set; }
     public string AuthProvider { get; set; } = "Local";
 
+    // Legal consent
+    public DateTime? TermsAcceptedAt { get; set; }
+    public string? TermsVersion { get; set; }
+    public DateTime? ImageConsentAcceptedAt { get; set; }
+
     // Two-Factor Authentication (TOTP)
     public bool IsTwoFactorEnabled { get; set; }
     public string? TwoFactorSecret { get; set; }
