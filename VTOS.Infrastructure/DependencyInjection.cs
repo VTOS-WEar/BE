@@ -17,6 +17,7 @@ using VTOS.Application.Features.Users.Commands;
 using VTOS.Application.Features.Users.Queries;
 using VTOS.Infrastructure.ExternalServices.Google;
 using VTOS.Infrastructure.ExternalServices.ImageStorage;
+using VTOS.Infrastructure.ExternalServices.Turnstile;
 using VTOS.Infrastructure.ExternalServices.TryOn;
 using VTOS.Infrastructure.Bodygram;
 using VTOS.Infrastructure.Persistence;
@@ -91,6 +92,9 @@ public static class DependencyInjection
         // Register Payment Settings
         services.Configure<PaymentSettings>(configuration.GetSection(PaymentSettings.SectionName));
 
+        // Register Cloudflare Turnstile Settings
+        services.Configure<TurnstileSettings>(configuration.GetSection(TurnstileSettings.SectionName));
+
         // Register Frontend Settings
         services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
 
@@ -153,6 +157,9 @@ public static class DependencyInjection
         services.AddHttpClient<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddScoped<VTOS.Application.Features.Auth.Commands.IGoogleLoginCommandHandler,
             VTOS.Application.Features.Auth.Commands.GoogleLoginCommandHandler>();
+
+        // Cloudflare Turnstile
+        services.AddHttpClient<ITurnstileVerifier, TurnstileVerifier>();
 
         // Register Validators
         services.AddValidatorsFromAssemblyContaining<RegisterCommandHandler>();
