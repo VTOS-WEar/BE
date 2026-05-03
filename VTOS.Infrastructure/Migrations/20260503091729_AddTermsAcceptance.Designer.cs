@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VTOS.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using VTOS.Infrastructure.Persistence;
 namespace VTOS.Infrastructure.Migrations
 {
     [DbContext(typeof(VTOSDbContext))]
-    partial class VTOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503091729_AddTermsAcceptance")]
+    partial class AddTermsAcceptance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2285,17 +2288,6 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<Guid>("OutfitID")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ResultPhotoContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ResultPhotoObjectKey")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<long?>("ResultPhotoSizeBytes")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("ResultPhotoURL")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -2313,18 +2305,8 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
-                    b.Property<string>("UploadedPhotoContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("UploadedPhotoObjectKey")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<long?>("UploadedPhotoSizeBytes")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("UploadedPhotoURL")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 

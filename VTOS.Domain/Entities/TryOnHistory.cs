@@ -8,8 +8,14 @@ public class TryOnHistory : AuditableEntity
     public Guid? UserID { get; set; }
     public Guid? ChildID { get; set; }
     public Guid OutfitID { get; set; }
-    public string UploadedPhotoURL { get; set; } = string.Empty;
+    public string? UploadedPhotoURL { get; set; }
     public string? ResultPhotoURL { get; set; }
+    public string? UploadedPhotoObjectKey { get; set; }
+    public string? UploadedPhotoContentType { get; set; }
+    public long? UploadedPhotoSizeBytes { get; set; }
+    public string? ResultPhotoObjectKey { get; set; }
+    public string? ResultPhotoContentType { get; set; }
+    public long? ResultPhotoSizeBytes { get; set; }
     public DateTime TryOnTimestamp { get; set; }
     public string? AlignmentAdjustment { get; set; }
     public string? SourcePlatform { get; set; }

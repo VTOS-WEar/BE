@@ -96,6 +96,8 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             _context.Providers.Add(providerEntity);
         }
 
+        var acceptedAt = DateTime.UtcNow;
+
         // Create new user (INACTIVE until email verified)
         var user = new User
         {
@@ -107,7 +109,10 @@ public class RegisterCommandHandler : IRegisterCommandHandler
             RoleID = role.Id,
             IsActive = false, // INACTIVE until email verified
             IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = acceptedAt,
+            TermsAcceptedAt = acceptedAt,
+            TermsVersion = command.TermsVersion?.Trim(),
+            ImageConsentAcceptedAt = acceptedAt
         };
 
         _context.Users.Add(user);

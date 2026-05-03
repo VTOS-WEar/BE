@@ -37,6 +37,13 @@ public class AccountRequestConfiguration : IEntityTypeConfiguration<AccountReque
         builder.Property(x => x.RejectionReason)
             .HasMaxLength(1000);
 
+        builder.Property(x => x.TermsAcceptedAt);
+
+        builder.Property(x => x.TermsVersion)
+            .HasMaxLength(32);
+
+        builder.Property(x => x.ImageConsentAcceptedAt);
+
         builder.HasOne(x => x.ProcessedByUser)
             .WithMany()
             .HasForeignKey(x => x.ProcessedByUserId)

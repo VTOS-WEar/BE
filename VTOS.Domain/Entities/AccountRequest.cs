@@ -18,6 +18,9 @@ public class AccountRequest : BaseEntity
     public string? Address { get; set; }
     public AccountRequestStatus Status { get; set; } = AccountRequestStatus.Pending;
     public string? RejectionReason { get; set; }
+    public DateTime? TermsAcceptedAt { get; set; }
+    public string? TermsVersion { get; set; }
+    public DateTime? ImageConsentAcceptedAt { get; set; }
 
     /// <summary>Admin user who processed this request</summary>
     public Guid? ProcessedByUserId { get; set; }
