@@ -11,7 +11,10 @@ public record GetProviderCatalogQuery(
     int Page = 1,
     int PageSize = 5,
     string? Status = null,
-    string? Search = null);
+    string? Search = null,
+    Guid? SchoolId = null,
+    Guid? SemesterPublicationProviderId = null,
+    string? AcademicYear = null);
 
 public interface IGetProviderCatalogQueryHandler
 {
@@ -142,7 +145,41 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
                 item.Status == ProviderCatalogItemStatus.Draft.ToString()))
         };
 
+        var schoolOptions = rows
+            .GroupBy(x => new { x.SchoolId, x.SchoolName })
+            .Select(group => new ProviderCatalogSchoolOptionDto
+            {
+                SchoolId = group.Key.SchoolId,
+                SchoolName = group.Key.SchoolName,
+                PublicationCount = group.Count(),
+                ActiveCount = group.Count(x =>
+                    x.ProviderStatus == SemPublicationProviderStatus.Active.ToString() &&
+                    x.PublicationStatus != SemesterPublicationStatus.Draft.ToString()),
+                NeedsSetupCount = group.Sum(x => x.Items.Count(item =>
+                    !item.CatalogItemId.HasValue ||
+                    item.Status == ProviderCatalogItemStatus.Draft.ToString()))
+            })
+            .OrderByDescending(x => x.ActiveCount)
+            .ThenBy(x => x.SchoolName)
+            .ToList();
+
         var filteredRows = rows.AsEnumerable();
+        if (query.SchoolId.HasValue)
+        {
+            filteredRows = filteredRows.Where(x => x.SchoolId == query.SchoolId.Value);
+        }
+
+        if (query.SemesterPublicationProviderId.HasValue)
+        {
+            filteredRows = filteredRows.Where(x => x.SemesterPublicationProviderId == query.SemesterPublicationProviderId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.AcademicYear))
+        {
+            var academicYear = query.AcademicYear.Trim();
+            filteredRows = filteredRows.Where(x => x.AcademicYear == academicYear);
+        }
+
         var status = query.Status?.Trim().ToLowerInvariant();
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
@@ -163,6 +200,9 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = query.Search.Trim().ToLowerInvariant();
+            schoolOptions = schoolOptions
+                .Where(x => x.SchoolName.ToLowerInvariant().Contains(search))
+                .ToList();
             filteredRows = filteredRows.Where(x =>
                 x.SchoolName.ToLowerInvariant().Contains(search) ||
                 x.Semester.ToLowerInvariant().Contains(search) ||
@@ -190,6 +230,7 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList(),
+            SchoolOptions = schoolOptions,
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize,

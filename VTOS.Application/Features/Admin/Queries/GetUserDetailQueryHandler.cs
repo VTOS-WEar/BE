@@ -23,6 +23,8 @@ public class GetUserDetailQueryHandler : IGetUserDetailQueryHandler
             .Include(u => u.ParentProfile)
             .Include(u => u.SchoolManager)
                 .ThenInclude(sm => sm!.School)
+            .Include(u => u.ProviderManager)
+                .ThenInclude(pm => pm!.Provider)
             .Include(u => u.ChildProfiles)
             .FirstOrDefaultAsync(u => u.Id == query.UserId && !u.IsDeleted, cancellationToken);
 
@@ -45,6 +47,8 @@ public class GetUserDetailQueryHandler : IGetUserDetailQueryHandler
             user.Role.RoleName,
             user.SchoolManager?.SchoolID,
             user.SchoolManager?.School?.SchoolName,
+            user.ProviderManager?.ProviderID,
+            user.ProviderManager?.Provider?.ProviderName,
             user.IsActive,
             user.CreatedAt,
             user.LastLogin,

@@ -3,6 +3,7 @@ namespace VTOS.Application.Features.Providers.DTOs;
 public class ProviderCatalogResponse
 {
     public List<ProviderCatalogPublicationDto> Publications { get; set; } = new();
+    public List<ProviderCatalogSchoolOptionDto> SchoolOptions { get; set; } = new();
     public int TotalCount { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; }
@@ -16,6 +17,15 @@ public class ProviderCatalogSummaryDto
     public int Items { get; set; }
     public int Published { get; set; }
     public int NeedsSetup { get; set; }
+}
+
+public class ProviderCatalogSchoolOptionDto
+{
+    public Guid SchoolId { get; set; }
+    public string SchoolName { get; set; } = string.Empty;
+    public int PublicationCount { get; set; }
+    public int ActiveCount { get; set; }
+    public int NeedsSetupCount { get; set; }
 }
 
 public class ProviderCatalogPublicationDto
