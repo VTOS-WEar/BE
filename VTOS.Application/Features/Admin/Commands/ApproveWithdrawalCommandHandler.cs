@@ -37,6 +37,9 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
         if (withdrawal.Status != "Pending")
             return Result<WithdrawalRequestResponse>.Failure($"Withdrawal request cannot be approved. Current status: {withdrawal.Status}", "WITHDRAWAL_NOT_APPROVABLE");
 
+        if (string.IsNullOrWhiteSpace(command.TransferProofImageUrl))
+            return Result<WithdrawalRequestResponse>.Failure("Transfer proof image is required.", "TRANSFER_PROOF_REQUIRED");
+
         var wallet = withdrawal.Wallet;
         if (wallet.Balance < withdrawal.Amount)
             return Result<WithdrawalRequestResponse>.Failure("Insufficient wallet balance.", "INSUFFICIENT_BALANCE");
@@ -46,8 +49,10 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
         wallet.Balance -= withdrawal.Amount;
         wallet.UpdatedAt = now;
 
-        withdrawal.Status = "Approved";
+        withdrawal.Status = "Paid";
         withdrawal.ApprovedAt = now;
+        withdrawal.PaidAt = now;
+        withdrawal.TransferProofImageUrl = command.TransferProofImageUrl.Trim();
         withdrawal.AdminNote = command.AdminNote;
 
         _db.PaymentTransactions.Add(new PaymentTransaction
@@ -88,8 +93,8 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
             {
                 await _notificationService.NotifyProviderAsync(
                     wallet.OwnerID,
-                    "Withdrawal approved",
-                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been approved.",
+                    "Withdrawal paid",
+                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been paid.",
                     "Withdrawal",
                     withdrawal.Id,
                     "WithdrawalRequest",
@@ -100,8 +105,8 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
             {
                 await _notificationService.CreateAsync(
                     wallet.OwnerID,
-                    "Withdrawal approved",
-                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been approved.",
+                    "Withdrawal paid",
+                    $"Withdrawal request for {withdrawal.Amount:N0} VND has been paid.",
                     "Withdrawal",
                     withdrawal.Id,
                     "WithdrawalRequest",
@@ -125,6 +130,8 @@ public class ApproveWithdrawalCommandHandler : IApproveWithdrawalCommandHandler
             Status = withdrawal.Status,
             RequestedAt = withdrawal.RequestedAt,
             ApprovedAt = withdrawal.ApprovedAt,
+            PaidAt = withdrawal.PaidAt,
+            TransferProofImageUrl = withdrawal.TransferProofImageUrl,
             AdminNote = withdrawal.AdminNote
         });
     }

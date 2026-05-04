@@ -22,6 +22,7 @@ public record ProviderWithdrawalRequestDto(
     DateTime RequestedAt,
     DateTime? ApprovedAt,
     DateTime? PaidAt,
+    string? TransferProofImageUrl,
     string? AdminNote
 );
 
@@ -93,6 +94,7 @@ public class GetProviderWithdrawalRequestsQueryHandler : IGetProviderWithdrawalR
                 wr.RequestedAt,
                 wr.ApprovedAt,
                 wr.PaidAt,
+                wr.TransferProofImageUrl,
                 wr.AdminNote
             ))
             .ToListAsync(ct);

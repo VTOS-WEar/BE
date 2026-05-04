@@ -43,6 +43,9 @@ public class WalletWithdrawalRequestConfiguration : IEntityTypeConfiguration<Wal
 
         builder.Property(w => w.PaidAt);
 
+        builder.Property(w => w.TransferProofImageUrl)
+            .HasMaxLength(500);
+
         builder.Property(w => w.AdminNote)
             .HasMaxLength(500);
 

@@ -32,7 +32,9 @@ public class GetProviderSupportTicketDetailQueryHandler : IGetProviderSupportTic
             .Include(x => x.Order)
             .Include(x => x.SemesterPublication)
             .Include(x => x.Provider)
-            .FirstOrDefaultAsync(x => x.Id == query.ComplaintId && x.ProviderID == providerMgr.ProviderID, ct);
+            .FirstOrDefaultAsync(x => x.Id == query.ComplaintId
+                && x.ProviderID == providerMgr.ProviderID
+                && x.RequesterRole != "Provider", ct);
 
         if (c == null)
             return Result<SupportTicketDetailDto>.Failure("SupportTicket not found.", "COMPLAINT_NOT_FOUND");

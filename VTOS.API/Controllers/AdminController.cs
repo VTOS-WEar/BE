@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Admin.Commands;
 using VTOS.Application.Features.Admin.Queries;
 
@@ -19,6 +20,7 @@ public class AdminController : ControllerBase
     private readonly IApproveWithdrawalCommandHandler _approveWithdrawalHandler;
     private readonly IRejectWithdrawalCommandHandler _rejectWithdrawalHandler;
     private readonly IGetWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
+    private readonly IImageUploadService _imageUploadService;
 
     // New handlers for user management (3.2.8, 3.2.11)
     private readonly IGetUserDetailQueryHandler _getUserDetailHandler;
@@ -77,6 +79,7 @@ public class AdminController : ControllerBase
         IApproveWithdrawalCommandHandler approveWithdrawalHandler,
         IRejectWithdrawalCommandHandler rejectWithdrawalHandler,
         IGetWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler,
+        IImageUploadService imageUploadService,
         IGetUserDetailQueryHandler getUserDetailHandler,
         IGetUserReportQueryHandler getUserReportHandler,
         IApproveSchoolRequestCommandHandler approveSchoolHandler,
@@ -116,6 +119,7 @@ public class AdminController : ControllerBase
         _approveWithdrawalHandler = approveWithdrawalHandler;
         _rejectWithdrawalHandler = rejectWithdrawalHandler;
         _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
+        _imageUploadService = imageUploadService;
         
         _getUserDetailHandler = getUserDetailHandler;
         _getUserReportHandler = getUserReportHandler;
@@ -229,11 +233,27 @@ public class AdminController : ControllerBase
     [HttpPost("withdrawals/{id}/approve")]
     public async Task<IActionResult> ApproveWithdrawal(
         Guid id,
-        [FromBody] ApproveWithdrawalRequest request,
+        [FromForm] ApproveWithdrawalRequest request,
         CancellationToken ct)
     {
+        if (request.TransferProofImage == null || request.TransferProofImage.Length == 0)
+            return BadRequest(new { error = "Transfer proof image is required.", code = "TRANSFER_PROOF_REQUIRED" });
+
+        if (request.TransferProofImage.Length > 5 * 1024 * 1024)
+            return BadRequest(new { error = "Transfer proof image must be 5MB or smaller.", code = "TRANSFER_PROOF_TOO_LARGE" });
+
+        if (!request.TransferProofImage.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { error = "Transfer proof must be an image file.", code = "TRANSFER_PROOF_INVALID_TYPE" });
+
+        await using var imageStream = request.TransferProofImage.OpenReadStream();
+        var proofImageUrl = await _imageUploadService.UploadAsync(
+            imageStream,
+            request.TransferProofImage.FileName,
+            "withdrawal-proofs",
+            ct);
+
         var result = await _approveWithdrawalHandler.HandleAsync(
-            new ApproveWithdrawalCommand(id, request.AdminNote), ct);
+            new ApproveWithdrawalCommand(id, proofImageUrl, request.AdminNote), ct);
 
         if (!result.IsSuccess)
         {
@@ -707,7 +727,11 @@ public class AdminController : ControllerBase
 }
 
 
-public record ApproveWithdrawalRequest(string? AdminNote);
+public class ApproveWithdrawalRequest
+{
+    public string? AdminNote { get; set; }
+    public IFormFile? TransferProofImage { get; set; }
+}
 public record RejectWithdrawalRequest(string? AdminNote);
 
 public record ApproveOrRejectRequest(
