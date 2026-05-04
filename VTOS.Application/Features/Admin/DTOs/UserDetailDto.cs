@@ -11,6 +11,8 @@ public record UserDetailDto(
     string Role,
     Guid? SchoolId,
     string? SchoolName,
+    Guid? ProviderId,
+    string? ProviderName,
     bool IsActive,
     DateTime CreatedAt,
     DateTime? LastLogin,

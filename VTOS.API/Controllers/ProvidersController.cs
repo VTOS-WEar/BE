@@ -151,10 +151,21 @@ public class ProvidersController : ControllerBase
         [FromQuery] int pageSize = 5,
         [FromQuery] string? status = null,
         [FromQuery] string? search = null,
+        [FromQuery] Guid? schoolId = null,
+        [FromQuery] Guid? semesterPublicationProviderId = null,
+        [FromQuery] string? academicYear = null,
         CancellationToken ct = default)
     {
         var result = await _getProviderCatalogHandler.HandleAsync(
-            new GetProviderCatalogQuery(_currentUser.UserId, page, pageSize, status, search), ct);
+            new GetProviderCatalogQuery(
+                _currentUser.UserId,
+                page,
+                pageSize,
+                status,
+                search,
+                schoolId,
+                semesterPublicationProviderId,
+                academicYear), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);
