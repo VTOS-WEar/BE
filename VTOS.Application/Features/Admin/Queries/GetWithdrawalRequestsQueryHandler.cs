@@ -77,6 +77,7 @@ public class GetWithdrawalRequestsQueryHandler : IGetWithdrawalRequestsQueryHand
                 RequestedAt = x.wr.RequestedAt,
                 ApprovedAt = x.wr.ApprovedAt,
                 PaidAt = x.wr.PaidAt,
+                TransferProofImageUrl = x.wr.TransferProofImageUrl,
                 AdminNote = x.wr.AdminNote
             })
             .ToListAsync(ct);

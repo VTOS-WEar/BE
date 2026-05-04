@@ -42,7 +42,8 @@ public class GetProviderSupportTicketsQueryHandler : IGetProviderSupportTicketsQ
             .Include(c => c.Order)
             .Include(c => c.SemesterPublication)
             .Include(c => c.Provider)
-            .Where(c => c.ProviderID == providerId);
+            .Where(c => c.ProviderID == providerId
+                && c.RequesterRole != "Provider");
 
         if (!string.IsNullOrWhiteSpace(query.Status) && Enum.TryParse<SupportTicketStatus>(query.Status, true, out var statusEnum))
             q = q.Where(c => c.Status == statusEnum);

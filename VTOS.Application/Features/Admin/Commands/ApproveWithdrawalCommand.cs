@@ -3,7 +3,7 @@ using VTOS.Application.Features.Schools.Commands;
 
 namespace VTOS.Application.Features.Admin.Commands;
 
-public record ApproveWithdrawalCommand(Guid WithdrawalRequestId, string? AdminNote);
+public record ApproveWithdrawalCommand(Guid WithdrawalRequestId, string TransferProofImageUrl, string? AdminNote);
 
 public interface IApproveWithdrawalCommandHandler
 {

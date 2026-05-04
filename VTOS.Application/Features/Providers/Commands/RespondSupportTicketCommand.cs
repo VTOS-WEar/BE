@@ -40,7 +40,9 @@ public class RespondSupportTicketCommandHandler : IRespondSupportTicketCommandHa
             return Result<string>.Failure("Provider not found.", "PROVIDER_NOT_FOUND");
 
         var ticket = await _db.SupportTickets
-            .FirstOrDefaultAsync(c => c.Id == command.ComplaintId && c.ProviderID == providerMgr.ProviderID, ct);
+            .FirstOrDefaultAsync(c => c.Id == command.ComplaintId
+                && c.ProviderID == providerMgr.ProviderID
+                && c.RequesterRole != "Provider", ct);
 
         if (ticket == null)
             return Result<string>.Failure("SupportTicket not found.", "COMPLAINT_NOT_FOUND");
