@@ -242,7 +242,7 @@ public class AdminController : ControllerBase
                 : BadRequest(new { error = result.Error, code = result.ErrorCode });
         }
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ Reject Withdrawal Request
@@ -262,7 +262,7 @@ public class AdminController : ControllerBase
                 : BadRequest(new { error = result.Error, code = result.ErrorCode });
         }
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ 3.2.8 View User Detail
@@ -545,7 +545,10 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return CreatedAtAction(nameof(GetCategories), new { id = result.Value }, result.Value);
+        return CreatedAtAction(
+            nameof(GetCategories),
+            new { id = result.Value },
+            new { id = result.Value, message = "Category created successfully" });
     }
 
     // ✅ 3.14.3 Update Uniform Category
@@ -561,7 +564,7 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ 3.14.4 Delete Uniform Category
@@ -576,7 +579,7 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ 3.14.5 Configure Uniform Size Template
@@ -591,7 +594,7 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return CreatedAtAction(nameof(GetCategories), new { id = result.Value }, result.Value);
+        return CreatedAtAction(nameof(GetCategories), new { message = result.Value }, new { message = result.Value });
     }
 
     // ✅ 3.14.6 Configure Default Size Chart
@@ -606,7 +609,7 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ 3.14.7 Configure Payment Method
@@ -621,7 +624,7 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ 3.14.8 Configure AI Try-On Settings
@@ -636,7 +639,7 @@ public class AdminController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
 
-        return Ok(result.Value);
+        return Ok(new { message = result.Value });
     }
 
     // ✅ 3.15.1 Monitor Payment Transactions
