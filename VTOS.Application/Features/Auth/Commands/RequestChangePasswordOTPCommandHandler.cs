@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Entities;
@@ -13,13 +14,16 @@ public class RequestChangePasswordOTPCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly ILogger<RequestChangePasswordOTPCommandHandler> _logger;
 
     public RequestChangePasswordOTPCommandHandler(
         IApplicationDbContext context,
-        IEmailService emailService)
+        IEmailService emailService,
+        ILogger<RequestChangePasswordOTPCommandHandler> logger)
     {
         _context = context;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<Result<string>> HandleAsync(
@@ -70,9 +74,10 @@ public class RequestChangePasswordOTPCommandHandler
         {
             await _emailService.SendChangePasswordOTPEmailAsync(user.Email, otpCode, cancellationToken);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Log error but don't fail - OTP is still valid
+            _logger.LogError(ex, "Failed to send change-password OTP to {Email}.", user.Email);
+            return Result<string>.Failure("Could not send OTP email.", "EMAIL_SEND_FAILED");
         }
 
         return Result<string>.Success("OTP has been sent to your email.");

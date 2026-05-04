@@ -9,6 +9,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Common.Settings;
 using VTOS.Application.Features.Admin.Queries;
 using VTOS.Application.Features.Admin.Commands;
+using VTOS.Application.Features.Account.Commands;
 using VTOS.Application.Features.Auth.Commands;
 using VTOS.Application.Features.Auth.Queries;
 using VTOS.Application.Features.Public.Queries;
@@ -147,6 +148,7 @@ public static class DependencyInjection
         services.AddScoped<ResetPasswordCommandHandler>();
         services.AddScoped<RequestChangePasswordOTPCommandHandler>();
         services.AddScoped<ChangePasswordCommandHandler>();
+        services.AddScoped<IUpdateAccountEmailCommandHandler, UpdateAccountEmailCommandHandler>();
 
         // Two-Factor Authentication
         services.AddScoped<ITotpService, VTOS.Infrastructure.ExternalServices.TwoFactor.TotpService>();
