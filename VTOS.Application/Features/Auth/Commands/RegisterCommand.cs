@@ -10,6 +10,7 @@ public record RegisterCommand(
     string Email,
     string Password,
     string FullName,
+    string TurnstileToken,
     string? RoleName = null,
     bool AcceptedTerms = false,
     string? TermsVersion = null
