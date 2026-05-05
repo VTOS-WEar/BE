@@ -15,21 +15,46 @@ public class RegisterCommandHandler : IRegisterCommandHandler
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _emailService;
+    private readonly ITurnstileVerifier _turnstileVerifier;
 
     public RegisterCommandHandler(
         IApplicationDbContext context,
         IPasswordHasher passwordHasher,
-        IEmailService emailService)
+        IEmailService emailService,
+        ITurnstileVerifier turnstileVerifier)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _emailService = emailService;
+        _turnstileVerifier = turnstileVerifier;
     }
 
     public async Task<Result<RegisterResponse>> HandleAsync(
         RegisterCommand command,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(command.TurnstileToken))
+        {
+            return Result<RegisterResponse>.Failure(
+                "Captcha verification is required.",
+                "CAPTCHA_REQUIRED");
+        }
+
+        if (command.TurnstileToken.Length > 2048)
+        {
+            return Result<RegisterResponse>.Failure(
+                "Captcha verification token is invalid.",
+                "CAPTCHA_INVALID");
+        }
+
+        var turnstileResult = await _turnstileVerifier.VerifyAsync(command.TurnstileToken, cancellationToken);
+        if (!turnstileResult.Success)
+        {
+            return Result<RegisterResponse>.Failure(
+                "Captcha verification failed. Please try again.",
+                "CAPTCHA_INVALID");
+        }
+
         var parentProfiles = _context.Set<ParentProfile>();
         var emailVerifications = _context.Set<EmailVerification>();
 

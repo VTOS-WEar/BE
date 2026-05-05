@@ -90,6 +90,7 @@ public class AuthController : ControllerBase
             request.Email,
             request.Password,
             request.FullName,
+            request.TurnstileToken,
             request.RoleName,
             request.AcceptedTerms,
             request.TermsVersion
