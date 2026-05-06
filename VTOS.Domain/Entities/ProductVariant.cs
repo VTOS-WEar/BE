@@ -9,6 +9,7 @@ namespace VTOS.Domain.Entities;
 public class ProductVariant : BaseEntity
 {
     public Guid OutfitID { get; set; }
+    public Guid? ProviderCatalogItemID { get; set; }
     public string Size { get; set; } = string.Empty;
     public string? ColorVariant { get; set; }
     public string? MaterialType { get; set; }
@@ -20,6 +21,7 @@ public class ProductVariant : BaseEntity
 
     // Navigation properties
     public Outfit Outfit { get; set; } = null!;
+    public ProviderCatalogItem? ProviderCatalogItem { get; set; }
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 }

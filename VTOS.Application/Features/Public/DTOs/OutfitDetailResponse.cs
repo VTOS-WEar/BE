@@ -14,7 +14,8 @@ public record OutfitCampaignOptionDto(
     DateTime EndDate,
     Guid CampaignOutfitId,
     decimal CampaignPrice,
-    int? MaxQuantity
+    int? MaxQuantity,
+    IEnumerable<ProductVariantDto> Variants
 );
 
 public record OutfitDetailResponse(

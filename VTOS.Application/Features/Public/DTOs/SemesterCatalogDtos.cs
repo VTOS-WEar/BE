@@ -43,6 +43,7 @@ public class SemesterCatalogProviderDto
     public decimal AverageRating { get; set; }
     public int TotalRatings { get; set; }
     public int TotalCompletedOrders { get; set; }
+    public List<ProductVariantDto> Variants { get; set; } = new();
 }
 
 public class PublicProviderProfileDto

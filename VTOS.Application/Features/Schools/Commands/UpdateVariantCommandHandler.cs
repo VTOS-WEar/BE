@@ -45,7 +45,7 @@ public class UpdateVariantCommandHandler : IUpdateVariantCommandHandler
 
         // Find the variant
         var variant = await _db.ProductVariants
-            .FirstOrDefaultAsync(v => v.Id == command.VariantId && v.OutfitID == command.OutfitId && !v.IsDeleted, ct);
+            .FirstOrDefaultAsync(v => v.Id == command.VariantId && v.OutfitID == command.OutfitId && v.ProviderCatalogItemID == null && !v.IsDeleted, ct);
 
         if (variant == null)
             return Result<ProductVariantDto>.Failure("Variant not found.", "VARIANT_NOT_FOUND");
@@ -54,7 +54,7 @@ public class UpdateVariantCommandHandler : IUpdateVariantCommandHandler
         if (command.Size != null && command.Size != variant.Size)
         {
             var duplicateSize = await _db.ProductVariants
-                .AnyAsync(v => v.OutfitID == command.OutfitId && !v.IsDeleted && v.Size == command.Size && v.Id != command.VariantId, ct);
+                .AnyAsync(v => v.OutfitID == command.OutfitId && v.ProviderCatalogItemID == null && !v.IsDeleted && v.Size == command.Size && v.Id != command.VariantId, ct);
 
             if (duplicateSize)
                 return Result<ProductVariantDto>.Failure($"Size '{command.Size}' already exists for this outfit.", "DUPLICATE_SIZE");

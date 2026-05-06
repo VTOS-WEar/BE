@@ -17,6 +17,7 @@ public class ProviderCatalogItemConfiguration : IEntityTypeConfiguration<Provide
         builder.Property(x => x.ContractItemID).IsRequired();
         builder.Property(x => x.OutfitID).IsRequired();
         builder.Property(x => x.SemesterPublicationProviderID).IsRequired();
+        builder.Property(x => x.SizeChartID).IsRequired(false);
 
         builder.Property(x => x.DisplayName)
             .IsRequired()
@@ -55,6 +56,7 @@ public class ProviderCatalogItemConfiguration : IEntityTypeConfiguration<Provide
 
         builder.HasIndex(x => x.ProviderID);
         builder.HasIndex(x => x.OutfitID);
+        builder.HasIndex(x => x.SizeChartID);
         builder.HasIndex(x => new { x.SemesterPublicationProviderID, x.ContractItemID })
             .IsUnique();
 
@@ -77,5 +79,10 @@ public class ProviderCatalogItemConfiguration : IEntityTypeConfiguration<Provide
             .WithMany(x => x.ProviderCatalogItems)
             .HasForeignKey(x => x.SemesterPublicationProviderID)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.SizeChart)
+            .WithMany(x => x.ProviderCatalogItems)
+            .HasForeignKey(x => x.SizeChartID)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

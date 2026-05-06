@@ -7,6 +7,7 @@ using VTOS.Application.Features.Contracts.Queries;
 using VTOS.Application.Features.Providers.Commands;
 using VTOS.Application.Features.Providers.DTOs;
 using VTOS.Application.Features.Providers.Queries;
+using VTOS.Application.Features.Schools.DTOs;
 
 namespace VTOS.API.Controllers;
 
@@ -47,6 +48,10 @@ public class ProvidersController : ControllerBase
     private readonly IGetProviderOrderStatsQueryHandler _getProviderOrderStatsHandler;
     private readonly IGetProviderCatalogQueryHandler _getProviderCatalogHandler;
     private readonly IUpsertProviderCatalogItemCommandHandler _upsertProviderCatalogItemHandler;
+    private readonly IGetProviderCatalogVariantsQueryHandler _getProviderCatalogVariantsHandler;
+    private readonly ICreateProviderCatalogVariantCommandHandler _createProviderCatalogVariantHandler;
+    private readonly IUpdateProviderCatalogVariantCommandHandler _updateProviderCatalogVariantHandler;
+    private readonly IDeleteProviderCatalogVariantCommandHandler _deleteProviderCatalogVariantHandler;
 
     public ProvidersController(
         ICurrentUserService currentUser,
@@ -73,7 +78,11 @@ public class ProvidersController : ControllerBase
         IShipDirectOrderCommandHandler shipDirectOrderHandler,
         IGetProviderOrderStatsQueryHandler getProviderOrderStatsHandler,
         IGetProviderCatalogQueryHandler getProviderCatalogHandler,
-        IUpsertProviderCatalogItemCommandHandler upsertProviderCatalogItemHandler)
+        IUpsertProviderCatalogItemCommandHandler upsertProviderCatalogItemHandler,
+        IGetProviderCatalogVariantsQueryHandler getProviderCatalogVariantsHandler,
+        ICreateProviderCatalogVariantCommandHandler createProviderCatalogVariantHandler,
+        IUpdateProviderCatalogVariantCommandHandler updateProviderCatalogVariantHandler,
+        IDeleteProviderCatalogVariantCommandHandler deleteProviderCatalogVariantHandler)
     {
         _currentUser = currentUser;
         _getProfileHandler = getProfileHandler;
@@ -99,6 +108,10 @@ public class ProvidersController : ControllerBase
         _getProviderOrderStatsHandler = getProviderOrderStatsHandler;
         _getProviderCatalogHandler = getProviderCatalogHandler;
         _upsertProviderCatalogItemHandler = upsertProviderCatalogItemHandler;
+        _getProviderCatalogVariantsHandler = getProviderCatalogVariantsHandler;
+        _createProviderCatalogVariantHandler = createProviderCatalogVariantHandler;
+        _updateProviderCatalogVariantHandler = updateProviderCatalogVariantHandler;
+        _deleteProviderCatalogVariantHandler = deleteProviderCatalogVariantHandler;
     }
 
     // ──────── Profile ────────
@@ -183,6 +196,71 @@ public class ProvidersController : ControllerBase
     {
         var result = await _upsertProviderCatalogItemHandler.HandleAsync(
             new UpsertProviderCatalogItemCommand(_currentUser.UserId, semesterPublicationProviderId, outfitId, request), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpGet("me/catalog/{semesterPublicationProviderId:guid}/items/{outfitId:guid}/variants")]
+    [ProducesResponseType(typeof(List<ProductVariantDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetCatalogItemVariants(Guid semesterPublicationProviderId, Guid outfitId, CancellationToken ct)
+    {
+        var result = await _getProviderCatalogVariantsHandler.HandleAsync(
+            new GetProviderCatalogVariantsQuery(_currentUser.UserId, semesterPublicationProviderId, outfitId), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpPost("me/catalog/{semesterPublicationProviderId:guid}/items/{outfitId:guid}/variants")]
+    [ProducesResponseType(typeof(List<ProductVariantDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateCatalogItemVariant(Guid semesterPublicationProviderId, Guid outfitId, [FromBody] CreateVariantRequest request, CancellationToken ct)
+    {
+        var result = await _createProviderCatalogVariantHandler.HandleAsync(
+            new CreateProviderCatalogVariantCommand(
+                _currentUser.UserId,
+                semesterPublicationProviderId,
+                outfitId,
+                request.Size,
+                request.ColorVariant,
+                request.MaterialType,
+                request.SKUCode,
+                request.Measurements), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpPut("me/catalog/{semesterPublicationProviderId:guid}/items/{outfitId:guid}/variants/{variantId:guid}")]
+    [ProducesResponseType(typeof(List<ProductVariantDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateCatalogItemVariant(Guid semesterPublicationProviderId, Guid outfitId, Guid variantId, [FromBody] UpdateVariantRequest request, CancellationToken ct)
+    {
+        var result = await _updateProviderCatalogVariantHandler.HandleAsync(
+            new UpdateProviderCatalogVariantCommand(
+                _currentUser.UserId,
+                semesterPublicationProviderId,
+                outfitId,
+                variantId,
+                request.Size,
+                request.ColorVariant,
+                request.MaterialType,
+                request.SKUCode,
+                request.Measurements), ct);
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpDelete("me/catalog/{semesterPublicationProviderId:guid}/items/{outfitId:guid}/variants/{variantId:guid}")]
+    [ProducesResponseType(typeof(List<ProductVariantDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteCatalogItemVariant(Guid semesterPublicationProviderId, Guid outfitId, Guid variantId, CancellationToken ct)
+    {
+        var result = await _deleteProviderCatalogVariantHandler.HandleAsync(
+            new DeleteProviderCatalogVariantCommand(_currentUser.UserId, semesterPublicationProviderId, outfitId, variantId), ct);
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(result.Value);

@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Providers.DTOs;
+using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Helpers;
+using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Providers.Queries;
@@ -72,6 +75,28 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
             .Where(x => x.ProviderID == providerId.Value && publicationProviderIds.Contains(x.SemesterPublicationProviderID))
             .ToListAsync(cancellationToken);
 
+        var outfitIds = publicationOutfits.Select(x => x.OutfitID).Distinct().ToList();
+        var catalogItemIds = catalogItems.Select(x => x.Id).Distinct().ToList();
+        var variantRows = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(x =>
+                outfitIds.Contains(x.OutfitID) &&
+                !x.IsDeleted &&
+                (x.ProviderCatalogItemID == null || catalogItemIds.Contains(x.ProviderCatalogItemID.Value)))
+            .ToListAsync(cancellationToken);
+
+        var sizeChartIds = publicationOutfits
+            .Where(x => x.Outfit.SizeChartID.HasValue)
+            .Select(x => x.Outfit.SizeChartID!.Value)
+            .Concat(catalogItems.Where(x => x.SizeChartID.HasValue).Select(x => x.SizeChartID!.Value))
+            .Distinct()
+            .ToList();
+        var sizeDetails = await _context.SizeChartDetails
+            .AsNoTracking()
+            .Where(x => sizeChartIds.Contains(x.SizeChartID))
+            .Include(x => x.Measurements)
+            .ToListAsync(cancellationToken);
+
         var rows = publicationProviders.Select(publicationProvider =>
         {
             var outfits = publicationOutfits
@@ -104,12 +129,15 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
                         OutfitImageUrl = publicationOutfit.Outfit.MainImageURL,
                         SchoolMaterialType = publicationOutfit.Outfit.MaterialType,
                         ContractPricePerUnit = contractItem.PricePerUnit,
-                        DisplayName = catalogItem?.DisplayName ?? publicationOutfit.Outfit.OutfitName,
+                        DisplayName = publicationOutfit.Outfit.OutfitName,
                         ShortDescription = catalogItem?.ShortDescription ?? publicationOutfit.Outfit.Description,
                         MaterialDetails = catalogItem?.MaterialDetails,
                         PublicationPrice = catalogItem?.PublicationPrice,
                         PostDeadlinePrice = catalogItem?.PostDeadlinePrice,
-                        Status = catalogItem?.Status.ToString() ?? ProviderCatalogItemStatus.Draft.ToString()
+                        Status = catalogItem?.Status.ToString() ?? ProviderCatalogItemStatus.Draft.ToString(),
+                        Variants = ResolveVariants(publicationOutfit.Outfit, catalogItem, variantRows, sizeDetails),
+                        SizeSource = HasProviderVariants(catalogItem, variantRows) ? "ProviderManaged" : "InheritedFromOutfit",
+                        CanManageSizes = publicationProvider.Status != SemPublicationProviderStatus.Suspended
                     };
                 })
                 .Where(x => x != null)
@@ -139,7 +167,9 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
         {
             Publications = rows.Count,
             Items = rows.Sum(x => x.Items.Count),
-            Published = rows.Sum(x => x.Items.Count(item => item.Status == ProviderCatalogItemStatus.Published.ToString())),
+            Published = rows.Sum(x => x.Items.Count(item =>
+                item.Status == ProviderCatalogItemStatus.Ready.ToString() ||
+                item.Status == ProviderCatalogItemStatus.Published.ToString())),
             NeedsSetup = rows.Sum(x => x.Items.Count(item =>
                 !item.CatalogItemId.HasValue ||
                 item.Status == ProviderCatalogItemStatus.Draft.ToString()))
@@ -248,5 +278,64 @@ public class GetProviderCatalogQueryHandler : IGetProviderCatalogQueryHandler
             .Where(x => x.UserID == userId)
             .Select(x => (Guid?)x.ProviderID)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static bool HasProviderVariants(ProviderCatalogItem? catalogItem, IEnumerable<ProductVariant> variants)
+    {
+        return catalogItem != null && variants.Any(x => x.ProviderCatalogItemID == catalogItem.Id);
+    }
+
+    private static List<ProductVariantDto> ResolveVariants(
+        Outfit outfit,
+        ProviderCatalogItem? catalogItem,
+        IReadOnlyCollection<ProductVariant> variants,
+        IReadOnlyCollection<SizeChartDetail> sizeDetails)
+    {
+        var providerVariants = catalogItem == null
+            ? new List<ProductVariant>()
+            : variants
+                .Where(x => x.ProviderCatalogItemID == catalogItem.Id)
+                .OrderBy(x => x.Size)
+                .ToList();
+
+        if (providerVariants.Count > 0)
+        {
+            var providerDetails = catalogItem!.SizeChartID.HasValue
+                ? sizeDetails.Where(x => x.SizeChartID == catalogItem.SizeChartID.Value).ToList()
+                : new List<SizeChartDetail>();
+            return MapVariants(providerVariants, providerDetails);
+        }
+
+        var baseVariants = variants
+            .Where(x => x.OutfitID == outfit.Id && x.ProviderCatalogItemID == null)
+            .OrderBy(x => x.Size)
+            .ToList();
+        var baseDetails = outfit.SizeChartID.HasValue
+            ? sizeDetails.Where(x => x.SizeChartID == outfit.SizeChartID.Value).ToList()
+            : new List<SizeChartDetail>();
+        return MapVariants(baseVariants, baseDetails);
+    }
+
+    private static List<ProductVariantDto> MapVariants(IEnumerable<ProductVariant> variants, IReadOnlyCollection<SizeChartDetail> details)
+    {
+        return variants
+            .Select(variant =>
+            {
+                var detail = details.FirstOrDefault(d => d.SizeLabel == variant.Size);
+                return new ProductVariantDto
+                {
+                    ProductVariantId = variant.Id,
+                    OutfitId = variant.OutfitID,
+                    Size = variant.Size,
+                    Price = variant.Price,
+                    StockQuantity = variant.StockQuantity,
+                    ColorVariant = variant.ColorVariant,
+                    MaterialType = variant.MaterialType,
+                    SKUCode = variant.SKUCode,
+                    VariantImageURL = variant.VariantImageURL,
+                    Measurements = VariantSizeChartSyncHelper.ToDtos(detail)
+                };
+            })
+            .ToList();
     }
 }

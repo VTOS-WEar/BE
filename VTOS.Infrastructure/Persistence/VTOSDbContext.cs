@@ -72,7 +72,22 @@ public class VTOSDbContext : DbContext, IApplicationDbContext
         base.OnModelCreating(modelBuilder);
 
         VtosModelConfigurationRegistry.Apply(modelBuilder);
+        ApplyProviderSpecificIndexes(modelBuilder);
 
         // Q4: SupportTicket was renamed from Complaint — keep old table name to avoid migration rename
+    }
+
+    private void ApplyProviderSpecificIndexes(ModelBuilder modelBuilder)
+    {
+        var providerName = Database.ProviderName ?? string.Empty;
+        var providerCatalogVariantFilter = providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase)
+            ? "\"ProviderCatalogItemID\" IS NOT NULL AND \"IsDeleted\" IS FALSE"
+            : "[ProviderCatalogItemID] IS NOT NULL AND [IsDeleted] = 0";
+
+        modelBuilder.Entity<ProductVariant>()
+            .HasIndex(pv => new { pv.ProviderCatalogItemID, pv.Size })
+            .HasDatabaseName("UX_ProductVariant_ProviderCatalogItem_Size_Active")
+            .IsUnique()
+            .HasFilter(providerCatalogVariantFilter);
     }
 }
