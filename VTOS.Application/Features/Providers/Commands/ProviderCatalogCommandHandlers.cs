@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Providers.DTOs;
+using VTOS.Application.Features.Schools.DTOs;
+using VTOS.Application.Features.Schools.Helpers;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
@@ -105,7 +107,7 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
             _context.ProviderCatalogItems.Add(catalogItem);
         }
 
-        catalogItem.DisplayName = TrimOrFallback(command.Request.DisplayName, publicationOutfit.Outfit.OutfitName);
+        catalogItem.DisplayName = publicationOutfit.Outfit.OutfitName;
         catalogItem.ShortDescription = TrimOrNull(command.Request.ShortDescription);
         catalogItem.MaterialDetails = TrimOrNull(command.Request.MaterialDetails);
         catalogItem.PublicationPrice = command.Request.PublicationPrice;
@@ -123,6 +125,8 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        var variants = await ResolveVisibleVariantsAsync(catalogItem, publicationOutfit.Outfit, cancellationToken);
+
         return Result<ProviderCatalogItemDto>.Success(new ProviderCatalogItemDto
         {
             CatalogItemId = catalogItem.Id,
@@ -132,12 +136,17 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
             OutfitImageUrl = publicationOutfit.Outfit.MainImageURL,
             SchoolMaterialType = publicationOutfit.Outfit.MaterialType,
             ContractPricePerUnit = contractItem.PricePerUnit,
-            DisplayName = catalogItem.DisplayName,
+            DisplayName = publicationOutfit.Outfit.OutfitName,
             ShortDescription = catalogItem.ShortDescription,
             MaterialDetails = catalogItem.MaterialDetails,
             PublicationPrice = catalogItem.PublicationPrice,
             PostDeadlinePrice = catalogItem.PostDeadlinePrice,
-            Status = catalogItem.Status.ToString()
+            Status = catalogItem.Status.ToString(),
+            Variants = variants,
+            SizeSource = variants.Any(v => v.ProductVariantId != Guid.Empty) && await _context.ProductVariants.AnyAsync(v => v.ProviderCatalogItemID == catalogItem.Id && !v.IsDeleted, cancellationToken)
+                ? "ProviderManaged"
+                : "InheritedFromOutfit",
+            CanManageSizes = true
         });
     }
 
@@ -160,5 +169,63 @@ public class UpsertProviderCatalogItemCommandHandler : IUpsertProviderCatalogIte
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private async Task<List<ProductVariantDto>> ResolveVisibleVariantsAsync(ProviderCatalogItem catalogItem, Outfit outfit, CancellationToken ct)
+    {
+        var providerVariants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(v => v.ProviderCatalogItemID == catalogItem.Id && !v.IsDeleted)
+            .OrderBy(v => v.Size)
+            .ToListAsync(ct);
+
+        if (providerVariants.Count > 0)
+        {
+            var details = await GetSizeDetailsAsync(catalogItem.SizeChartID, ct);
+            return MapVariants(providerVariants, details);
+        }
+
+        var baseVariants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(v => v.OutfitID == outfit.Id && v.ProviderCatalogItemID == null && !v.IsDeleted)
+            .OrderBy(v => v.Size)
+            .ToListAsync(ct);
+        var baseDetails = await GetSizeDetailsAsync(outfit.SizeChartID, ct);
+        return MapVariants(baseVariants, baseDetails);
+    }
+
+    private async Task<List<SizeChartDetail>> GetSizeDetailsAsync(Guid? sizeChartId, CancellationToken ct)
+    {
+        if (!sizeChartId.HasValue)
+            return new List<SizeChartDetail>();
+
+        return await _context.SizeChartDetails
+            .AsNoTracking()
+            .Where(detail => detail.SizeChartID == sizeChartId.Value)
+            .Include(detail => detail.Measurements)
+            .ToListAsync(ct);
+    }
+
+    private static List<ProductVariantDto> MapVariants(IEnumerable<ProductVariant> variants, IReadOnlyCollection<SizeChartDetail> details)
+    {
+        return variants
+            .Select(variant =>
+            {
+                var detail = details.FirstOrDefault(d => d.SizeLabel == variant.Size);
+                return new ProductVariantDto
+                {
+                    ProductVariantId = variant.Id,
+                    OutfitId = variant.OutfitID,
+                    Size = variant.Size,
+                    Price = variant.Price,
+                    StockQuantity = variant.StockQuantity,
+                    ColorVariant = variant.ColorVariant,
+                    MaterialType = variant.MaterialType,
+                    SKUCode = variant.SKUCode,
+                    VariantImageURL = variant.VariantImageURL,
+                    Measurements = VariantSizeChartSyncHelper.ToDtos(detail)
+                };
+            })
+            .ToList();
     }
 }

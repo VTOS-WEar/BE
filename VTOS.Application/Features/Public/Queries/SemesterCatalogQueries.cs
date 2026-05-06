@@ -76,7 +76,7 @@ public class GetSchoolSemesterCatalogQueryHandler
 
         var variants = await _context.ProductVariants
             .AsNoTracking()
-            .Where(v => outfitIds.Contains(v.OutfitID) && !v.IsDeleted)
+            .Where(v => outfitIds.Contains(v.OutfitID) && v.ProviderCatalogItemID == null && !v.IsDeleted)
             .ToListAsync(ct);
 
         var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
@@ -111,7 +111,7 @@ public class GetSchoolSemesterCatalogQueryHandler
                             ProviderId = p.ProviderID,
                             ProviderName = p.Provider.ProviderName,
                             ContactEmail = p.Provider.Email,
-                            DisplayName = catalogItem?.DisplayName ?? x.Outfit.OutfitName,
+                            DisplayName = x.Outfit.OutfitName,
                             ShortDescription = catalogItem?.ShortDescription ?? x.Outfit.Description,
                             MaterialDetails = catalogItem?.MaterialDetails,
                             MainImageUrl = catalogItem?.MainImageUrl ?? x.Outfit.MainImageURL,
@@ -229,7 +229,7 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
 
             var variants = await _context.ProductVariants
                 .AsNoTracking()
-                .Where(v => outfitIds.Contains(v.OutfitID) && !v.IsDeleted)
+                .Where(v => outfitIds.Contains(v.OutfitID) && v.ProviderCatalogItemID == null && !v.IsDeleted)
                 .ToListAsync(ct);
 
             var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
@@ -264,7 +264,7 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                                 ProviderId = p.ProviderID,
                                 ProviderName = p.Provider.ProviderName,
                                 ContactEmail = p.Provider.Email,
-                                DisplayName = catalogItem?.DisplayName ?? x.Outfit.OutfitName,
+                                DisplayName = x.Outfit.OutfitName,
                                 ShortDescription = catalogItem?.ShortDescription ?? x.Outfit.Description,
                                 MaterialDetails = catalogItem?.MaterialDetails,
                                 MainImageUrl = catalogItem?.MainImageUrl ?? x.Outfit.MainImageURL,
@@ -374,6 +374,20 @@ public class GetProvidersForPublicationOutfitQueryHandler
             providers.Select(p => p.ProviderID).Distinct().ToList(),
             publication.SchoolID,
             ct);
+        var catalogItemIds = publishedCatalogItems.Select(item => item.Id).Distinct().ToList();
+        var providerVariants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(variant =>
+                variant.OutfitID == query.OutfitId &&
+                variant.ProviderCatalogItemID.HasValue &&
+                catalogItemIds.Contains(variant.ProviderCatalogItemID.Value) &&
+                !variant.IsDeleted)
+            .ToListAsync(ct);
+        var baseVariants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(variant => variant.OutfitID == query.OutfitId && variant.ProviderCatalogItemID == null && !variant.IsDeleted)
+            .OrderBy(variant => variant.Size)
+            .ToListAsync(ct);
         var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
         return providers
@@ -390,13 +404,19 @@ public class GetProvidersForPublicationOutfitQueryHandler
                 var stats = providerStats.GetValueOrDefault(p.ProviderID) ?? ProviderMarketplaceStats.Empty(p.ProviderID);
                 var publicationPrice = catalogItem.PublicationPrice;
                 var postDeadlinePrice = catalogItem.PostDeadlinePrice;
+                var visibleVariants = providerVariants.Any(variant => variant.ProviderCatalogItemID == catalogItem.Id)
+                    ? providerVariants
+                        .Where(variant => variant.ProviderCatalogItemID == catalogItem.Id)
+                        .OrderBy(variant => variant.Size)
+                        .ToList()
+                    : baseVariants;
 
                 return new SemesterCatalogProviderDto
                 {
                     ProviderId = p.ProviderID,
                     ProviderName = p.Provider.ProviderName,
                     ContactEmail = p.Provider.Email,
-                    DisplayName = catalogItem?.DisplayName ?? outfit.OutfitName,
+                    DisplayName = outfit.OutfitName,
                     ShortDescription = catalogItem?.ShortDescription ?? outfit.Description,
                     MaterialDetails = catalogItem?.MaterialDetails,
                     MainImageUrl = catalogItem?.MainImageUrl ?? outfit.MainImageURL,
@@ -406,7 +426,8 @@ public class GetProvidersForPublicationOutfitQueryHandler
                     PricingMode = SemesterCatalogQueryHelpers.ResolvePricingModeName(isAfterDeadline),
                     AverageRating = stats.AverageRating,
                     TotalRatings = stats.TotalRatings,
-                    TotalCompletedOrders = stats.TotalCompletedOrders
+                    TotalCompletedOrders = stats.TotalCompletedOrders,
+                    Variants = visibleVariants.Select(SemesterCatalogQueryHelpers.ToPublicVariantDto).ToList()
                 };
             })
             .Where(x => x != null)
@@ -681,6 +702,20 @@ internal static class SemesterCatalogQueryHelpers
         return isAfterDeadline
             ? OrderPricingMode.PostDeadlineDirect.ToString()
             : OrderPricingMode.PublicationWindow.ToString();
+    }
+
+    internal static ProductVariantDto ToPublicVariantDto(ProductVariant variant)
+    {
+        return new ProductVariantDto(
+            variant.Id,
+            variant.Size,
+            variant.ColorVariant,
+            variant.MaterialType,
+            variant.StockQuantity,
+            variant.Price,
+            variant.SKUCode,
+            variant.VariantImageURL
+        );
     }
 }
 

@@ -135,6 +135,7 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
         var pricingMode = ResolvePricingMode(publication.EndDate, now);
 
         var pricingByOutfit = new Dictionary<Guid, (decimal PublicationPrice, decimal PostDeadlinePrice)>();
+        var catalogItemByOutfit = new Dictionary<Guid, ProviderCatalogItem>();
         foreach (var outfitId in outfitIds)
         {
             var catalogItem = catalogItems.FirstOrDefault(ci => ci.OutfitID == outfitId);
@@ -151,6 +152,31 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
                     "INVALID_CATALOG_PRICING");
 
             pricingByOutfit[outfitId] = (catalogItem.PublicationPrice, catalogItem.PostDeadlinePrice);
+            catalogItemByOutfit[outfitId] = catalogItem;
+        }
+
+        var catalogItemIds = catalogItems.Select(ci => ci.Id).ToList();
+        var catalogItemsWithProviderVariants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(v => v.ProviderCatalogItemID.HasValue && catalogItemIds.Contains(v.ProviderCatalogItemID.Value) && !v.IsDeleted)
+            .Select(v => v.ProviderCatalogItemID!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        foreach (var variant in variants)
+        {
+            var catalogItem = catalogItemByOutfit[variant.OutfitID];
+            var usesProviderVariants = catalogItemsWithProviderVariants.Contains(catalogItem.Id);
+            var validVariant = usesProviderVariants
+                ? variant.ProviderCatalogItemID == catalogItem.Id
+                : variant.ProviderCatalogItemID == null;
+
+            if (!validVariant)
+            {
+                return Result<CreateDirectOrderResponse>.Failure(
+                    "One or more selected sizes do not belong to this provider catalog item.",
+                    "INVALID_PROVIDER_VARIANT");
+            }
         }
 
         var order = new Order

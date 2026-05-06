@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.Public.DTOs;
+using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Public.Queries;
@@ -19,7 +20,7 @@ public class GetOutfitDetailQueryHandler
         var outfit = await _context.Outfits
             .AsNoTracking()
             .Include(o => o.School)
-            .Include(o => o.ProductVariants.Where(pv => !pv.IsDeleted))
+            .Include(o => o.ProductVariants.Where(pv => !pv.IsDeleted && pv.ProviderCatalogItemID == null))
             .Include(o => o.SizeChart)
                 .ThenInclude(sc => sc!.SizeChartDetails)
                     .ThenInclude(detail => detail.Measurements)
@@ -107,6 +108,7 @@ public class GetOutfitDetailQueryHandler
                 PublicationStatus = spp.SemesterPublication.Status.ToString(),
                 spp.SemesterPublication.StartDate,
                 spp.SemesterPublication.EndDate,
+                spp.ProviderID,
                 ProviderName = spp.Provider.ProviderName
             })
             .ToListAsync(ct);
@@ -119,6 +121,16 @@ public class GetOutfitDetailQueryHandler
                 matchingPublicationProviders.Select(spp => spp.Id).Contains(item.SemesterPublicationProviderID))
             .ToListAsync(ct);
 
+        var catalogItemIds = catalogItems.Select(item => item.Id).Distinct().ToList();
+        var providerVariants = await _context.ProductVariants
+            .AsNoTracking()
+            .Where(variant =>
+                variant.OutfitID == query.OutfitId &&
+                variant.ProviderCatalogItemID.HasValue &&
+                catalogItemIds.Contains(variant.ProviderCatalogItemID.Value) &&
+                !variant.IsDeleted)
+            .ToListAsync(ct);
+
         var campaignOptions = matchingPublicationProviders
             .Select(spp =>
             {
@@ -129,16 +141,24 @@ public class GetOutfitDetailQueryHandler
 
                 var publicationPrice = catalogItem.PublicationPrice;
                 var postDeadlinePrice = catalogItem.PostDeadlinePrice;
+                var visibleVariants = providerVariants.Any(variant => variant.ProviderCatalogItemID == catalogItem.Id)
+                    ? providerVariants
+                        .Where(variant => variant.ProviderCatalogItemID == catalogItem.Id)
+                        .OrderBy(variant => variant.Size)
+                        .Select(ToPublicVariantDto)
+                        .ToList()
+                    : variants;
 
                 return new OutfitCampaignOptionDto(
                     spp.PublicationId,
-                    catalogItem.DisplayName ?? $"{outfit.OutfitName} - {spp.ProviderName}",
+                    outfit.OutfitName,
                     spp.PublicationStatus,
                     spp.StartDate,
                     spp.EndDate,
                     catalogItem.Id,
                     spp.EndDate >= now ? publicationPrice : postDeadlinePrice,
-                    null
+                    null,
+                    visibleVariants
                 );
             })
             .Where(x => x != null)
@@ -175,6 +195,20 @@ public class GetOutfitDetailQueryHandler
             Math.Round(averageRating, 1),
             feedbacks.Count,
             reviews
+        );
+    }
+
+    private static ProductVariantDto ToPublicVariantDto(ProductVariant variant)
+    {
+        return new ProductVariantDto(
+            variant.Id,
+            variant.Size,
+            variant.ColorVariant,
+            variant.MaterialType,
+            variant.StockQuantity,
+            variant.Price,
+            variant.SKUCode,
+            variant.VariantImageURL
         );
     }
 }

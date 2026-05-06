@@ -423,6 +423,15 @@ public static class DependencyInjection
             VTOS.Application.Features.Providers.Queries.GetProviderCatalogQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpsertProviderCatalogItemCommandHandler,
             VTOS.Application.Features.Providers.Commands.UpsertProviderCatalogItemCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ProviderCatalogVariantCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IGetProviderCatalogVariantsQueryHandler>(
+            provider => provider.GetRequiredService<VTOS.Application.Features.Providers.Commands.ProviderCatalogVariantCommandHandler>());
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ICreateProviderCatalogVariantCommandHandler>(
+            provider => provider.GetRequiredService<VTOS.Application.Features.Providers.Commands.ProviderCatalogVariantCommandHandler>());
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateProviderCatalogVariantCommandHandler>(
+            provider => provider.GetRequiredService<VTOS.Application.Features.Providers.Commands.ProviderCatalogVariantCommandHandler>());
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IDeleteProviderCatalogVariantCommandHandler>(
+            provider => provider.GetRequiredService<VTOS.Application.Features.Providers.Commands.ProviderCatalogVariantCommandHandler>());
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IAcceptDirectOrderCommandHandler,
             VTOS.Application.Features.Providers.Commands.AcceptDirectOrderCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IUpdateDirectOrderInProductionCommandHandler,

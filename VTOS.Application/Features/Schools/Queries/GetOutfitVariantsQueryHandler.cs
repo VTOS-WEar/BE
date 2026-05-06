@@ -51,7 +51,7 @@ public class GetOutfitVariantsQueryHandler : IGetOutfitVariantsQueryHandler
 
         var variants = await _db.ProductVariants
             .AsNoTracking()
-            .Where(v => v.OutfitID == query.OutfitId && !v.IsDeleted)
+            .Where(v => v.OutfitID == query.OutfitId && v.ProviderCatalogItemID == null && !v.IsDeleted)
             .OrderBy(v => v.Size)
             .Select(v => new ProductVariantDto
             {

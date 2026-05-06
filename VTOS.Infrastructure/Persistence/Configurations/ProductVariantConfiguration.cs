@@ -16,6 +16,9 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(pv => pv.OutfitID)
             .IsRequired();
 
+        builder.Property(pv => pv.ProviderCatalogItemID)
+            .IsRequired(false);
+
         builder.Property(pv => pv.Size)
             .IsRequired()
             .HasMaxLength(50);
@@ -39,10 +42,21 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVaria
         builder.Property(pv => pv.VariantImageURL)
             .HasMaxLength(500);
 
+        builder.HasIndex(pv => pv.OutfitID);
+        builder.HasIndex(pv => pv.ProviderCatalogItemID);
+        builder.HasIndex(pv => new { pv.ProviderCatalogItemID, pv.Size })
+            .HasDatabaseName("UX_ProductVariant_ProviderCatalogItem_Size_Active")
+            .IsUnique();
+
         // Relationships
         builder.HasOne(pv => pv.Outfit)
             .WithMany(o => o.ProductVariants)
             .HasForeignKey(pv => pv.OutfitID)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(pv => pv.ProviderCatalogItem)
+            .WithMany(ci => ci.ProductVariants)
+            .HasForeignKey(pv => pv.ProviderCatalogItemID)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

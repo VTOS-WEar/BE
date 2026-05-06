@@ -1327,6 +1327,9 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("ProviderCatalogItemID")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SKUCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -1346,6 +1349,13 @@ namespace VTOS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OutfitID");
+
+                    b.HasIndex("ProviderCatalogItemID");
+
+                    b.HasIndex("ProviderCatalogItemID", "Size")
+                        .HasDatabaseName("UX_ProductVariant_ProviderCatalogItem_Size_Active")
+                        .IsUnique()
+                        .HasFilter("\"ProviderCatalogItemID\" IS NOT NULL AND \"IsDeleted\" IS FALSE");
 
                     b.ToTable("ProductVariant", (string)null);
                 });
@@ -1496,6 +1506,9 @@ namespace VTOS.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid?>("SizeChartID")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1517,6 +1530,8 @@ namespace VTOS.Infrastructure.Migrations
 
                     b.HasIndex("SemesterPublicationProviderID", "ContractItemID")
                         .IsUnique();
+
+                    b.HasIndex("SizeChartID");
 
                     b.ToTable("ProviderCatalogItem", (string)null);
                 });
@@ -2919,7 +2934,14 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("VTOS.Domain.Entities.ProviderCatalogItem", "ProviderCatalogItem")
+                        .WithMany("ProductVariants")
+                        .HasForeignKey("ProviderCatalogItemID")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Outfit");
+
+                    b.Navigation("ProviderCatalogItem");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.Provider", b =>
@@ -2957,6 +2979,11 @@ namespace VTOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("VTOS.Domain.Entities.SizeChart", "SizeChart")
+                        .WithMany("ProviderCatalogItems")
+                        .HasForeignKey("SizeChartID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("ContractItem");
 
                     b.Navigation("Outfit");
@@ -2964,6 +2991,8 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("Provider");
 
                     b.Navigation("SemesterPublicationProvider");
+
+                    b.Navigation("SizeChart");
                 });
 
             modelBuilder.Entity("VTOS.Domain.Entities.ProviderManager", b =>
@@ -3346,6 +3375,11 @@ namespace VTOS.Infrastructure.Migrations
                     b.Navigation("SemesterPublicationProviders");
                 });
 
+            modelBuilder.Entity("VTOS.Domain.Entities.ProviderCatalogItem", b =>
+                {
+                    b.Navigation("ProductVariants");
+                });
+
             modelBuilder.Entity("VTOS.Domain.Entities.Role", b =>
                 {
                     b.Navigation("Users");
@@ -3383,6 +3417,8 @@ namespace VTOS.Infrastructure.Migrations
             modelBuilder.Entity("VTOS.Domain.Entities.SizeChart", b =>
                 {
                     b.Navigation("Outfits");
+
+                    b.Navigation("ProviderCatalogItems");
 
                     b.Navigation("SizeChartDetails");
                 });

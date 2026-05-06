@@ -46,7 +46,7 @@ public class CreateVariantCommandHandler : ICreateVariantCommandHandler
 
         // Check for duplicate size
         var duplicateSize = await _db.ProductVariants
-            .AnyAsync(v => v.OutfitID == command.OutfitId && !v.IsDeleted && v.Size == command.Size, ct);
+            .AnyAsync(v => v.OutfitID == command.OutfitId && v.ProviderCatalogItemID == null && !v.IsDeleted && v.Size == command.Size, ct);
 
         if (duplicateSize)
             return Result<ProductVariantDto>.Failure($"Size '{command.Size}' already exists for this outfit.", "DUPLICATE_SIZE");

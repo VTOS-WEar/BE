@@ -1,3 +1,5 @@
+using VTOS.Application.Features.Schools.DTOs;
+
 namespace VTOS.Application.Features.Providers.DTOs;
 
 public class ProviderCatalogResponse
@@ -61,6 +63,9 @@ public class ProviderCatalogItemDto
     public decimal? PublicationPrice { get; set; }
     public decimal? PostDeadlinePrice { get; set; }
     public string Status { get; set; } = "Draft";
+    public List<ProductVariantDto> Variants { get; set; } = new();
+    public string SizeSource { get; set; } = "InheritedFromOutfit";
+    public bool CanManageSizes { get; set; }
 }
 
 public class UpsertProviderCatalogItemRequest

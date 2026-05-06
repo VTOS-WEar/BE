@@ -9,6 +9,7 @@ public class ProviderCatalogItem : AuditableEntity
     public Guid ContractItemID { get; set; }
     public Guid OutfitID { get; set; }
     public Guid SemesterPublicationProviderID { get; set; }
+    public Guid? SizeChartID { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string? ShortDescription { get; set; }
     public string? FullDescription { get; set; }
@@ -26,4 +27,6 @@ public class ProviderCatalogItem : AuditableEntity
     public ContractItem ContractItem { get; set; } = null!;
     public Outfit Outfit { get; set; } = null!;
     public SemesterPublicationProvider SemesterPublicationProvider { get; set; } = null!;
+    public SizeChart? SizeChart { get; set; }
+    public ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
 }

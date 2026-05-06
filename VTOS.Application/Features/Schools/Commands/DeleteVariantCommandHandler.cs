@@ -44,7 +44,7 @@ public class DeleteVariantCommandHandler : IDeleteVariantCommandHandler
 
         // Find the variant
         var variant = await _db.ProductVariants
-            .FirstOrDefaultAsync(v => v.Id == command.VariantId && v.OutfitID == command.OutfitId && !v.IsDeleted, ct);
+            .FirstOrDefaultAsync(v => v.Id == command.VariantId && v.OutfitID == command.OutfitId && v.ProviderCatalogItemID == null && !v.IsDeleted, ct);
 
         if (variant == null)
             return Result<bool>.Failure("Variant not found.", "VARIANT_NOT_FOUND");
