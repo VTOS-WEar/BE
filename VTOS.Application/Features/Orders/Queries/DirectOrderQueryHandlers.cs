@@ -22,6 +22,8 @@ public interface IGetMyDirectOrderDetailQueryHandler
 
 public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
 {
+    private const string OrderCancellationCategory = "OrderCancellation";
+
     private readonly IApplicationDbContext _context;
 
     public GetMyDirectOrdersQueryHandler(IApplicationDbContext context)
@@ -37,6 +39,7 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
         var ordersQuery = _context.Orders
             .AsNoTracking()
             .Include(o => o.ChildProfile)
+                .ThenInclude(c => c.School)
             .Include(o => o.Provider)
             .Include(o => o.SemesterPublication)
             .Include(o => o.OrderItems)
@@ -58,21 +61,41 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        var orderIds = orders.Select(o => o.Id).ToList();
+        var cancellationTicketRows = await _context.SupportTickets
+            .AsNoTracking()
+            .Where(t => t.OrderID.HasValue && orderIds.Contains(t.OrderID.Value) && t.Category == OrderCancellationCategory)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var cancellationTickets = cancellationTicketRows
+            .GroupBy(t => t.OrderID!.Value)
+            .ToDictionary(g => g.Key, g => g.First());
+
         return Result<MyDirectOrdersResponse>.Success(new MyDirectOrdersResponse
         {
-            Items = orders.Select(o => new MyDirectOrderListItemDto
+            Items = orders.Select(o =>
             {
-                OrderId = o.Id,
-                OrderDate = o.OrderDate,
-                OrderStatus = o.OrderStatus,
-                OrderStatusName = o.OrderStatus.ToString(),
-                TotalAmount = o.TotalAmount,
-                ChildName = o.ChildProfile.FullName,
-                ProviderName = o.Provider?.ProviderName ?? string.Empty,
-                PricingMode = DirectOrderQueryHelpers.ResolvePricingModeName(o.AppliedPricingMode, o.SemesterPublication?.EndDate, o.OrderDate),
-                FirstItemImageUrl = o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
-                PaymentStatusName = o.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
-                TrackingCode = o.TrackingCode
+                cancellationTickets.TryGetValue(o.Id, out var ticket);
+                return new MyDirectOrderListItemDto
+                {
+                    OrderId = o.Id,
+                    OrderDate = o.OrderDate,
+                    OrderStatus = o.OrderStatus,
+                    OrderStatusName = o.OrderStatus.ToString(),
+                    TotalAmount = o.TotalAmount,
+                    ChildName = o.ChildProfile.FullName,
+                    ProviderName = o.Provider?.ProviderName ?? string.Empty,
+                    PricingMode = DirectOrderQueryHelpers.ResolvePricingModeName(o.AppliedPricingMode, o.SemesterPublication?.EndDate, o.OrderDate),
+                    FirstItemImageUrl = o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
+                    PaymentStatusName = o.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
+                    TrackingCode = o.TrackingCode,
+                    CanCancel = DirectOrderQueryHelpers.CanRequestCancellation(o.OrderStatus, ticket?.Status),
+                    CanReorder = DirectOrderQueryHelpers.CanReorder(o.OrderStatus),
+                    CancelReason = o.CancelReason,
+                    CancellationTicketId = ticket?.Id,
+                    CancellationTicketStatus = ticket?.Status.ToString()
+                };
             }).ToList(),
             TotalCount = totalCount,
             Page = page,
@@ -84,6 +107,8 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
 
 public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHandler
 {
+    private const string OrderCancellationCategory = "OrderCancellation";
+
     private readonly IApplicationDbContext _context;
 
     public GetMyDirectOrderDetailQueryHandler(IApplicationDbContext context)
@@ -96,6 +121,7 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
         var order = await _context.Orders
             .AsNoTracking()
             .Include(o => o.ChildProfile)
+                .ThenInclude(c => c.School)
             .Include(o => o.Provider)
             .Include(o => o.SemesterPublication)
             .Include(o => o.OrderItems)
@@ -129,6 +155,12 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
+        var cancellationTicket = await _context.SupportTickets
+            .AsNoTracking()
+            .Where(t => t.OrderID == order.Id && t.Category == OrderCancellationCategory)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
         return Result<MyDirectOrderDetailDto>.Success(new MyDirectOrderDetailDto
         {
             OrderId = order.Id,
@@ -139,6 +171,8 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
             SemesterPublicationId = order.SemesterPublicationID!.Value,
             Semester = order.SemesterPublication?.Semester ?? string.Empty,
             AcademicYear = order.SemesterPublication?.AcademicYear ?? string.Empty,
+            SchoolId = order.SemesterPublication?.SchoolID ?? order.ChildProfile.SchoolID,
+            SchoolName = order.ChildProfile.School?.SchoolName ?? string.Empty,
             PricingMode = DirectOrderQueryHelpers.ResolvePricingModeName(order.AppliedPricingMode, order.SemesterPublication?.EndDate, order.OrderDate),
             OrderDate = order.OrderDate,
             OrderStatus = order.OrderStatus.ToString(),
@@ -151,6 +185,11 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
             ShippingCompany = order.ShippingCompany,
             PaymentStatusName = order.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
             CanRateProvider = order.OrderStatus == VTOS.Domain.Enums.OrderStatus.Delivered && existingProviderRating == null,
+            CanCancel = DirectOrderQueryHelpers.CanRequestCancellation(order.OrderStatus, cancellationTicket?.Status),
+            CanReorder = DirectOrderQueryHelpers.CanReorder(order.OrderStatus),
+            CancelReason = order.CancelReason,
+            CancellationTicketId = cancellationTicket?.Id,
+            CancellationTicketStatus = cancellationTicket?.Status.ToString(),
             ExistingProviderRating = existingProviderRating,
             Items = order.OrderItems.Select(oi => new MyDirectOrderDetailItemDto
             {
@@ -169,6 +208,23 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
 
 internal static class DirectOrderQueryHelpers
 {
+    internal static bool CanRequestCancellation(
+        VTOS.Domain.Enums.OrderStatus orderStatus,
+        VTOS.Domain.Enums.SupportTicketStatus? cancellationTicketStatus)
+    {
+        if (orderStatus != VTOS.Domain.Enums.OrderStatus.Paid)
+            return false;
+
+        return cancellationTicketStatus is null
+            or VTOS.Domain.Enums.SupportTicketStatus.Resolved
+            or VTOS.Domain.Enums.SupportTicketStatus.Closed;
+    }
+
+    internal static bool CanReorder(VTOS.Domain.Enums.OrderStatus orderStatus)
+    {
+        return orderStatus == VTOS.Domain.Enums.OrderStatus.Cancelled;
+    }
+
     internal static string ResolvePricingModeName(
         VTOS.Domain.Enums.OrderPricingMode? appliedPricingMode,
         DateTime? publicationEndDate,

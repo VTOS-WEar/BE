@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -250,6 +250,7 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundJobs.AutoPayoutJob>();
         services.AddHostedService<BackgroundJobs.PaymentDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.AdminNotificationDigestJob>();
+        services.AddHostedService<BackgroundJobs.ChatEmailDigestJob>();
         services.AddHostedService<BackgroundJobs.ParentTryOnJobWorker>();
         services.AddScoped<Application.Features.Notifications.INotificationBroadcaster, Hubs.SignalRNotificationBroadcaster>();
         services.AddScoped<Application.Features.Admin.Commands.IUserStatusBroadcaster, Hubs.SignalRUserStatusBroadcaster>();

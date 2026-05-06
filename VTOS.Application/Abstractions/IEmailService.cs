@@ -100,4 +100,26 @@ public interface IEmailService
         string toEmail, string adminName,
         IReadOnlyList<(string Title, string Message, DateTime CreatedAt)> notifications,
         CancellationToken cancellationToken = default);
+
+    // ── Teacher Reminder ──
+
+    /// <summary>
+    /// Sends a reminder email from teacher to parent about completing uniform orders.
+    /// </summary>
+    Task SendTeacherReminderEmailAsync(
+        string toEmail, string parentName,
+        string teacherName, string className,
+        string? note,
+        CancellationToken cancellationToken = default);
+
+    // ── Chat Digest ──
+
+    /// <summary>
+    /// Sends a batched digest email with new chat messages from a channel.
+    /// </summary>
+    Task SendChatDigestEmailAsync(
+        string toEmail, string recipientName,
+        string channelLabel, string channelType,
+        IReadOnlyList<(string SenderName, string Content, DateTime SentAt)> messages,
+        CancellationToken cancellationToken = default);
 }

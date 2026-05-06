@@ -648,4 +648,123 @@ VTOS"
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
     }
+
+    // ── Teacher Reminder ──
+
+    public async Task SendTeacherReminderEmailAsync(
+        string toEmail, string parentName,
+        string teacherName, string className,
+        string? note,
+        CancellationToken cancellationToken = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"VTOS - 📣 Nhắc nhở hoàn tất đơn đồng phục lớp {className}";
+
+        var noteSection = string.IsNullOrWhiteSpace(note)
+            ? ""
+            : $@"<div style='background-color: #FFF8E1; padding: 12px 15px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #FFA726;'>
+                    <p style='margin: 0; font-size: 13px; color: #E65100; font-weight: bold;'>📝 Ghi chú từ giáo viên:</p>
+                    <p style='margin: 6px 0 0; color: #333;'>{WebUtility.HtmlEncode(note)}</p>
+                </div>";
+
+        var noteText = string.IsNullOrWhiteSpace(note) ? "" : $"\nGhi chú: {note}";
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = $@"
+                <html><body style='font-family: Arial, sans-serif;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #6938EF;'>📣 Nhắc nhở từ giáo viên chủ nhiệm</h2>
+                    <p>Xin chào <strong>{WebUtility.HtmlEncode(parentName)}</strong>,</p>
+                    <p>Giáo viên <strong>{WebUtility.HtmlEncode(teacherName)}</strong> nhắc phụ huynh hoàn tất đơn đồng phục cho lớp <strong>{WebUtility.HtmlEncode(className)}</strong>.</p>
+                    <div style='background-color: #F0EAFF; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #C4B5FD;'>
+                        <p style='margin: 5px 0;'><strong>Giáo viên:</strong> {WebUtility.HtmlEncode(teacherName)}</p>
+                        <p style='margin: 5px 0;'><strong>Lớp:</strong> {WebUtility.HtmlEncode(className)}</p>
+                    </div>
+                    {noteSection}
+                    <p>Vui lòng đăng nhập VTOS để hoàn tất đặt đồng phục cho con em.</p>
+                    <div style='text-align: center; margin: 30px 0;'>
+                        <a href='https://vtos.homes/my-orders' style='background-color: #6938EF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Đặt đồng phục ngay</a>
+                    </div>
+                    <hr style='margin-top: 30px; border: none; border-top: 1px solid #ddd;'>
+                    <p style='color: #888; font-size: 12px;'>VTOS - Virtual Try-On System</p>
+                </div>
+                </body></html>",
+            TextBody = $"Giáo viên {teacherName} nhắc phụ huynh hoàn tất đơn đồng phục cho lớp {className}.{noteText}\n\nĐăng nhập VTOS để đặt hàng: https://vtos.homes/my-orders"
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort,
+            _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken);
+        await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
+
+    // ── Chat Digest ──
+
+    public async Task SendChatDigestEmailAsync(
+        string toEmail, string recipientName,
+        string channelLabel, string channelType,
+        IReadOnlyList<(string SenderName, string Content, DateTime SentAt)> messages,
+        CancellationToken cancellationToken = default)
+    {
+        if (messages.Count == 0) return;
+
+        var channelTypeVi = channelType switch
+        {
+            "SupportTicket" => "Ticket hỗ trợ",
+            "Contract" => "Hợp đồng",
+            "ClassGroup" => "Nhóm lớp",
+            _ => channelType
+        };
+
+        var messageRows = string.Join("", messages.Select(m =>
+            $@"<tr>
+                <td style='padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: top; width: 120px;'>
+                    <strong style='color: #1A1A2E;'>{WebUtility.HtmlEncode(m.SenderName)}</strong><br/>
+                    <span style='color: #999; font-size: 11px;'>{m.SentAt.ToLocalTime():HH:mm dd/MM}</span>
+                </td>
+                <td style='padding: 10px 12px; border-bottom: 1px solid #eee; color: #333;'>
+                    {WebUtility.HtmlEncode(m.Content.Length > 200 ? m.Content[..200] + "…" : m.Content)}
+                </td>
+            </tr>"));
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"VTOS - 💬 {messages.Count} tin nhắn mới trong {channelTypeVi}: {channelLabel}";
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = $@"
+                <html><body style='font-family: Arial, sans-serif;'>
+                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                    <h2 style='color: #6938EF;'>💬 Tin nhắn mới trong cuộc trò chuyện</h2>
+                    <p>Xin chào <strong>{WebUtility.HtmlEncode(recipientName)}</strong>,</p>
+                    <p>Bạn có <strong>{messages.Count} tin nhắn mới</strong> trong <strong>{channelTypeVi}</strong>: <strong>{WebUtility.HtmlEncode(channelLabel)}</strong>.</p>
+                    <table style='width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px;'>
+                        {messageRows}
+                    </table>
+                    <div style='text-align: center; margin: 30px 0;'>
+                        <a href='https://vtos.homes' style='background-color: #6938EF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Xem cuộc trò chuyện</a>
+                    </div>
+                    <hr style='margin-top: 30px; border: none; border-top: 1px solid #ddd;'>
+                    <p style='color: #888; font-size: 12px;'>VTOS - Virtual Try-On System</p>
+                </div>
+                </body></html>",
+            TextBody = $"Bạn có {messages.Count} tin nhắn mới trong {channelTypeVi}: {channelLabel}. Đăng nhập VTOS để xem."
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort,
+            _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken);
+        await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password, cancellationToken);
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+    }
 }

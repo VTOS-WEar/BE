@@ -44,6 +44,7 @@ public class SemesterCatalogProviderDto
     public int TotalRatings { get; set; }
     public int TotalCompletedOrders { get; set; }
     public List<ProductVariantDto> Variants { get; set; } = new();
+    public SizeChartDto? SizeChart { get; set; }
 }
 
 public class PublicProviderProfileDto

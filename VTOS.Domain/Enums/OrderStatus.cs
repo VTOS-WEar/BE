@@ -12,5 +12,6 @@ public enum OrderStatus
     Refunded = 8,
     Accepted = 9,
     InProduction = 10,
-    ReadyToShip = 11
+    ReadyToShip = 11,
+    CancellationRequested = 12
 }
