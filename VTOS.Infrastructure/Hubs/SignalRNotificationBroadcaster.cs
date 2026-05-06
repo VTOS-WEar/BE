@@ -13,7 +13,15 @@ public class SignalRNotificationBroadcaster : INotificationBroadcaster
 
     public SignalRNotificationBroadcaster(IHubContext<NotificationHub> hubContext) => _hubContext = hubContext;
 
-    public async Task BroadcastToUserAsync(Guid userId, string title, string message, string type, CancellationToken ct = default)
+    public async Task BroadcastToUserAsync(
+        Guid userId,
+        string title,
+        string message,
+        string type,
+        Guid? relatedEntityId = null,
+        string? relatedEntityType = null,
+        string? actionUrl = null,
+        CancellationToken ct = default)
     {
         var groupName = $"user_{userId}";
         await _hubContext.Clients.Group(groupName).SendAsync("NewNotification", new
@@ -21,6 +29,9 @@ public class SignalRNotificationBroadcaster : INotificationBroadcaster
             title,
             message,
             type,
+            relatedEntityId,
+            relatedEntityType,
+            actionUrl,
             createdAt = DateTime.UtcNow
         }, ct);
     }

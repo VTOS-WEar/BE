@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.TryOn.Queries;
 
@@ -13,7 +14,10 @@ public record TryOnHistoryDto(
     string? OutfitImage,
     string? ResultPhotoUrl,
     string? UploadedPhotoUrl,
-    DateTime TryOnTimestamp
+    DateTime TryOnTimestamp,
+    string Status,
+    string? ErrorMessage,
+    DateTime? CompletedAt
 );
 
 public record GetParentTryOnHistoryResponse(
@@ -56,15 +60,36 @@ public class GetParentTryOnHistoryQueryHandler : IGetParentTryOnHistoryQueryHand
             .Select(t => t)
             .ToListAsync(ct);
 
-        var dtos = items.Select(t => new TryOnHistoryDto(
-            t.Id,
-            t.OutfitID,
-            t.Outfit != null ? t.Outfit.OutfitName : "Unknown",
-            t.Outfit != null ? t.Outfit.MainImageURL : null,
-            _tryOnImageAccessService.CreateImageUrl(t, TryOnImageAssetKind.Result) ?? t.ResultPhotoURL,
-            _tryOnImageAccessService.CreateImageUrl(t, TryOnImageAssetKind.Uploaded) ?? t.UploadedPhotoURL,
-            t.TryOnTimestamp
-        )).ToList();
+        var dtos = items.Select(t =>
+        {
+            var resultUrl = t.Status == TryOnJobStatus.Completed
+                ? _tryOnImageAccessService.CreateImageUrl(t, TryOnImageAssetKind.Result) ?? t.ResultPhotoURL
+                : null;
+            var isRecoverableOrphan = t.UserID != null
+                && t.Status == TryOnJobStatus.Completed
+                && t.CompletedAt == null
+                && string.IsNullOrWhiteSpace(t.ResultPhotoObjectKey)
+                && string.IsNullOrWhiteSpace(t.ResultPhotoURL)
+                && !string.IsNullOrWhiteSpace(t.UploadedPhotoObjectKey);
+            var effectiveStatus = t.Status == TryOnJobStatus.Completed && string.IsNullOrWhiteSpace(resultUrl)
+                ? isRecoverableOrphan ? TryOnJobStatus.Queued : TryOnJobStatus.Failed
+                : t.Status;
+            var errorMessage = effectiveStatus == TryOnJobStatus.Failed && string.IsNullOrWhiteSpace(t.ErrorMessage)
+                ? "Không tìm thấy ảnh kết quả thử đồ. Vui lòng thử lại."
+                : t.ErrorMessage;
+
+            return new TryOnHistoryDto(
+                t.Id,
+                t.OutfitID,
+                t.Outfit != null ? t.Outfit.OutfitName : "Unknown",
+                t.Outfit != null ? t.Outfit.MainImageURL : null,
+                effectiveStatus == TryOnJobStatus.Completed ? resultUrl : null,
+                _tryOnImageAccessService.CreateImageUrl(t, TryOnImageAssetKind.Uploaded) ?? t.UploadedPhotoURL,
+                t.TryOnTimestamp,
+                effectiveStatus.ToString(),
+                errorMessage,
+                t.CompletedAt);
+        }).ToList();
 
         return Result<GetParentTryOnHistoryResponse>.Success(
             new GetParentTryOnHistoryResponse(dtos, total, query.Page, query.PageSize));

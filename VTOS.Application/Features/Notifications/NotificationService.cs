@@ -44,7 +44,15 @@ public interface INotificationService
 /// </summary>
 public interface INotificationBroadcaster
 {
-    Task BroadcastToUserAsync(Guid userId, string title, string message, string type, CancellationToken ct = default);
+    Task BroadcastToUserAsync(
+        Guid userId,
+        string title,
+        string message,
+        string type,
+        Guid? relatedEntityId = null,
+        string? relatedEntityType = null,
+        string? actionUrl = null,
+        CancellationToken ct = default);
 }
 
 public class NotificationService : INotificationService
@@ -82,7 +90,7 @@ public class NotificationService : INotificationService
         // Push real-time
         if (_broadcaster != null)
         {
-            try { await _broadcaster.BroadcastToUserAsync(userId, title, message, type, cancellationToken); }
+            try { await _broadcaster.BroadcastToUserAsync(userId, title, message, type, relatedEntityId, relatedEntityType, actionUrl, cancellationToken); }
             catch { /* don't fail */ }
         }
     }
@@ -124,7 +132,7 @@ public class NotificationService : INotificationService
         {
             foreach (var adminId in adminUserIds)
             {
-                try { await _broadcaster.BroadcastToUserAsync(adminId, title, message, type, cancellationToken); }
+                try { await _broadcaster.BroadcastToUserAsync(adminId, title, message, type, relatedEntityId, relatedEntityType, actionUrl, cancellationToken); }
                 catch { /* don't fail */ }
             }
         }
