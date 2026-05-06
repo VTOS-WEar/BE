@@ -15,6 +15,8 @@ public interface IAdminInterventionCommandHandler
 
 public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
 {
+    private const string OrderCancellationCategory = "OrderCancellation";
+
     private readonly IApplicationDbContext _context;
     private readonly INotificationService _notificationService;
 
@@ -40,9 +42,10 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
             ? adminNote
             : ticket.Response + "\n\n" + adminNote;
 
-        if (!string.IsNullOrEmpty(command.Action))
+        var action = command.Action?.Trim().ToLowerInvariant();
+        if (!string.IsNullOrEmpty(action))
         {
-            switch (command.Action.ToLowerInvariant())
+            switch (action)
             {
                 case "escalate":
                     ticket.Status = SupportTicketStatus.InProgress;
@@ -55,6 +58,33 @@ public class AdminInterventionCommandHandler : IAdminInterventionCommandHandler
                     ticket.Status = SupportTicketStatus.Closed;
                     ticket.ResolvedAt ??= DateTime.UtcNow;
                     break;
+            }
+        }
+
+        if (ticket.Category == OrderCancellationCategory
+            && ticket.OrderID.HasValue
+            && (action == "resolve" || action == "close"))
+        {
+            var order = await _context.Orders
+                .FirstOrDefaultAsync(o => o.Id == ticket.OrderID.Value, ct);
+
+            if (order == null)
+                return Result<string>.Failure("Linked order not found.", "ORDER_NOT_FOUND");
+
+            if (action == "resolve")
+            {
+                if (order.OrderStatus != OrderStatus.CancellationRequested
+                    && order.OrderStatus != OrderStatus.Paid
+                    && order.OrderStatus != OrderStatus.Cancelled)
+                    return Result<string>.Failure("Order is no longer waiting for cancellation review.", "INVALID_ORDER_STATUS");
+
+                order.OrderStatus = OrderStatus.Cancelled;
+                order.UpdatedAt = DateTime.UtcNow;
+            }
+            else if (action == "close" && order.OrderStatus == OrderStatus.CancellationRequested)
+            {
+                order.OrderStatus = OrderStatus.Paid;
+                order.UpdatedAt = DateTime.UtcNow;
             }
         }
 

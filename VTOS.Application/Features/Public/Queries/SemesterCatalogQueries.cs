@@ -79,6 +79,13 @@ public class GetSchoolSemesterCatalogQueryHandler
             .Where(v => outfitIds.Contains(v.OutfitID) && v.ProviderCatalogItemID == null && !v.IsDeleted)
             .ToListAsync(ct);
 
+        var sizeChartLookup = await SemesterCatalogQueryHelpers.GetSizeChartLookupAsync(
+            _context,
+            publishedCatalogItems
+                .Select(item => item.SizeChartID)
+                .Concat(publicationOutfits.Select(item => item.Outfit.SizeChartID)),
+            ct);
+
         var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
         var outfits = publicationOutfits
@@ -121,7 +128,11 @@ public class GetSchoolSemesterCatalogQueryHandler
                             PricingMode = SemesterCatalogQueryHelpers.ResolvePricingModeName(isAfterDeadline),
                             AverageRating = stats.AverageRating,
                             TotalRatings = stats.TotalRatings,
-                            TotalCompletedOrders = stats.TotalCompletedOrders
+                            TotalCompletedOrders = stats.TotalCompletedOrders,
+                            SizeChart = SemesterCatalogQueryHelpers.ResolveSizeChartDto(
+                                sizeChartLookup,
+                                catalogItem!.SizeChartID,
+                                x.Outfit.SizeChartID)
                         };
                     })
                     .Where(p => p != null)
@@ -232,6 +243,13 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                 .Where(v => outfitIds.Contains(v.OutfitID) && v.ProviderCatalogItemID == null && !v.IsDeleted)
                 .ToListAsync(ct);
 
+            var sizeChartLookup = await SemesterCatalogQueryHelpers.GetSizeChartLookupAsync(
+                _context,
+                publishedCatalogItems
+                    .Select(item => item.SizeChartID)
+                    .Concat(publicationOutfits.Select(item => item.Outfit.SizeChartID)),
+                ct);
+
             var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
             var outfits = publicationOutfits
@@ -274,7 +292,11 @@ public class GetAllSchoolSemesterCatalogsQueryHandler
                                 PricingMode = SemesterCatalogQueryHelpers.ResolvePricingModeName(isAfterDeadline),
                                 AverageRating = stats.AverageRating,
                                 TotalRatings = stats.TotalRatings,
-                                TotalCompletedOrders = stats.TotalCompletedOrders
+                                TotalCompletedOrders = stats.TotalCompletedOrders,
+                                SizeChart = SemesterCatalogQueryHelpers.ResolveSizeChartDto(
+                                    sizeChartLookup,
+                                    catalogItem!.SizeChartID,
+                                    x.Outfit.SizeChartID)
                             };
                         })
                         .Where(p => p != null)
@@ -388,6 +410,12 @@ public class GetProvidersForPublicationOutfitQueryHandler
             .Where(variant => variant.OutfitID == query.OutfitId && variant.ProviderCatalogItemID == null && !variant.IsDeleted)
             .OrderBy(variant => variant.Size)
             .ToListAsync(ct);
+        var sizeChartLookup = await SemesterCatalogQueryHelpers.GetSizeChartLookupAsync(
+            _context,
+            publishedCatalogItems
+                .Select(item => item.SizeChartID)
+                .Concat(new[] { outfit.SizeChartID }),
+            ct);
         var isAfterDeadline = SemesterCatalogQueryHelpers.IsAfterDeadline(publication.EndDate);
 
         return providers
@@ -427,7 +455,11 @@ public class GetProvidersForPublicationOutfitQueryHandler
                     AverageRating = stats.AverageRating,
                     TotalRatings = stats.TotalRatings,
                     TotalCompletedOrders = stats.TotalCompletedOrders,
-                    Variants = visibleVariants.Select(SemesterCatalogQueryHelpers.ToPublicVariantDto).ToList()
+                    Variants = visibleVariants.Select(SemesterCatalogQueryHelpers.ToPublicVariantDto).ToList(),
+                    SizeChart = SemesterCatalogQueryHelpers.ResolveSizeChartDto(
+                        sizeChartLookup,
+                        catalogItem!.SizeChartID,
+                        outfit.SizeChartID)
                 };
             })
             .Where(x => x != null)
@@ -586,6 +618,50 @@ public class GetProviderRankingQueryHandler
 
 internal static class SemesterCatalogQueryHelpers
 {
+    internal static async Task<Dictionary<Guid, SizeChartDto>> GetSizeChartLookupAsync(
+        IApplicationDbContext context,
+        IEnumerable<Guid?> sizeChartIds,
+        CancellationToken ct)
+    {
+        var ids = sizeChartIds
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, SizeChartDto>();
+        }
+
+        var charts = await context.SizeCharts
+            .AsNoTracking()
+            .Where(chart => ids.Contains(chart.Id))
+            .Include(chart => chart.SizeChartDetails)
+                .ThenInclude(detail => detail.Measurements)
+            .ToListAsync(ct);
+
+        return charts.ToDictionary(chart => chart.Id, ToSizeChartDto);
+    }
+
+    internal static SizeChartDto? ResolveSizeChartDto(
+        IReadOnlyDictionary<Guid, SizeChartDto> sizeCharts,
+        Guid? providerSizeChartId,
+        Guid? fallbackSizeChartId)
+    {
+        if (providerSizeChartId.HasValue && sizeCharts.TryGetValue(providerSizeChartId.Value, out var providerChart))
+        {
+            return providerChart;
+        }
+
+        if (fallbackSizeChartId.HasValue && sizeCharts.TryGetValue(fallbackSizeChartId.Value, out var fallbackChart))
+        {
+            return fallbackChart;
+        }
+
+        return null;
+    }
+
     internal static Task<List<ProviderCatalogItem>> GetVisibleCatalogItemsAsync(
         IApplicationDbContext context,
         Guid semesterPublicationId,
@@ -716,6 +792,29 @@ internal static class SemesterCatalogQueryHelpers
             variant.SKUCode,
             variant.VariantImageURL
         );
+    }
+
+    private static SizeChartDto ToSizeChartDto(SizeChart chart)
+    {
+        var details = chart.SizeChartDetails
+            .OrderBy(detail => detail.SizeLabel)
+            .Select(detail => new SizeChartDetailDto(
+                detail.SizeLabel,
+                detail.Measurements
+                    .OrderBy(measurement => measurement.DisplayName)
+                    .ThenBy(measurement => measurement.FieldKey)
+                    .Select(measurement => new SizeChartMeasurementDto(
+                        measurement.FieldKey,
+                        measurement.DisplayName,
+                        measurement.Unit,
+                        measurement.MinCm,
+                        measurement.MaxCm
+                    ))
+                    .ToList()
+            ))
+            .ToList();
+
+        return new SizeChartDto(chart.Id, chart.ChartName, chart.Unit, details);
     }
 }
 

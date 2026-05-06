@@ -53,6 +53,11 @@ public class MyDirectOrderListItemDto
     public string? FirstItemImageUrl { get; set; }
     public string? PaymentStatusName { get; set; }
     public string? TrackingCode { get; set; }
+    public bool CanCancel { get; set; }
+    public bool CanReorder { get; set; }
+    public string? CancelReason { get; set; }
+    public Guid? CancellationTicketId { get; set; }
+    public string? CancellationTicketStatus { get; set; }
 }
 
 public class MyDirectOrderDetailDto
@@ -65,6 +70,8 @@ public class MyDirectOrderDetailDto
     public Guid SemesterPublicationId { get; set; }
     public string Semester { get; set; } = string.Empty;
     public string AcademicYear { get; set; } = string.Empty;
+    public Guid SchoolId { get; set; }
+    public string SchoolName { get; set; } = string.Empty;
     public string PricingMode { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
@@ -77,6 +84,11 @@ public class MyDirectOrderDetailDto
     public string? ShippingCompany { get; set; }
     public string? PaymentStatusName { get; set; }
     public bool CanRateProvider { get; set; }
+    public bool CanCancel { get; set; }
+    public bool CanReorder { get; set; }
+    public string? CancelReason { get; set; }
+    public Guid? CancellationTicketId { get; set; }
+    public string? CancellationTicketStatus { get; set; }
     public ExistingProviderRatingDto? ExistingProviderRating { get; set; }
     public List<MyDirectOrderDetailItemDto> Items { get; set; } = new();
 }

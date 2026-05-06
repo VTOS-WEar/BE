@@ -166,11 +166,13 @@ public class SendTeacherReminderCommandHandler : ISendTeacherReminderCommandHand
 {
     private readonly IApplicationDbContext _db;
     private readonly INotificationService _notificationService;
+    private readonly IEmailService _emailService;
 
-    public SendTeacherReminderCommandHandler(IApplicationDbContext db, INotificationService notificationService)
+    public SendTeacherReminderCommandHandler(IApplicationDbContext db, INotificationService notificationService, IEmailService emailService)
     {
         _db = db;
         _notificationService = notificationService;
+        _emailService = emailService;
     }
 
     public async Task<Result<TeacherReminderSendResponseDto>> HandleAsync(SendTeacherReminderCommand command, CancellationToken ct = default)
@@ -201,6 +203,13 @@ public class SendTeacherReminderCommandHandler : ISendTeacherReminderCommandHand
             .Select(x => x.FullName)
             .FirstOrDefaultAsync(ct) ?? "Giáo viên chủ nhiệm";
 
+        // Query parent info for email sending
+        var parentInfos = await _db.Users.AsNoTracking()
+            .Where(x => targetParentIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.Email, x.FullName })
+            .ToListAsync(ct);
+        var parentLookup = parentInfos.ToDictionary(x => x.Id);
+
         var note = string.IsNullOrWhiteSpace(command.Request.Note) ? null : command.Request.Note.Trim();
         foreach (var parentUserId in targetParentIds)
         {
@@ -217,6 +226,25 @@ public class SendTeacherReminderCommandHandler : ISendTeacherReminderCommandHand
                 "ClassGroup",
                 "/my-orders",
                 ct);
+
+            // Send email
+            if (parentLookup.TryGetValue(parentUserId, out var parent) && !string.IsNullOrWhiteSpace(parent.Email))
+            {
+                try
+                {
+                    await _emailService.SendTeacherReminderEmailAsync(
+                        parent.Email,
+                        parent.FullName ?? "Phụ huynh",
+                        teacherName,
+                        classInfo.ClassName,
+                        note,
+                        ct);
+                }
+                catch
+                {
+                    // Don't fail the whole operation if one email fails
+                }
+            }
         }
 
         return Result<TeacherReminderSendResponseDto>.Success(new TeacherReminderSendResponseDto

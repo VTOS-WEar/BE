@@ -5,6 +5,7 @@ using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Common.Models;
 using VTOS.Application.Common.Settings;
+using VTOS.Application.Features.Notifications;
 using VTOS.Application.Features.Orders.DTOs;
 using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
@@ -303,19 +304,31 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
 
 public class CancelDirectOrderCommandHandler : ICancelDirectOrderCommandHandler
 {
+    private const string OrderCancellationCategory = "OrderCancellation";
+
     private readonly IApplicationDbContext _context;
     private readonly IPayOSService _payOSService;
+    private readonly INotificationService _notificationService;
 
-    public CancelDirectOrderCommandHandler(IApplicationDbContext context, IPayOSService payOSService)
+    public CancelDirectOrderCommandHandler(
+        IApplicationDbContext context,
+        IPayOSService payOSService,
+        INotificationService notificationService)
     {
         _context = context;
         _payOSService = payOSService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result> HandleAsync(CancelDirectOrderCommand command, CancellationToken cancellationToken = default)
     {
         var order = await _context.Orders
             .Include(o => o.ChildProfile)
+                .ThenInclude(c => c.ParentUser)
+            .Include(o => o.ChildProfile)
+                .ThenInclude(c => c.School)
+            .Include(o => o.Provider)
+            .Include(o => o.SemesterPublication)
             .Include(o => o.PaymentTransactions)
             .FirstOrDefaultAsync(
                 o => o.Id == command.OrderId
@@ -327,6 +340,9 @@ public class CancelDirectOrderCommandHandler : ICancelDirectOrderCommandHandler
         if (order == null)
             return Result.Failure("Direct order not found.", "ORDER_NOT_FOUND");
 
+        if (string.IsNullOrWhiteSpace(command.Reason))
+            return Result.Failure("Cancellation reason is required.", "CANCEL_REASON_REQUIRED");
+
         if (order.OrderStatus == OrderStatus.Accepted
             || order.OrderStatus == OrderStatus.InProduction
             || order.OrderStatus == OrderStatus.ReadyToShip
@@ -334,8 +350,80 @@ public class CancelDirectOrderCommandHandler : ICancelDirectOrderCommandHandler
             || order.OrderStatus == OrderStatus.Delivered)
             return Result.Failure("Order cannot be cancelled after provider has started fulfillment.", "ORDER_NOT_CANCELLABLE");
 
+        if (order.OrderStatus == OrderStatus.CancellationRequested)
+            return Result.Failure("Cancellation request is already waiting for admin review.", "CANCELLATION_ALREADY_REQUESTED");
+
+        if (order.OrderStatus == OrderStatus.Paid)
+        {
+            var existingTicket = await _context.SupportTickets
+                .Where(t =>
+                    t.OrderID == order.Id
+                    && t.Category == OrderCancellationCategory
+                    && (t.Status == SupportTicketStatus.Open || t.Status == SupportTicketStatus.InProgress))
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingTicket != null)
+            {
+                order.CancelReason = command.Reason.Trim();
+                order.OrderStatus = OrderStatus.CancellationRequested;
+                order.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+                return Result.Success();
+            }
+
+            var requester = order.ChildProfile.ParentUser;
+            var reason = command.Reason.Trim();
+            var ticket = new SupportTicket
+            {
+                Id = Guid.NewGuid(),
+                RequesterUserID = command.ParentId,
+                RequesterRole = "Parent",
+                RequesterName = string.IsNullOrWhiteSpace(requester.FullName) ? requester.Email : requester.FullName,
+                RequesterEmail = requester.Email,
+                SchoolID = order.SemesterPublication?.SchoolID ?? order.ChildProfile.SchoolID,
+                ProviderID = order.ProviderID,
+                OrderID = order.Id,
+                SemesterPublicationID = order.SemesterPublicationID,
+                Category = OrderCancellationCategory,
+                Title = $"Yêu cầu hủy đơn #{order.Id.ToString("N")[..8].ToUpperInvariant()}",
+                Description = reason,
+                Status = SupportTicketStatus.Open,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = requester.Email
+            };
+
+            order.OrderStatus = OrderStatus.CancellationRequested;
+            order.CancelReason = reason;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            _context.SupportTickets.Add(ticket);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _notificationService.NotifyAdminsAsync(
+                    "Yêu cầu hủy đơn mới",
+                    $"Phụ huynh {ticket.RequesterName} yêu cầu hủy đơn #{order.Id.ToString("N")[..8].ToUpperInvariant()}.",
+                    "SupportTicket",
+                    ticket.Id,
+                    "SupportTicket",
+                    "/admin/complaints",
+                    cancellationToken);
+            }
+            catch
+            {
+                // Cancellation request should not fail because notification delivery failed.
+            }
+
+            return Result.Success();
+        }
+
+        if (order.OrderStatus != OrderStatus.Pending)
+            return Result.Failure("Only pending or paid direct orders can be cancelled by parents.", "ORDER_NOT_CANCELLABLE");
+
         order.OrderStatus = OrderStatus.Cancelled;
-        order.CancelReason = command.Reason;
+        order.CancelReason = command.Reason.Trim();
         order.UpdatedAt = DateTime.UtcNow;
 
         var latestTransaction = order.PaymentTransactions
