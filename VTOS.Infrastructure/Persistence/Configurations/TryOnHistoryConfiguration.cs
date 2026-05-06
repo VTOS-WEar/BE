@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using VTOS.Domain.Entities;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Infrastructure.Persistence.Configurations;
 
@@ -40,6 +41,15 @@ public class TryOnHistoryConfiguration : IEntityTypeConfiguration<TryOnHistory>
 
         builder.Property(toh => toh.ResultPhotoContentType)
             .HasMaxLength(100);
+
+        builder.Property(toh => toh.Status)
+            .IsRequired()
+            .HasDefaultValue(TryOnJobStatus.Completed);
+
+        builder.Property(toh => toh.ErrorMessage)
+            .HasMaxLength(1000);
+
+        builder.Property(toh => toh.CompletedAt);
 
         builder.Property(toh => toh.TryOnTimestamp)
             .IsRequired();

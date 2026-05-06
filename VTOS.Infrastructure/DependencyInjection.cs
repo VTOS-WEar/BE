@@ -250,6 +250,7 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundJobs.AutoPayoutJob>();
         services.AddHostedService<BackgroundJobs.PaymentDeadlineReminderJob>();
         services.AddHostedService<BackgroundJobs.AdminNotificationDigestJob>();
+        services.AddHostedService<BackgroundJobs.ParentTryOnJobWorker>();
         services.AddScoped<Application.Features.Notifications.INotificationBroadcaster, Hubs.SignalRNotificationBroadcaster>();
         services.AddScoped<Application.Features.Admin.Commands.IUserStatusBroadcaster, Hubs.SignalRUserStatusBroadcaster>();
 

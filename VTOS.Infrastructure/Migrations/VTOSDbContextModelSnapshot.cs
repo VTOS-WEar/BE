@@ -74,7 +74,9 @@ namespace VTOS.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
 
                     b.Property<DateTime?>("TermsAcceptedAt")
                         .HasColumnType("timestamp without time zone");
@@ -2272,11 +2274,18 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<Guid?>("ChildID")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("GuestSessionID")
                         .HasMaxLength(100)
@@ -2303,6 +2312,9 @@ namespace VTOS.Infrastructure.Migrations
                     b.Property<string>("SourcePlatform")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("TryOnTimestamp")
                         .HasColumnType("timestamp without time zone");

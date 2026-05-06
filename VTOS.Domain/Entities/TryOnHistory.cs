@@ -1,4 +1,5 @@
 using VTOS.Domain.Common;
+using VTOS.Domain.Enums;
 
 namespace VTOS.Domain.Entities;
 
@@ -16,6 +17,9 @@ public class TryOnHistory : AuditableEntity
     public string? ResultPhotoObjectKey { get; set; }
     public string? ResultPhotoContentType { get; set; }
     public long? ResultPhotoSizeBytes { get; set; }
+    public TryOnJobStatus Status { get; set; } = TryOnJobStatus.Completed;
+    public string? ErrorMessage { get; set; }
+    public DateTime? CompletedAt { get; set; }
     public DateTime TryOnTimestamp { get; set; }
     public string? AlignmentAdjustment { get; set; }
     public string? SourcePlatform { get; set; }

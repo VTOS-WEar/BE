@@ -1,9 +1,13 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Features.TryOn.Commands.GuestTryOn;
 using VTOS.Application.Features.TryOn.Queries;
+using VTOS.Domain.Entities;
+using VTOS.Domain.Enums;
 
 namespace VTOS.API.Controllers;
 
@@ -33,6 +37,17 @@ public class TryOnResultLinkRequest
     public string? GuestSessionId { get; set; }
 }
 
+public record ParentTryOnJobResponse(
+    Guid TryOnId,
+    string Status,
+    int RemainingTries,
+    string OutfitName,
+    string? OutfitImage,
+    string? ResultPhotoUrl,
+    string? ErrorMessage,
+    DateTime TryOnTimestamp,
+    DateTime? CompletedAt);
+
 /// <summary>
 /// Controller for virtual try-on operations
 /// </summary>
@@ -43,29 +58,35 @@ public class TryOnController : ControllerBase
     private readonly IGuestTryOnCommandHandler _guestTryOnHandler;
     private readonly IValidator<GuestTryOnCommand> _guestTryOnValidator;
     private readonly IGetParentTryOnHistoryQueryHandler _historyHandler;
+    private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly ITryOnImageAccessService _tryOnImageAccessService;
     private readonly IPrivateImageStorageService _privateImageStorageService;
     private readonly IImageWatermarkService _imageWatermarkService;
+    private readonly int _maxTriesPerSession;
     private readonly ILogger<TryOnController> _logger;
 
     public TryOnController(
         IGuestTryOnCommandHandler guestTryOnHandler,
         IValidator<GuestTryOnCommand> guestTryOnValidator,
         IGetParentTryOnHistoryQueryHandler historyHandler,
+        IApplicationDbContext context,
         ICurrentUserService currentUser,
         ITryOnImageAccessService tryOnImageAccessService,
         IPrivateImageStorageService privateImageStorageService,
         IImageWatermarkService imageWatermarkService,
+        IOptions<TryOnSettings> tryOnSettings,
         ILogger<TryOnController> logger)
     {
         _guestTryOnHandler = guestTryOnHandler;
         _guestTryOnValidator = guestTryOnValidator;
         _historyHandler = historyHandler;
+        _context = context;
         _currentUser = currentUser;
         _tryOnImageAccessService = tryOnImageAccessService;
         _privateImageStorageService = privateImageStorageService;
         _imageWatermarkService = imageWatermarkService;
+        _maxTriesPerSession = tryOnSettings.Value.MaxGuestTriesPerSession;
         _logger = logger;
     }
 
@@ -112,6 +133,152 @@ public class TryOnController : ControllerBase
         }
 
         return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Queue an authenticated parent try-on job and return immediately.
+    /// </summary>
+    [HttpPost("jobs")]
+    [Authorize(Roles = "Parent")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ParentTryOnJobResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> CreateParentTryOnJob(
+        [FromForm] TryOnRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.UserId;
+        var command = new GuestTryOnCommand(null, request.OutfitId, request.Photo, userId);
+
+        var validationResult = await _guestTryOnValidator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(new { errors = validationResult.Errors.Select(e => e.ErrorMessage) });
+        }
+
+        var today = DateTime.UtcNow.Date;
+        var tryCount = await _context.TryOnHistories.CountAsync(
+            t => t.UserID == userId && t.TryOnTimestamp.Date == today,
+            cancellationToken);
+
+        if (tryCount >= _maxTriesPerSession)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new { error = $"Maximum {_maxTriesPerSession} tries per session per day. Try again tomorrow.", code = "RATE_LIMIT_EXCEEDED" });
+        }
+
+        var outfit = await _context.Outfits
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == request.OutfitId && o.IsAvailable, cancellationToken);
+
+        if (outfit == null)
+        {
+            return NotFound(new { error = "Outfit not found or unavailable.", code = "OUTFIT_NOT_FOUND" });
+        }
+
+        if (string.IsNullOrEmpty(outfit.MainImageURL))
+        {
+            return BadRequest(new { error = "Outfit does not have a main image.", code = "OUTFIT_NO_IMAGE" });
+        }
+
+        PrivateImageUploadResult humanImage;
+        try
+        {
+            await using var stream = request.Photo.OpenReadStream();
+            humanImage = await _privateImageStorageService.UploadPrivateAsync(
+                stream,
+                request.Photo.FileName,
+                "tryon",
+                request.Photo.ContentType,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload parent try-on source photo");
+            return BadRequest(new { error = "Failed to upload photo. Please try again.", code = "UPLOAD_FAILED" });
+        }
+
+        var now = DateTime.UtcNow;
+        var history = new TryOnHistory
+        {
+            UserID = userId,
+            OutfitID = request.OutfitId,
+            UploadedPhotoURL = string.Empty,
+            ResultPhotoURL = null,
+            UploadedPhotoObjectKey = humanImage.ObjectKey,
+            UploadedPhotoContentType = humanImage.ContentType,
+            UploadedPhotoSizeBytes = humanImage.SizeBytes,
+            Status = TryOnJobStatus.Queued,
+            TryOnTimestamp = now,
+            SourcePlatform = "Web"
+        };
+
+        _context.TryOnHistories.Add(history);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var response = new ParentTryOnJobResponse(
+            history.Id,
+            history.Status.ToString(),
+            _maxTriesPerSession - (tryCount + 1),
+            outfit.OutfitName,
+            outfit.MainImageURL,
+            null,
+            null,
+            history.TryOnTimestamp,
+            null);
+
+        return AcceptedAtAction(nameof(GetParentTryOnJob), new { tryOnId = history.Id }, response);
+    }
+
+    /// <summary>
+    /// Get the current parent try-on job status.
+    /// </summary>
+    [HttpGet("jobs/{tryOnId:guid}")]
+    [Authorize(Roles = "Parent")]
+    [ProducesResponseType(typeof(ParentTryOnJobResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetParentTryOnJob(
+        [FromRoute] Guid tryOnId,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.UserId;
+        var history = await _context.TryOnHistories
+            .AsNoTracking()
+            .Include(t => t.Outfit)
+            .FirstOrDefaultAsync(t => t.Id == tryOnId && t.UserID == userId, cancellationToken);
+
+        if (history == null)
+        {
+            return NotFound(new { error = "Try-on job not found.", code = "TRYON_NOT_FOUND" });
+        }
+
+        var resultUrl = history.Status == TryOnJobStatus.Completed
+            ? _tryOnImageAccessService.CreateImageUrl(history, TryOnImageAssetKind.Result) ?? history.ResultPhotoURL
+            : null;
+        var isRecoverableOrphan = history.UserID != null
+            && history.Status == TryOnJobStatus.Completed
+            && history.CompletedAt == null
+            && string.IsNullOrWhiteSpace(history.ResultPhotoObjectKey)
+            && string.IsNullOrWhiteSpace(history.ResultPhotoURL)
+            && !string.IsNullOrWhiteSpace(history.UploadedPhotoObjectKey);
+        var effectiveStatus = history.Status == TryOnJobStatus.Completed && string.IsNullOrWhiteSpace(resultUrl)
+            ? isRecoverableOrphan ? TryOnJobStatus.Queued : TryOnJobStatus.Failed
+            : history.Status;
+        var errorMessage = effectiveStatus == TryOnJobStatus.Failed && string.IsNullOrWhiteSpace(history.ErrorMessage)
+            ? "Không tìm thấy ảnh kết quả thử đồ. Vui lòng thử lại."
+            : history.ErrorMessage;
+
+        return Ok(new ParentTryOnJobResponse(
+            history.Id,
+            effectiveStatus.ToString(),
+            0,
+            history.Outfit?.OutfitName ?? "Unknown",
+            history.Outfit?.MainImageURL,
+            effectiveStatus == TryOnJobStatus.Completed ? resultUrl : null,
+            errorMessage,
+            history.TryOnTimestamp,
+            history.CompletedAt));
     }
 
     /// <summary>
