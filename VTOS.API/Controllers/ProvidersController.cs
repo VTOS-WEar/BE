@@ -36,6 +36,8 @@ public class ProvidersController : ControllerBase
     private readonly IGetProviderSupportTicketsQueryHandler _getProviderComplaintsHandler;
     private readonly IGetProviderSupportTicketDetailQueryHandler _getProviderComplaintDetailHandler;
     private readonly IRespondSupportTicketCommandHandler _respondComplaintHandler;
+    private readonly IApproveComplaintRefundCommandHandler _approveComplaintRefundHandler;
+    private readonly IForwardComplaintToAdminCommandHandler _forwardComplaintToAdminHandler;
     // Withdrawal
     private readonly ICreateProviderWithdrawalRequestCommandHandler _createWithdrawalHandler;
     private readonly IGetProviderWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
@@ -68,6 +70,8 @@ public class ProvidersController : ControllerBase
         IGetProviderSupportTicketsQueryHandler getProviderComplaintsHandler,
         IGetProviderSupportTicketDetailQueryHandler getProviderComplaintDetailHandler,
         IRespondSupportTicketCommandHandler respondComplaintHandler,
+        IApproveComplaintRefundCommandHandler approveComplaintRefundHandler,
+        IForwardComplaintToAdminCommandHandler forwardComplaintToAdminHandler,
         ICreateProviderWithdrawalRequestCommandHandler createWithdrawalHandler,
         IGetProviderWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler,
         IGetProviderIncomingOrdersQueryHandler getProviderIncomingOrdersHandler,
@@ -97,6 +101,8 @@ public class ProvidersController : ControllerBase
         _getProviderComplaintsHandler = getProviderComplaintsHandler;
         _getProviderComplaintDetailHandler = getProviderComplaintDetailHandler;
         _respondComplaintHandler = respondComplaintHandler;
+        _approveComplaintRefundHandler = approveComplaintRefundHandler;
+        _forwardComplaintToAdminHandler = forwardComplaintToAdminHandler;
         _createWithdrawalHandler = createWithdrawalHandler;
         _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
         _getProviderIncomingOrdersHandler = getProviderIncomingOrdersHandler;
@@ -381,7 +387,7 @@ public class ProvidersController : ControllerBase
 
     /// <summary>Get complaint detail by ID (provider-scoped).</summary>
     [HttpGet("me/complaints/{id:guid}")]
-    [ProducesResponseType(typeof(Application.Features.Schools.Queries.SupportTicketDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProviderSupportTicketDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProviderComplaintDetail(Guid id, CancellationToken ct)
     {
@@ -399,6 +405,28 @@ public class ProvidersController : ControllerBase
     {
         var result = await _respondComplaintHandler.HandleAsync(
             new RespondSupportTicketCommand(_currentUser.UserId, id, request.Response, request.MarkResolved), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(new { message = result.Value });
+    }
+
+    [HttpPost("me/complaints/{id:guid}/approve-refund")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ApproveComplaintRefund(Guid id, [FromBody] ProviderComplaintNoteRequest request, CancellationToken ct)
+    {
+        var result = await _approveComplaintRefundHandler.HandleAsync(
+            new ApproveComplaintRefundCommand(_currentUser.UserId, id, request.Note), ct);
+        if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        return Ok(result.Value);
+    }
+
+    [HttpPost("me/complaints/{id:guid}/forward-admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForwardComplaintToAdmin(Guid id, [FromBody] ProviderComplaintNoteRequest request, CancellationToken ct)
+    {
+        var result = await _forwardComplaintToAdminHandler.HandleAsync(
+            new ForwardComplaintToAdminCommand(_currentUser.UserId, id, request.Note ?? string.Empty), ct);
         if (!result.IsSuccess) return BadRequest(new { error = result.Error, code = result.ErrorCode });
         return Ok(new { message = result.Value });
     }
@@ -527,6 +555,8 @@ public record UpdateProviderProfileRequest(
 
 /// <summary>Request body for responding to a complaint.</summary>
 public record RespondComplaintRequest(string Response, bool MarkResolved = false);
+
+public record ProviderComplaintNoteRequest(string? Note);
 
 /// <summary>Request body for creating a provider withdrawal request.</summary>
 public record CreateProviderWithdrawalRequest(decimal Amount);

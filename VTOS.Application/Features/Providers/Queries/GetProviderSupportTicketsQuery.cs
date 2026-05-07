@@ -2,7 +2,6 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
-using VTOS.Application.Features.Schools.Queries;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Providers.Queries;
@@ -10,10 +9,29 @@ namespace VTOS.Application.Features.Providers.Queries;
 public record GetProviderSupportTicketsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
 
 public record GetProviderSupportTicketsResponse(
-    IReadOnlyList<SupportTicketDto> Items,
+    IReadOnlyList<ProviderSupportTicketDto> Items,
     int Total,
     int Page,
     int PageSize
+);
+
+public record ProviderSupportTicketDto(
+    Guid ComplaintId,
+    Guid? OrderId,
+    Guid? SemesterPublicationId,
+    string? SemesterLabel,
+    Guid? ProviderId,
+    string? ProviderName,
+    string Title,
+    string Description,
+    string? Response,
+    List<string>? ProofImageUrls,
+    string Status,
+    string Category,
+    string RequesterRole,
+    DateTime CreatedAt,
+    DateTime? RespondedAt,
+    DateTime? ResolvedAt
 );
 
 public interface IGetProviderSupportTicketsQueryHandler
@@ -61,16 +79,17 @@ public class GetProviderSupportTicketsQueryHandler : IGetProviderSupportTicketsQ
                 SemesterLabel = c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
                 c.ProviderID, ProviderName = c.Provider != null ? c.Provider.ProviderName : null,
                 c.Title, c.Description, c.Response, c.ProofImageUrls,
+                c.Category, c.RequesterRole,
                 Status = c.Status.ToString(), c.CreatedAt, c.RespondedAt, c.ResolvedAt
             })
             .ToListAsync(ct);
 
-        var items = rawItems.Select(c => new SupportTicketDto(
+        var items = rawItems.Select(c => new ProviderSupportTicketDto(
             c.Id, c.OrderID, c.SemesterPublicationID, c.SemesterLabel,
             c.ProviderID, c.ProviderName,
             c.Title, c.Description, c.Response,
             string.IsNullOrEmpty(c.ProofImageUrls) ? null : JsonSerializer.Deserialize<List<string>>(c.ProofImageUrls),
-            c.Status, c.CreatedAt, c.RespondedAt, c.ResolvedAt
+            c.Status, c.Category, c.RequesterRole, c.CreatedAt, c.RespondedAt, c.ResolvedAt
         )).ToList();
 
         return Result<GetProviderSupportTicketsResponse>.Success(
