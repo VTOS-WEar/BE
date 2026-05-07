@@ -14,6 +14,7 @@ public class SupportTicketsController : ControllerBase
     private readonly ICreateSupportTicketCommandHandler _createHandler;
     private readonly IGetMySupportTicketsQueryHandler _listHandler;
     private readonly IGetMySupportTicketDetailQueryHandler _detailHandler;
+    private readonly ICancelMySupportTicketCommandHandler _cancelHandler;
     private readonly IImageUploadService _imageUploadService;
 
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -28,12 +29,14 @@ public class SupportTicketsController : ControllerBase
         ICreateSupportTicketCommandHandler createHandler,
         IGetMySupportTicketsQueryHandler listHandler,
         IGetMySupportTicketDetailQueryHandler detailHandler,
+        ICancelMySupportTicketCommandHandler cancelHandler,
         IImageUploadService imageUploadService)
     {
         _currentUser = currentUser;
         _createHandler = createHandler;
         _listHandler = listHandler;
         _detailHandler = detailHandler;
+        _cancelHandler = cancelHandler;
         _imageUploadService = imageUploadService;
     }
 
@@ -43,14 +46,37 @@ public class SupportTicketsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? status = null,
+        [FromQuery] Guid? orderId = null,
+        [FromQuery] string? category = null,
         CancellationToken ct = default)
     {
         var result = await _listHandler.HandleAsync(
-            new GetMySupportTicketsQuery(_currentUser.UserId, page, pageSize, status),
+            new GetMySupportTicketsQuery(_currentUser.UserId, page, pageSize, status, orderId, category),
             ct);
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPut("{id:guid}/cancel")]
+    [ProducesResponseType(typeof(SupportTicketResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelMine(Guid id, CancellationToken ct = default)
+    {
+        var result = await _cancelHandler.HandleAsync(
+            new CancelMySupportTicketCommand(_currentUser.UserId, id),
+            ct);
+
+        if (!result.IsSuccess)
+        {
+            if (result.ErrorCode == "SUPPORT_TICKET_NOT_FOUND")
+                return NotFound(new { error = result.Error, code = result.ErrorCode });
+
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
 
         return Ok(result.Value);
     }

@@ -9,8 +9,15 @@ using VTOS.Domain.Enums;
 namespace VTOS.Application.Features.SupportTickets;
 
 public record CreateSupportTicketCommand(Guid UserId, CreateSupportTicketRequestDto Request);
-public record GetMySupportTicketsQuery(Guid UserId, int Page = 1, int PageSize = 10, string? Status = null);
+public record GetMySupportTicketsQuery(
+    Guid UserId,
+    int Page = 1,
+    int PageSize = 10,
+    string? Status = null,
+    Guid? OrderId = null,
+    string? Category = null);
 public record GetMySupportTicketDetailQuery(Guid UserId, Guid TicketId);
+public record CancelMySupportTicketCommand(Guid UserId, Guid TicketId);
 
 public interface ICreateSupportTicketCommandHandler
 {
@@ -25,6 +32,11 @@ public interface IGetMySupportTicketsQueryHandler
 public interface IGetMySupportTicketDetailQueryHandler
 {
     Task<Result<SupportTicketResponseDto>> HandleAsync(GetMySupportTicketDetailQuery query, CancellationToken ct = default);
+}
+
+public interface ICancelMySupportTicketCommandHandler
+{
+    Task<Result<SupportTicketResponseDto>> HandleAsync(CancelMySupportTicketCommand command, CancellationToken ct = default);
 }
 
 public class CreateSupportTicketCommandHandler : ICreateSupportTicketCommandHandler
@@ -62,6 +74,29 @@ public class CreateSupportTicketCommandHandler : ICreateSupportTicketCommandHand
             return Result<SupportTicketResponseDto>.Failure("This role cannot create support tickets.", "ROLE_NOT_ALLOWED");
 
         var now = DateTime.UtcNow;
+        var category = NormalizeCategory(command.Request.Category);
+
+        if (command.Request.OrderId.HasValue
+            && string.Equals(context.Role, "Parent", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(category, "Order", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasExistingRefundTicket = await _db.SupportTickets
+                .AsNoTracking()
+                .AnyAsync(t =>
+                    t.RequesterUserID == context.UserId
+                    && t.OrderID == command.Request.OrderId.Value
+                    && t.Category == "Order"
+                    && t.Status != SupportTicketStatus.Closed,
+                    ct);
+
+            if (hasExistingRefundTicket)
+            {
+                return Result<SupportTicketResponseDto>.Failure(
+                    "A refund support ticket already exists for this order.",
+                    "REFUND_TICKET_EXISTS");
+            }
+        }
+
         // Resolve ProviderID from Order when requester is not a Provider
         var resolvedProviderId = context.ProviderId;
         if (command.Request.OrderId.HasValue && resolvedProviderId == null)
@@ -90,7 +125,7 @@ public class CreateSupportTicketCommandHandler : ICreateSupportTicketCommandHand
             ProviderID = resolvedProviderId,
             OrderID = command.Request.OrderId,
             SemesterPublicationID = command.Request.SemesterPublicationId,
-            Category = NormalizeCategory(command.Request.Category),
+            Category = category,
             Title = command.Request.Title.Trim(),
             Description = command.Request.Description.Trim(),
             ProofImageUrls = proofJson,
@@ -241,6 +276,12 @@ public class GetMySupportTicketsQueryHandler : IGetMySupportTicketsQueryHandler
         if (SupportTicketStatusParser.TryParse(query.Status, out var status))
             tickets = tickets.Where(t => t.Status == status);
 
+        if (query.OrderId.HasValue)
+            tickets = tickets.Where(t => t.OrderID == query.OrderId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Category))
+            tickets = tickets.Where(t => t.Category == query.Category.Trim());
+
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, 50);
         var total = await tickets.CountAsync(ct);
@@ -303,5 +344,50 @@ public class GetMySupportTicketDetailQueryHandler : IGetMySupportTicketDetailQue
         return dto == null
             ? Result<SupportTicketResponseDto>.Failure("Support ticket not found.", "SUPPORT_TICKET_NOT_FOUND")
             : Result<SupportTicketResponseDto>.Success(dto);
+    }
+}
+
+public class CancelMySupportTicketCommandHandler : ICancelMySupportTicketCommandHandler
+{
+    private readonly IApplicationDbContext _db;
+
+    public CancelMySupportTicketCommandHandler(IApplicationDbContext db) => _db = db;
+
+    public async Task<Result<SupportTicketResponseDto>> HandleAsync(CancelMySupportTicketCommand command, CancellationToken ct = default)
+    {
+        var ticket = await _db.SupportTickets
+            .FirstOrDefaultAsync(t => t.Id == command.TicketId && t.RequesterUserID == command.UserId, ct);
+
+        if (ticket == null)
+            return Result<SupportTicketResponseDto>.Failure("Support ticket not found.", "SUPPORT_TICKET_NOT_FOUND");
+
+        if (ticket.Status != SupportTicketStatus.Open)
+            return Result<SupportTicketResponseDto>.Failure("Only unprocessed tickets can be cancelled.", "TICKET_ALREADY_PROCESSING");
+
+        var now = DateTime.UtcNow;
+        ticket.Status = SupportTicketStatus.Closed;
+        ticket.ResolvedAt = now;
+        ticket.UpdatedAt = now;
+        ticket.UpdatedBy = ticket.RequesterEmail;
+        ticket.Response = AppendSystemNote(ticket.Response, "Phụ huynh đã hủy ticket trước khi xử lý.");
+
+        await _db.SaveChangesAsync(ct);
+
+        var dto = await CreateSupportTicketCommandHandler.ProjectTicketById(
+            ticket.Id,
+            _db.SupportTickets.AsNoTracking(),
+            ct);
+
+        return dto == null
+            ? Result<SupportTicketResponseDto>.Failure("Support ticket was cancelled but could not be loaded.", "LOAD_FAILED")
+            : Result<SupportTicketResponseDto>.Success(dto);
+    }
+
+    private static string AppendSystemNote(string? existing, string note)
+    {
+        var line = $"[Parent - {DateTime.UtcNow:dd/MM/yyyy HH:mm}] {note}";
+        return string.IsNullOrWhiteSpace(existing)
+            ? line
+            : $"{existing.Trim()}\n\n{line}";
     }
 }
