@@ -80,7 +80,11 @@ public class GetAllTransactionsQueryHandler : IGetAllTransactionsQueryHandler
             query = query.Where(t =>
                 (t.Description != null && t.Description.ToLower().Contains(s)) ||
                 (t.Wallet != null && t.Wallet.School != null && t.Wallet.School.SchoolName.ToLower().Contains(s)) ||
-                (t.Wallet != null && t.Wallet.Provider != null && t.Wallet.Provider.ProviderName.ToLower().Contains(s)));
+                (t.Wallet != null && t.Wallet.Provider != null && t.Wallet.Provider.ProviderName.ToLower().Contains(s)) ||
+                (t.Wallet != null
+                    && t.Wallet.OwnerType == WalletOwnerType.Parent
+                    && _context.Users.Any(u => u.Id == t.Wallet.OwnerID
+                        && (u.FullName.ToLower().Contains(s) || u.Email.ToLower().Contains(s)))));
         }
 
         var totalCount = await query.CountAsync(ct);
@@ -103,8 +107,13 @@ public class GetAllTransactionsQueryHandler : IGetAllTransactionsQueryHandler
                 OrderId = t.OrderID,
                 OrderCode = t.OrderID.HasValue ? t.OrderID.Value.ToString().Substring(0, 8).ToUpper() : null,
                 WalletOwner = t.Wallet != null
-                    ? (t.Wallet.School != null ? t.Wallet.School.SchoolName
-                       : t.Wallet.Provider != null ? t.Wallet.Provider.ProviderName : null)
+                    ? (t.Wallet.OwnerType == WalletOwnerType.Parent
+                        ? _context.Users
+                            .Where(u => u.Id == t.Wallet.OwnerID)
+                            .Select(u => u.FullName == "" ? u.Email : u.FullName)
+                            .FirstOrDefault()
+                        : t.Wallet.School != null ? t.Wallet.School.SchoolName
+                        : t.Wallet.Provider != null ? t.Wallet.Provider.ProviderName : null)
                     : null,
                 Description = t.Description,
                 PaymentLinkId = t.PaymentLinkId

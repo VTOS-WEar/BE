@@ -18,6 +18,7 @@ public record AdminSupportTicketDto
     public string RequesterRole { get; init; } = string.Empty;
     public string RequesterName { get; init; } = string.Empty;
     public string RequesterEmail { get; init; } = string.Empty;
+    public Guid? RequesterUserId { get; init; }
     public string? SchoolName { get; init; }
     public string? ProviderName { get; init; }
     public Guid? OrderId { get; init; }
@@ -82,7 +83,9 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim().ToLower();
+            var hasTicketIdSearch = Guid.TryParse(search.Trim(), out var ticketIdSearch);
             query = query.Where(c =>
+                (hasTicketIdSearch && c.Id == ticketIdSearch) ||
                 c.Title.ToLower().Contains(s) ||
                 c.RequesterName.ToLower().Contains(s) ||
                 c.RequesterEmail.ToLower().Contains(s) ||
@@ -110,6 +113,7 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
                 c.Id, c.Title, c.Description, c.Category,
                 Status = c.Status.ToString(),
                 c.RequesterRole, c.RequesterName, c.RequesterEmail,
+                c.RequesterUserID,
                 SchoolName = c.School != null ? c.School.SchoolName : null,
                 ProviderName = c.Provider != null ? c.Provider.ProviderName : null,
                 OrderId = c.OrderID,
@@ -126,6 +130,7 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
             Category = c.Category, Status = c.Status,
             RequesterRole = c.RequesterRole, RequesterName = c.RequesterName,
             RequesterEmail = c.RequesterEmail,
+            RequesterUserId = c.RequesterUserID,
             SchoolName = c.SchoolName, ProviderName = c.ProviderName,
             OrderId = c.OrderId, SemesterPublicationId = c.SemesterPublicationId,
             SemesterLabel = c.SemesterLabel, Response = c.Response,

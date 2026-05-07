@@ -395,6 +395,10 @@ public static class DependencyInjection
         // Admin Module - Get Withdrawal Requests
         services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetWithdrawalRequestsQueryHandler,
             VTOS.Application.Features.Admin.Queries.GetWithdrawalRequestsQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Admin.Queries.IGetAdminWalletOwnersQueryHandler,
+            VTOS.Application.Features.Admin.Queries.GetAdminWalletOwnersQueryHandler>();
+        services.AddScoped<VTOS.Application.Features.Admin.Commands.ICreateAdminWalletCreditCommandHandler,
+            VTOS.Application.Features.Admin.Commands.CreateAdminWalletCreditCommandHandler>();
 
         // Provider Module - Withdrawal Request
         services.AddScoped<VTOS.Application.Features.Providers.Commands.ICreateProviderWithdrawalRequestCommandHandler,
