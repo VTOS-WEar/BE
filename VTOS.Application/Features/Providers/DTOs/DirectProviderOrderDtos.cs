@@ -15,6 +15,7 @@ public class ProviderIncomingOrderItemDto
     public DateTime OrderDate { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string ParentName { get; set; } = string.Empty;
     public string ChildName { get; set; } = string.Empty;
     public int ItemCount { get; set; }
@@ -28,6 +29,7 @@ public class ProviderDirectOrderDetailDto
     public string OrderStatus { get; set; } = string.Empty;
     public string PricingMode { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string ParentName { get; set; } = string.Empty;
     public string? ParentPhone { get; set; }
     public string ChildName { get; set; } = string.Empty;

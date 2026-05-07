@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
@@ -61,6 +62,23 @@ public class CreateSupportTicketCommandHandler : ICreateSupportTicketCommandHand
             return Result<SupportTicketResponseDto>.Failure("This role cannot create support tickets.", "ROLE_NOT_ALLOWED");
 
         var now = DateTime.UtcNow;
+        // Resolve ProviderID from Order when requester is not a Provider
+        var resolvedProviderId = context.ProviderId;
+        if (command.Request.OrderId.HasValue && resolvedProviderId == null)
+        {
+            resolvedProviderId = await _db.Orders.AsNoTracking()
+                .Where(o => o.Id == command.Request.OrderId.Value)
+                .Select(o => o.ProviderID)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        // Serialize proof image URLs
+        string? proofJson = null;
+        if (command.Request.ProofImageUrls is { Count: > 0 })
+        {
+            proofJson = JsonSerializer.Serialize(command.Request.ProofImageUrls);
+        }
+
         var ticket = new SupportTicket
         {
             Id = Guid.NewGuid(),
@@ -69,12 +87,13 @@ public class CreateSupportTicketCommandHandler : ICreateSupportTicketCommandHand
             RequesterName = context.Name,
             RequesterEmail = context.Email,
             SchoolID = context.SchoolId,
-            ProviderID = context.ProviderId,
+            ProviderID = resolvedProviderId,
             OrderID = command.Request.OrderId,
             SemesterPublicationID = command.Request.SemesterPublicationId,
             Category = NormalizeCategory(command.Request.Category),
             Title = command.Request.Title.Trim(),
             Description = command.Request.Description.Trim(),
+            ProofImageUrls = proofJson,
             Status = SupportTicketStatus.Open,
             CreatedAt = now,
             CreatedBy = context.Email
@@ -166,31 +185,39 @@ public class CreateSupportTicketCommandHandler : ICreateSupportTicketCommandHand
         IQueryable<SupportTicket> source,
         CancellationToken ct)
     {
-        return await source
+        var raw = await source
             .Where(t => t.Id == ticketId)
             .Include(t => t.School)
             .Include(t => t.Provider)
             .Include(t => t.SemesterPublication)
-            .Select(t => new SupportTicketResponseDto(
-                t.Id,
-                t.Title,
-                t.Description,
-                t.Category,
-                t.Status.ToString(),
-                t.RequesterRole,
-                t.RequesterName,
-                t.RequesterEmail,
-                t.School != null ? t.School.SchoolName : null,
-                t.Provider != null ? t.Provider.ProviderName : null,
-                t.OrderID,
-                t.SemesterPublicationID,
-                t.SemesterPublication != null ? $"{t.SemesterPublication.Semester} {t.SemesterPublication.AcademicYear}" : null,
-                t.Response,
-                t.CreatedAt,
-                t.RespondedAt,
-                t.ResolvedAt))
+            .Select(t => new
+            {
+                t.Id, t.Title, t.Description, t.Category,
+                Status = t.Status.ToString(),
+                t.RequesterRole, t.RequesterName, t.RequesterEmail,
+                SchoolName = t.School != null ? t.School.SchoolName : null,
+                ProviderName = t.Provider != null ? t.Provider.ProviderName : null,
+                t.OrderID, t.SemesterPublicationID,
+                SemesterLabel = t.SemesterPublication != null ? $"{t.SemesterPublication.Semester} {t.SemesterPublication.AcademicYear}" : null,
+                t.Response, t.ProofImageUrls,
+                t.CreatedAt, t.RespondedAt, t.ResolvedAt
+            })
             .FirstOrDefaultAsync(ct);
+
+        if (raw == null) return null;
+
+        return new SupportTicketResponseDto(
+            raw.Id, raw.Title, raw.Description, raw.Category, raw.Status,
+            raw.RequesterRole, raw.RequesterName, raw.RequesterEmail,
+            raw.SchoolName, raw.ProviderName,
+            raw.OrderID, raw.SemesterPublicationID, raw.SemesterLabel,
+            raw.Response,
+            ParseProofUrls(raw.ProofImageUrls),
+            raw.CreatedAt, raw.RespondedAt, raw.ResolvedAt);
     }
+
+    internal static List<string>? ParseProofUrls(string? json)
+        => string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<List<string>>(json);
 }
 
 public class GetMySupportTicketsQueryHandler : IGetMySupportTicketsQueryHandler
@@ -218,32 +245,35 @@ public class GetMySupportTicketsQueryHandler : IGetMySupportTicketsQueryHandler
         var pageSize = Math.Clamp(query.PageSize, 1, 50);
         var total = await tickets.CountAsync(ct);
 
-        var items = await tickets
+        var rawItems = await tickets
             .Include(t => t.School)
             .Include(t => t.Provider)
             .Include(t => t.SemesterPublication)
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => new SupportTicketResponseDto(
-                t.Id,
-                t.Title,
-                t.Description,
-                t.Category,
-                t.Status.ToString(),
-                t.RequesterRole,
-                t.RequesterName,
-                t.RequesterEmail,
-                t.School != null ? t.School.SchoolName : null,
-                t.Provider != null ? t.Provider.ProviderName : null,
-                t.OrderID,
-                t.SemesterPublicationID,
-                t.SemesterPublication != null ? $"{t.SemesterPublication.Semester} {t.SemesterPublication.AcademicYear}" : null,
-                t.Response,
-                t.CreatedAt,
-                t.RespondedAt,
-                t.ResolvedAt))
+            .Select(t => new
+            {
+                t.Id, t.Title, t.Description, t.Category,
+                Status = t.Status.ToString(),
+                t.RequesterRole, t.RequesterName, t.RequesterEmail,
+                SchoolName = t.School != null ? t.School.SchoolName : null,
+                ProviderName = t.Provider != null ? t.Provider.ProviderName : null,
+                t.OrderID, t.SemesterPublicationID,
+                SemesterLabel = t.SemesterPublication != null ? $"{t.SemesterPublication.Semester} {t.SemesterPublication.AcademicYear}" : null,
+                t.Response, t.ProofImageUrls,
+                t.CreatedAt, t.RespondedAt, t.ResolvedAt
+            })
             .ToListAsync(ct);
+
+        var items = rawItems.Select(r => new SupportTicketResponseDto(
+            r.Id, r.Title, r.Description, r.Category, r.Status,
+            r.RequesterRole, r.RequesterName, r.RequesterEmail,
+            r.SchoolName, r.ProviderName,
+            r.OrderID, r.SemesterPublicationID, r.SemesterLabel,
+            r.Response,
+            CreateSupportTicketCommandHandler.ParseProofUrls(r.ProofImageUrls),
+            r.CreatedAt, r.RespondedAt, r.ResolvedAt)).ToList();
 
         return Result<SupportTicketListResult>.Success(new SupportTicketListResult(
             items,

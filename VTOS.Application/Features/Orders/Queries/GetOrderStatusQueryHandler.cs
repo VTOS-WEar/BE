@@ -56,6 +56,7 @@ public class GetOrderStatusQueryHandler : IGetOrderStatusQueryHandler
             OrderStatusName = order.OrderStatus.ToString(),
             OrderDate = order.OrderDate,
             TotalAmount = order.TotalAmount,
+            ShippingFee = order.ShippingFee,
             ShippingAddress = order.ShippingAddress,
             DeliveryMethod = order.DeliveryMethod,
             PaymentStatus = latestTransaction?.TransactionStatus,

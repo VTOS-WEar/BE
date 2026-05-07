@@ -63,6 +63,7 @@ public class GetOrderHistoryQueryHandler : IGetOrderHistoryQueryHandler
                 OrderStatus = o.OrderStatus,
                 OrderStatusName = o.OrderStatus.ToString(),
                 TotalAmount = o.TotalAmount,
+                ShippingFee = o.ShippingFee,
                 ShippingAddress = o.ShippingAddress,
                 DeliveryMethod = o.DeliveryMethod,
                 ItemCount = o.OrderItems.Count,

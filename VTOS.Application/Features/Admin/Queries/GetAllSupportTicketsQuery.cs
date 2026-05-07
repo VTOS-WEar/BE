@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Domain.Enums;
@@ -23,6 +24,7 @@ public record AdminSupportTicketDto
     public Guid? SemesterPublicationId { get; init; }
     public string? SemesterLabel { get; init; }
     public string? Response { get; init; }
+    public List<string>? ProofImageUrls { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? RespondedAt { get; init; }
     public DateTime? ResolvedAt { get; init; }
@@ -99,31 +101,37 @@ public class GetAllSupportTicketsQueryHandler : IGetAllSupportTicketsQueryHandle
         var inProgressCount = await allComplaints.CountAsync(c => c.Status == SupportTicketStatus.InProgress, ct);
         var resolvedCount = await allComplaints.CountAsync(c => c.Status == SupportTicketStatus.Resolved, ct);
 
-        var items = await query
+        var rawItems = await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new AdminSupportTicketDto
+            .Select(c => new
             {
-                Id = c.Id,
-                Title = c.Title,
-                Description = c.Description,
-                Category = c.Category,
+                c.Id, c.Title, c.Description, c.Category,
                 Status = c.Status.ToString(),
-                RequesterRole = c.RequesterRole,
-                RequesterName = c.RequesterName,
-                RequesterEmail = c.RequesterEmail,
+                c.RequesterRole, c.RequesterName, c.RequesterEmail,
                 SchoolName = c.School != null ? c.School.SchoolName : null,
                 ProviderName = c.Provider != null ? c.Provider.ProviderName : null,
                 OrderId = c.OrderID,
                 SemesterPublicationId = c.SemesterPublicationID,
                 SemesterLabel = c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
-                Response = c.Response,
-                CreatedAt = c.CreatedAt,
-                RespondedAt = c.RespondedAt,
-                ResolvedAt = c.ResolvedAt
+                c.Response, c.ProofImageUrls,
+                c.CreatedAt, c.RespondedAt, c.ResolvedAt
             })
             .ToListAsync(ct);
+
+        var items = rawItems.Select(c => new AdminSupportTicketDto
+        {
+            Id = c.Id, Title = c.Title, Description = c.Description,
+            Category = c.Category, Status = c.Status,
+            RequesterRole = c.RequesterRole, RequesterName = c.RequesterName,
+            RequesterEmail = c.RequesterEmail,
+            SchoolName = c.SchoolName, ProviderName = c.ProviderName,
+            OrderId = c.OrderId, SemesterPublicationId = c.SemesterPublicationId,
+            SemesterLabel = c.SemesterLabel, Response = c.Response,
+            ProofImageUrls = string.IsNullOrEmpty(c.ProofImageUrls) ? null : JsonSerializer.Deserialize<List<string>>(c.ProofImageUrls),
+            CreatedAt = c.CreatedAt, RespondedAt = c.RespondedAt, ResolvedAt = c.ResolvedAt
+        }).ToList();
 
         return Result<AdminSupportTicketListResult>.Success(new AdminSupportTicketListResult
         {

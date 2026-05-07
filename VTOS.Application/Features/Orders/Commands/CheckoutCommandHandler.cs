@@ -18,6 +18,8 @@ namespace VTOS.Application.Features.Orders.Commands;
 /// </summary>
 public class CheckoutCommandHandler : ICheckoutCommandHandler
 {
+    private const decimal SHIPPING_FEE = 30_000m;
+
     private readonly IApplicationDbContext _context;
     private readonly IPayOSService _payOSService;
     private readonly ILogger<CheckoutCommandHandler> _logger;
@@ -65,15 +67,16 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             var checkoutContext = checkoutContextResult.Value!;
 
             // Step 4: Calculate total and create order items
-            var (orderItems, totalAmount) = CalculateOrderItems(command.Items, checkoutContext.ProductVariants, checkoutContext.PricingByOutfit, checkoutContext.PricingMode);
+            var (orderItems, itemsTotal) = CalculateOrderItems(command.Items, checkoutContext.ProductVariants, checkoutContext.PricingByOutfit, checkoutContext.PricingMode);
+            var totalAmount = itemsTotal + SHIPPING_FEE;
 
-            if (totalAmount <= 0)
+            if (itemsTotal <= 0)
             {
                 return Result<CheckoutResponse>.Failure("Invalid cart total", "INVALID_TOTAL_AMOUNT");
             }
 
             // Step 5: Create order
-            var order = CreateOrder(command, totalAmount, checkoutContext.ProviderId, checkoutContext.SemesterPublicationId, checkoutContext.PricingMode);
+            var order = CreateOrder(command, totalAmount, SHIPPING_FEE, checkoutContext.ProviderId, checkoutContext.SemesterPublicationId, checkoutContext.PricingMode);
             AssignOrderToItems(orderItems, order.Id);
             _context.Orders.Add(order);
 
@@ -104,6 +107,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
                 OrderId = order.Id,
                 PaymentTransactionId = paymentTransaction.Id,
                 TotalAmount = totalAmount,
+                ShippingFee = SHIPPING_FEE,
                 PaymentLink = paymentLink.CheckoutUrl,
                 OrderCode = orderCode
             };
@@ -330,6 +334,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
     private Order CreateOrder(
         CheckoutCommand command,
         decimal totalAmount,
+        decimal shippingFee,
         Guid providerId,
         Guid semesterPublicationId,
         OrderPricingMode pricingMode)
@@ -341,6 +346,7 @@ public class CheckoutCommandHandler : ICheckoutCommandHandler
             OrderDate = DateTime.UtcNow,
             OrderStatus = OrderStatus.Pending,
             TotalAmount = totalAmount,
+            ShippingFee = shippingFee,
             ShippingAddress = command.ShippingAddress,
             ProviderID = providerId,
             SemesterPublicationID = semesterPublicationId,

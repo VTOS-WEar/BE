@@ -44,6 +44,8 @@ public interface ISubmitProviderRatingCommandHandler
 
 public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
 {
+    private const decimal SHIPPING_FEE = 30_000m;
+
     private readonly IApplicationDbContext _context;
     private readonly IPayOSService _payOSService;
     private readonly ILogger<CreateDirectOrderCommandHandler> _logger;
@@ -197,7 +199,7 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
             CreatedAt = DateTime.UtcNow
         };
 
-        decimal totalAmount = 0;
+        decimal itemsTotal = 0;
         var orderItems = new List<OrderItem>();
 
         foreach (var item in command.Items)
@@ -208,7 +210,7 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
                 ? pricing.PostDeadlinePrice
                 : pricing.PublicationPrice;
 
-            totalAmount += unitPrice * item.Quantity;
+            itemsTotal += unitPrice * item.Quantity;
 
             orderItems.Add(new OrderItem
             {
@@ -224,7 +226,9 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
             });
         }
 
+        var totalAmount = itemsTotal + SHIPPING_FEE;
         order.TotalAmount = totalAmount;
+        order.ShippingFee = SHIPPING_FEE;
 
         CreatePaymentLinkResponse paymentLink;
         try
@@ -271,6 +275,7 @@ public class CreateDirectOrderCommandHandler : ICreateDirectOrderCommandHandler
             OrderId = order.Id,
             PaymentTransactionId = paymentTransaction.Id,
             TotalAmount = totalAmount,
+            ShippingFee = SHIPPING_FEE,
             PaymentLink = paymentLink.CheckoutUrl,
             OrderCode = paymentLink.OrderCode
         });

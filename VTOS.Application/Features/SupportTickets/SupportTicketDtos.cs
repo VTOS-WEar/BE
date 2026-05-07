@@ -7,7 +7,8 @@ public record CreateSupportTicketRequestDto(
     string Description,
     string? Category = null,
     Guid? OrderId = null,
-    Guid? SemesterPublicationId = null
+    Guid? SemesterPublicationId = null,
+    List<string>? ProofImageUrls = null
 );
 
 public record SupportTicketResponseDto(
@@ -25,6 +26,7 @@ public record SupportTicketResponseDto(
     Guid? SemesterPublicationId,
     string? SemesterLabel,
     string? Response,
+    List<string>? ProofImageUrls,
     DateTime CreatedAt,
     DateTime? RespondedAt,
     DateTime? ResolvedAt
