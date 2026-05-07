@@ -446,6 +446,7 @@ public static class DependencyInjection
         services.AddScoped<ICreateSupportTicketCommandHandler, CreateSupportTicketCommandHandler>();
         services.AddScoped<IGetMySupportTicketsQueryHandler, GetMySupportTicketsQueryHandler>();
         services.AddScoped<IGetMySupportTicketDetailQueryHandler, GetMySupportTicketDetailQueryHandler>();
+        services.AddScoped<ICancelMySupportTicketCommandHandler, CancelMySupportTicketCommandHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Queries.IGetSupportTicketDetailQueryHandler,
             VTOS.Application.Features.Schools.Queries.GetSupportTicketDetailQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Schools.Commands.ICloseSupportTicketCommandHandler,
