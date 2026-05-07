@@ -21,6 +21,11 @@ public class CheckoutResponse
     public decimal TotalAmount { get; set; }
 
     /// <summary>
+    /// Shipping fee included in total amount
+    /// </summary>
+    public decimal ShippingFee { get; set; }
+
+    /// <summary>
     /// Payment link from PayOS for checkout
     /// </summary>
     public string PaymentLink { get; set; } = string.Empty;

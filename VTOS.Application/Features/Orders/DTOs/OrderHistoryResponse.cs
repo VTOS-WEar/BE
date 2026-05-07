@@ -18,6 +18,7 @@ public class OrderHistoryItem
     public OrderStatus OrderStatus { get; set; }
     public string OrderStatusName { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
     public string? DeliveryMethod { get; set; }
     public int ItemCount { get; set; }

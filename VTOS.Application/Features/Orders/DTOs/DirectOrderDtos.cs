@@ -27,6 +27,7 @@ public class CreateDirectOrderResponse
     public Guid OrderId { get; set; }
     public Guid PaymentTransactionId { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string PaymentLink { get; set; } = string.Empty;
     public int OrderCode { get; set; }
 }
@@ -47,6 +48,7 @@ public class MyDirectOrderListItemDto
     public OrderStatus OrderStatus { get; set; }
     public string OrderStatusName { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string ChildName { get; set; } = string.Empty;
     public string ProviderName { get; set; } = string.Empty;
     public string PricingMode { get; set; } = string.Empty;
@@ -76,6 +78,7 @@ public class MyDirectOrderDetailDto
     public DateTime OrderDate { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
     public string? DeliveryMethod { get; set; }
     public string? RecipientName { get; set; }

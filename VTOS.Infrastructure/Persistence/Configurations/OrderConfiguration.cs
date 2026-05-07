@@ -28,6 +28,11 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired()
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(o => o.ShippingFee)
+            .IsRequired()
+            .HasColumnType("decimal(18,2)")
+            .HasDefaultValue(0m);
+
         builder.Property(o => o.ShippingAddress)
             .IsRequired()
             .HasMaxLength(500);

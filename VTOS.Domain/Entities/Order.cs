@@ -9,6 +9,7 @@ public class Order : AuditableEntity
     public DateTime OrderDate { get; set; }
     public OrderStatus OrderStatus { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
     public Guid? ProviderID { get; set; }
     public Guid? SemesterPublicationID { get; set; }

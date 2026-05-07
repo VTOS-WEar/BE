@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Schools.Queries;
@@ -51,19 +52,26 @@ public class GetProviderSupportTicketsQueryHandler : IGetProviderSupportTicketsQ
         q = q.OrderByDescending(c => c.CreatedAt);
 
         var total = await q.CountAsync(ct);
-        var items = await q
+        var rawItems = await q
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(c => new SupportTicketDto(
-                c.Id,
-                c.OrderID,
-                c.SemesterPublicationID,
-                c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
-                c.ProviderID, c.Provider != null ? c.Provider.ProviderName : null,
-                c.Title, c.Description, c.Response,
-                c.Status.ToString(), c.CreatedAt, c.RespondedAt, c.ResolvedAt
-            ))
+            .Select(c => new
+            {
+                c.Id, c.OrderID, c.SemesterPublicationID,
+                SemesterLabel = c.SemesterPublication != null ? $"{c.SemesterPublication.Semester} {c.SemesterPublication.AcademicYear}" : null,
+                c.ProviderID, ProviderName = c.Provider != null ? c.Provider.ProviderName : null,
+                c.Title, c.Description, c.Response, c.ProofImageUrls,
+                Status = c.Status.ToString(), c.CreatedAt, c.RespondedAt, c.ResolvedAt
+            })
             .ToListAsync(ct);
+
+        var items = rawItems.Select(c => new SupportTicketDto(
+            c.Id, c.OrderID, c.SemesterPublicationID, c.SemesterLabel,
+            c.ProviderID, c.ProviderName,
+            c.Title, c.Description, c.Response,
+            string.IsNullOrEmpty(c.ProofImageUrls) ? null : JsonSerializer.Deserialize<List<string>>(c.ProofImageUrls),
+            c.Status, c.CreatedAt, c.RespondedAt, c.ResolvedAt
+        )).ToList();
 
         return Result<GetProviderSupportTicketsResponse>.Success(
             new GetProviderSupportTicketsResponse(items, total, query.Page, query.PageSize));

@@ -73,6 +73,7 @@ public class GetOrderDetailForFeedbackQueryHandler : IGetOrderDetailForFeedbackQ
             ChildName = order.ChildProfile.FullName,
             ChildAvatar = order.ChildProfile.Avatar,
             TotalAmount = order.TotalAmount,
+            ShippingFee = order.ShippingFee,
             OrderStatus = order.OrderStatus.ToString(),
             OrderDate = order.OrderDate,
             ShippingAddress = order.ShippingAddress,

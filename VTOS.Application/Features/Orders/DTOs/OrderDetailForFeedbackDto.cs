@@ -7,6 +7,7 @@ public class OrderDetailForFeedbackDto
     public string ChildName { get; set; } = string.Empty;
     public string? ChildAvatar { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
