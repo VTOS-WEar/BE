@@ -132,11 +132,7 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
                     : null,
                 x.o.Provider != null ? x.o.Provider.ProviderName : null,
                 x.o.OrderItems
-                    .Select(oi => oi.ProductVariant.VariantImageURL
-                        ?? oi.ProductVariant.Outfit.MainImageURL
-                        ?? (oi.ProductVariant.ProviderCatalogItem != null
-                            ? oi.ProductVariant.ProviderCatalogItem.MainImageUrl
-                            : null))
+                    .Select(oi => oi.ProductVariant.Outfit.MainImageURL)
                     .FirstOrDefault(),
                 x.o.OrderItems.Count,
                 x.o.SemesterPublicationID,
