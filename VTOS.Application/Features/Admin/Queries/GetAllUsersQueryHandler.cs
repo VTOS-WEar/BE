@@ -19,6 +19,12 @@ public class GetAllUsersQueryHandler : IGetAllUsersQueryHandler
     {
         var q = _context.Users
             .Include(u => u.Role)
+            .Include(u => u.SchoolManager)
+                .ThenInclude(sm => sm!.School)
+            .Include(u => u.ProviderManager)
+                .ThenInclude(pm => pm!.Provider)
+            .Include(u => u.HomeroomClasses)
+                .ThenInclude(cg => cg.School)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -55,7 +61,15 @@ public class GetAllUsersQueryHandler : IGetAllUsersQueryHandler
                 u.Role.RoleName,
                 u.IsActive,
                 u.IsDeleted,
-                u.CreatedAt))
+                u.CreatedAt,
+                u.SchoolManager != null
+                    ? u.SchoolManager.School.SchoolName
+                    : u.HomeroomClasses.Any()
+                        ? u.HomeroomClasses.First().School.SchoolName
+                        : null,
+                u.ProviderManager != null
+                    ? u.ProviderManager.Provider.ProviderName
+                    : null))
             .ToListAsync(cancellationToken);
 
         return new UserListPagedResult(items, totalCount, query.Page, query.PageSize);
