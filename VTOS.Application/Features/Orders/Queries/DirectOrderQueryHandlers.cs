@@ -219,9 +219,7 @@ internal static class DirectOrderQueryHelpers
 {
     internal static string? ResolveItemImageUrl(ProductVariant? variant)
     {
-        return variant?.VariantImageURL
-            ?? variant?.Outfit?.MainImageURL
-            ?? variant?.ProviderCatalogItem?.MainImageUrl;
+        return variant?.Outfit?.MainImageURL;
     }
 
     internal static bool CanRequestCancellation(
