@@ -68,6 +68,9 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(pv => pv.Outfit)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(pv => pv.ProviderCatalogItem)
             .Where(o => childIds.Contains(o.ChildProfileID))
             .Select(o => new 
             {
@@ -128,7 +131,13 @@ public class GetParentPaymentHistoryQueryHandler : IGetParentPaymentHistoryQuery
                     ? $"{x.o.SemesterPublication.Semester} {x.o.SemesterPublication.AcademicYear}"
                     : null,
                 x.o.Provider != null ? x.o.Provider.ProviderName : null,
-                x.o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
+                x.o.OrderItems
+                    .Select(oi => oi.ProductVariant.VariantImageURL
+                        ?? oi.ProductVariant.Outfit.MainImageURL
+                        ?? (oi.ProductVariant.ProviderCatalogItem != null
+                            ? oi.ProductVariant.ProviderCatalogItem.MainImageUrl
+                            : null))
+                    .FirstOrDefault(),
                 x.o.OrderItems.Count,
                 x.o.SemesterPublicationID,
                 x.o.ProviderID,

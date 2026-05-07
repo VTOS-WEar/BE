@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VTOS.Application.Abstractions;
 using VTOS.Application.Common;
 using VTOS.Application.Features.Orders.DTOs;
+using VTOS.Domain.Entities;
 using VTOS.Domain.Enums;
 
 namespace VTOS.Application.Features.Orders.Queries;
@@ -45,6 +46,9 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(v => v.Outfit)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(v => v.ProviderCatalogItem)
             .Include(o => o.PaymentTransactions)
             .Where(o => o.ProviderID != null && o.SemesterPublicationID != null && o.ChildProfile.ParentUserID == query.ParentId);
 
@@ -88,7 +92,7 @@ public class GetMyDirectOrdersQueryHandler : IGetMyDirectOrdersQueryHandler
                     ChildName = o.ChildProfile.FullName,
                     ProviderName = o.Provider?.ProviderName ?? string.Empty,
                     PricingMode = DirectOrderQueryHelpers.ResolvePricingModeName(o.AppliedPricingMode, o.SemesterPublication?.EndDate, o.OrderDate),
-                    FirstItemImageUrl = o.OrderItems.Select(oi => oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL).FirstOrDefault(),
+                    FirstItemImageUrl = o.OrderItems.Select(oi => DirectOrderQueryHelpers.ResolveItemImageUrl(oi.ProductVariant)).FirstOrDefault(),
                     PaymentStatusName = o.PaymentTransactions.OrderByDescending(t => t.TransactionTimestamp).FirstOrDefault()?.TransactionStatus.ToString(),
                     TrackingCode = o.TrackingCode,
                     CanCancel = DirectOrderQueryHelpers.CanRequestCancellation(o.OrderStatus, ticket?.Status),
@@ -128,6 +132,9 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.ProductVariant)
                     .ThenInclude(v => v.Outfit)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.ProductVariant)
+                    .ThenInclude(v => v.ProviderCatalogItem)
             .Include(o => o.PaymentTransactions)
             .FirstOrDefaultAsync(
                 o => o.Id == query.OrderId
@@ -199,7 +206,7 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
                 ProductVariantId = oi.ProductVariantID,
                 OutfitId = oi.ProductVariant.OutfitID,
                 OutfitName = oi.ProductVariant.Outfit.OutfitName,
-                ImageUrl = oi.ProductVariant.VariantImageURL ?? oi.ProductVariant.Outfit.MainImageURL,
+                ImageUrl = DirectOrderQueryHelpers.ResolveItemImageUrl(oi.ProductVariant),
                 Size = oi.SizeOrdered,
                 Quantity = oi.Quantity,
                 UnitPrice = oi.UnitPrice
@@ -210,6 +217,13 @@ public class GetMyDirectOrderDetailQueryHandler : IGetMyDirectOrderDetailQueryHa
 
 internal static class DirectOrderQueryHelpers
 {
+    internal static string? ResolveItemImageUrl(ProductVariant? variant)
+    {
+        return variant?.VariantImageURL
+            ?? variant?.Outfit?.MainImageURL
+            ?? variant?.ProviderCatalogItem?.MainImageUrl;
+    }
+
     internal static bool CanRequestCancellation(
         VTOS.Domain.Enums.OrderStatus orderStatus,
         VTOS.Domain.Enums.SupportTicketStatus? cancellationTicketStatus)
