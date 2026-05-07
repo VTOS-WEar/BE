@@ -1,4 +1,4 @@
-﻿namespace VTOS.Application.Features.Admin.DTOs;
+namespace VTOS.Application.Features.Admin.DTOs;
 
 public record UserListItemDto(
     Guid Id,
@@ -7,5 +7,7 @@ public record UserListItemDto(
     string Role,
     bool IsActive,
     bool IsDeleted,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? SchoolName = null,
+    string? ProviderName = null
 );
