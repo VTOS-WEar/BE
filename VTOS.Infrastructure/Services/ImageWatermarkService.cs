@@ -38,10 +38,18 @@ public class ImageWatermarkService : IImageWatermarkService
             Edging = SKFontEdging.Antialias,
             Subpixel = true
         };
-        using var paint = new SKPaint
+        using var strokePaint = new SKPaint
         {
             IsAntialias = true,
-            Color = new SKColor(255, 255, 255, 72)
+            Color = new SKColor(15, 23, 42, 110),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = Math.Clamp(fontSize / 14f, 2f, 5f)
+        };
+        using var fillPaint = new SKPaint
+        {
+            IsAntialias = true,
+            Color = new SKColor(255, 255, 255, 170),
+            Style = SKPaintStyle.Fill
         };
 
         var textWidth = font.MeasureText(WatermarkText);
@@ -56,7 +64,8 @@ public class ImageWatermarkService : IImageWatermarkService
         {
             for (var x = -diagonal; x < diagonal * 1.5f; x += stepX)
             {
-                canvas.DrawText(WatermarkText, x, y, font, paint);
+                canvas.DrawText(WatermarkText, x, y, font, strokePaint);
+                canvas.DrawText(WatermarkText, x, y, font, fillPaint);
             }
         }
 

@@ -21,6 +21,7 @@ public class AdminController : ControllerBase
     private readonly IRejectWithdrawalCommandHandler _rejectWithdrawalHandler;
     private readonly IGetWithdrawalRequestsQueryHandler _getWithdrawalRequestsHandler;
     private readonly IImageUploadService _imageUploadService;
+    private readonly ICurrentUserService _currentUser;
 
     // New handlers for user management (3.2.8, 3.2.11)
     private readonly IGetUserDetailQueryHandler _getUserDetailHandler;
@@ -69,6 +70,8 @@ public class AdminController : ControllerBase
     private readonly IGetAllTransactionsQueryHandler _allTransactionsHandler;
     private readonly IGetAllSupportTicketsQueryHandler _allComplaintsHandler;
     private readonly IAdminInterventionCommandHandler _interventionHandler;
+    private readonly IGetAdminWalletOwnersQueryHandler _walletOwnersHandler;
+    private readonly ICreateAdminWalletCreditCommandHandler _walletCreditHandler;
 
     public AdminController(
         IGetAllUsersQueryHandler usersHandler,
@@ -80,6 +83,7 @@ public class AdminController : ControllerBase
         IRejectWithdrawalCommandHandler rejectWithdrawalHandler,
         IGetWithdrawalRequestsQueryHandler getWithdrawalRequestsHandler,
         IImageUploadService imageUploadService,
+        ICurrentUserService currentUser,
         IGetUserDetailQueryHandler getUserDetailHandler,
         IGetUserReportQueryHandler getUserReportHandler,
         IApproveSchoolRequestCommandHandler approveSchoolHandler,
@@ -109,7 +113,9 @@ public class AdminController : ControllerBase
         IGetAdminCashFlowQueryHandler cashFlowHandler,
         IGetAllTransactionsQueryHandler allTransactionsHandler,
         IGetAllSupportTicketsQueryHandler allComplaintsHandler,
-        IAdminInterventionCommandHandler interventionHandler)
+        IAdminInterventionCommandHandler interventionHandler,
+        IGetAdminWalletOwnersQueryHandler walletOwnersHandler,
+        ICreateAdminWalletCreditCommandHandler walletCreditHandler)
     {
         _usersHandler = usersHandler;
         _feedbacksHandler = feedbacksHandler;
@@ -120,6 +126,7 @@ public class AdminController : ControllerBase
         _rejectWithdrawalHandler = rejectWithdrawalHandler;
         _getWithdrawalRequestsHandler = getWithdrawalRequestsHandler;
         _imageUploadService = imageUploadService;
+        _currentUser = currentUser;
         
         _getUserDetailHandler = getUserDetailHandler;
         _getUserReportHandler = getUserReportHandler;
@@ -156,6 +163,8 @@ public class AdminController : ControllerBase
         _allTransactionsHandler = allTransactionsHandler;
         _allComplaintsHandler = allComplaintsHandler;
         _interventionHandler = interventionHandler;
+        _walletOwnersHandler = walletOwnersHandler;
+        _walletCreditHandler = walletCreditHandler;
     }
 
     [HttpGet("users")]
@@ -227,6 +236,52 @@ public class AdminController : ControllerBase
             new GetWithdrawalRequestsQuery(page, pageSize, status, search), ct);
 
         return Ok(result);
+    }
+
+    [HttpGet("wallets/owners")]
+    public async Task<IActionResult> GetWalletOwners(
+        [FromQuery] Domain.Enums.WalletOwnerType ownerType,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? ownerId = null,
+        CancellationToken ct = default)
+    {
+        var result = await _walletOwnersHandler.HandleAsync(
+            new GetAdminWalletOwnersQuery(ownerType, search, page, pageSize, ownerId),
+            ct);
+
+        if (!result.IsSuccess)
+            return BadRequest(new { error = result.Error, code = result.ErrorCode });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("wallets/credits")]
+    public async Task<IActionResult> CreateWalletCredit([FromBody] CreateAdminWalletCreditRequest request, CancellationToken ct = default)
+    {
+        if (!Enum.TryParse<Domain.Enums.WalletOwnerType>(request.OwnerType, true, out var ownerType))
+            return BadRequest(new { error = "Invalid wallet owner type.", code = "INVALID_OWNER_TYPE" });
+
+        var result = await _walletCreditHandler.HandleAsync(
+            new CreateAdminWalletCreditCommand(
+                _currentUser.UserId,
+                request.OwnerId,
+                ownerType,
+                request.Amount,
+                request.Reason,
+                request.TicketId,
+                request.OrderId),
+            ct);
+
+        if (!result.IsSuccess)
+        {
+            return result.ErrorCode is "OWNER_NOT_FOUND" or "TICKET_NOT_FOUND" or "ORDER_NOT_FOUND"
+                ? NotFound(new { error = result.Error, code = result.ErrorCode })
+                : BadRequest(new { error = result.Error, code = result.ErrorCode });
+        }
+
+        return Ok(result.Value);
     }
 
     // ✅ Approve Withdrawal Request
@@ -733,6 +788,14 @@ public class ApproveWithdrawalRequest
     public IFormFile? TransferProofImage { get; set; }
 }
 public record RejectWithdrawalRequest(string? AdminNote);
+
+public record CreateAdminWalletCreditRequest(
+    Guid OwnerId,
+    string OwnerType,
+    decimal Amount,
+    string Reason,
+    Guid? TicketId = null,
+    Guid? OrderId = null);
 
 public record ApproveOrRejectRequest(
     string Action,

@@ -10,5 +10,6 @@ public enum TransactionType
     ProviderPayout = 6,         // Funds are credited into provider wallet
     PlatformOrderFee = 7,       // 1% platform fee earned on settled provider order
     ProviderWithdrawal = 8,     // Net amount paid out to provider on withdrawal approval
-    ProviderWithdrawalFee = 9   // 2% platform fee earned on approved provider withdrawal
+    ProviderWithdrawalFee = 9,  // 2% platform fee earned on approved provider withdrawal
+    ManualWalletCredit = 10     // Admin credits a parent/provider wallet manually
 }
