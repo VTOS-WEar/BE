@@ -456,6 +456,11 @@ public static class DependencyInjection
             VTOS.Application.Features.Providers.Queries.GetProviderSupportTicketDetailQueryHandler>();
         services.AddScoped<VTOS.Application.Features.Providers.Commands.IRespondSupportTicketCommandHandler,
             VTOS.Application.Features.Providers.Commands.RespondSupportTicketCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.ProviderRefundTicketCommandHandler>();
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IApproveComplaintRefundCommandHandler>(
+            provider => provider.GetRequiredService<VTOS.Application.Features.Providers.Commands.ProviderRefundTicketCommandHandler>());
+        services.AddScoped<VTOS.Application.Features.Providers.Commands.IForwardComplaintToAdminCommandHandler>(
+            provider => provider.GetRequiredService<VTOS.Application.Features.Providers.Commands.ProviderRefundTicketCommandHandler>());
 
         // Phase 5 - Generic Chat
         services.AddScoped<VTOS.Application.Features.Chat.Queries.IGetChatMessagesQueryHandler,
